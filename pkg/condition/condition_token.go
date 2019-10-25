@@ -5,6 +5,7 @@ type Token int
 const (
 	TokErr Token = iota
 	TokUnsupp
+	TokBegin
 
 	// user-defined word
 	Identifier
@@ -31,6 +32,10 @@ const (
 	KeywordOr
 	KeywordNot
 	KeywordAgg
+
+	// TODO
+	KeywordNear
+	KeywordBy
 
 	// Statements
 	StOne
@@ -128,4 +133,50 @@ func (t Token) Rune() rune {
 	default:
 		return eof
 	}
+}
+
+// detect invalid token sequences
+func validTokenSequence(t1, t2 Token) bool {
+	switch t2 {
+	case StAll, StOne:
+		switch t1 {
+		case TokBegin, SepLpar, KeywordAnd, KeywordOr, KeywordNot:
+			return true
+		}
+	case IdentifierAll:
+		switch t1 {
+		case StAll, StOne:
+			return true
+		}
+	case Identifier, IdentifierWithWildcard:
+		switch t1 {
+		case SepLpar, TokBegin, KeywordAnd, KeywordOr, KeywordNot:
+			return true
+		}
+	case KeywordAnd, KeywordOr:
+		switch t1 {
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+			return true
+		}
+	case KeywordNot:
+		switch t1 {
+		case KeywordAnd, KeywordOr, SepLpar, TokBegin:
+			return true
+		}
+	case SepLpar:
+		switch t1 {
+		case KeywordAnd, KeywordOr, KeywordNot:
+			return true
+		}
+	case SepRpar:
+		switch t1 {
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepLpar:
+			return true
+		}
+	case LitEof:
+		switch t1 {
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+		}
+	}
+	return false
 }

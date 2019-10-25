@@ -78,9 +78,7 @@ func entrypoint(cmd *cobra.Command, args []string) {
 	}
 	log.Infof("Got %d rules from %s", len(rules), dir)
 	for _, rule := range rules {
-		if c, err := rule.Condition(); err == nil {
-			condition.Parse(c)
-		}
+		condition.Parse(rule.Detection)
 	}
 }
 
