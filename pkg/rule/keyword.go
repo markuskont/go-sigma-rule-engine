@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/markuskont/go-sigma-rule/pkg/types"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 	"github.com/ryanuber/go-glob"
 )
 

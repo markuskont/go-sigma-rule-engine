@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/markuskont/go-sigma-rule/pkg/types"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
 // JSON numbers are by spec all float64 values

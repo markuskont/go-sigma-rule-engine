@@ -3,13 +3,13 @@ package condition
 import (
 	"fmt"
 
-	"github.com/markuskont/go-sigma-rule/pkg/match"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
 )
 
 func Parse(raw string) (*match.Tree, error) {
 	p := &parser{lex: lex(raw)}
 	p.run()
-	return match.NewTree(nil), nil
+	return nil, nil
 }
 
 type parser struct {
