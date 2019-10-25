@@ -9,6 +9,7 @@ const (
 	// user-defined word
 	Identifier
 	IdentifierWithWildcard
+	IdentifierAll
 
 	// Literals
 	LitEof
@@ -30,7 +31,6 @@ const (
 	KeywordOr
 	KeywordNot
 	KeywordAgg
-	KeywordThem
 
 	// Statements
 	StOne
@@ -41,6 +41,8 @@ func (t Token) String() string {
 	switch t {
 	case Identifier, IdentifierWithWildcard:
 		return "IDENT"
+	case IdentifierAll:
+		return "THEM"
 	case SepLpar:
 		return "LPAR"
 	case SepRpar:
@@ -67,10 +69,10 @@ func (t Token) String() string {
 		return "ALL"
 	case StOne:
 		return "ONE"
-	case KeywordThem:
-		return "THEM"
 	case KeywordAgg:
 		return "AGG"
+	case LitEof:
+		return "EOF"
 	default:
 		return "Err"
 	}
@@ -80,6 +82,8 @@ func (t Token) Literal() string {
 	switch t {
 	case Identifier, IdentifierWithWildcard:
 		return "keywords"
+	case IdentifierAll:
+		return "them"
 	case SepLpar:
 		return "("
 	case SepRpar:
@@ -106,8 +110,8 @@ func (t Token) Literal() string {
 		return "all of"
 	case StOne:
 		return "1 of"
-	case KeywordThem:
-		return "them"
+	case LitEof:
+		return ""
 	default:
 		return "Err"
 	}

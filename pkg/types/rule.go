@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 type RawRule struct {
 	// Unique identifier that will be attached to positive match
 	ID int `yaml:"id" json:"id"`
@@ -24,4 +26,14 @@ type RawRule struct {
 	Falsepositives interface{} `yaml:"falsepositives" json:"falsepositives"`
 	Level          interface{} `yaml:"level" json:"level"`
 	Tags           []string    `yaml:"tags" json:"tags"`
+}
+
+func (r RawRule) Condition() (string, error) {
+	if r.Detection == nil || len(r.Detection) == 0 {
+		return "", fmt.Errorf("missing detection key")
+	}
+	if val, ok := r.Detection["condition"].(string); ok {
+		return val, nil
+	}
+	return "", fmt.Errorf("condition key missing or not a string value")
 }

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/markuskont/go-sigma-rule-engine/pkg/condition"
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 	log "github.com/sirupsen/logrus"
 
@@ -61,6 +62,14 @@ func entrypoint(cmd *cobra.Command, args []string) {
 				}).Error("missing detection map, check rule")
 				return nil
 			}
+			if _, err := s.Condition(); err != nil {
+				log.WithFields(log.Fields{
+					"title":     s.Title,
+					"file":      path,
+					"detection": s.Detection,
+				}).Errorf("%s, check rule", err)
+				return nil
+			}
 			rules = append(rules, &s)
 		}
 		return err
@@ -68,6 +77,11 @@ func entrypoint(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 	log.Infof("Got %d rules from %s", len(rules), dir)
+	for _, rule := range rules {
+		if c, err := rule.Condition(); err == nil {
+			condition.Parse(c)
+		}
+	}
 }
 
 func init() {

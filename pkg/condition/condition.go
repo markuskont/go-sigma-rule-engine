@@ -3,7 +3,6 @@ package condition
 
 import (
 	"strings"
-	"unicode"
 )
 
 type Item struct {
@@ -24,8 +23,8 @@ func checkKeyWord(in string) Token {
 		return KeywordNot
 	case "sum", "min", "max", "count", "avg":
 		return KeywordAgg
-	case KeywordThem.Literal():
-		return KeywordThem
+	case IdentifierAll.Literal():
+		return IdentifierAll
 	default:
 		if strings.Contains(in, "*") {
 			return IdentifierWithWildcard
@@ -35,84 +34,3 @@ func checkKeyWord(in string) Token {
 }
 
 var eof = rune(0)
-
-// stateFn is a function that is specific to a state within the string.
-type stateFn func(*lexer) stateFn
-
-func lexStatement(l *lexer) stateFn {
-	return lexText
-}
-
-func lexOneOf(l *lexer) stateFn {
-	l.position += len(StOne.Literal())
-	l.emit(StOne)
-	return lexText
-}
-
-func lexAllOf(l *lexer) stateFn {
-	l.position += len(StAll.Literal())
-	l.emit(StAll)
-	return lexText
-}
-
-func lexAggs(l *lexer) stateFn {
-	return nil
-}
-
-// lexText scans what is expected to be text.
-func lexText(l *lexer) stateFn {
-	for {
-		if strings.HasPrefix(l.todo(), StOne.Literal()) {
-			return lexOneOf
-		}
-		if strings.HasPrefix(l.todo(), StAll.Literal()) {
-			return lexAllOf
-		}
-		r := l.next()
-		switch {
-		case r == eof:
-			if l.position > l.start {
-				l.emit(checkKeyWord(l.collected()))
-			}
-			return nil
-		case r == SepRpar.Rune():
-			// emit any text we've accumulated.
-			if l.position > l.start {
-				l.emit(checkKeyWord(l.collected()))
-			}
-			l.emit(SepRpar)
-			// TODO - entering a subsection resets the whole lookup order
-			return lexText
-		case r == SepLpar.Rune():
-			l.emit(SepLpar)
-			// TODO - entering a subsection resets the whole lookup order
-			return lexText
-		case r == SepPipe.Rune():
-			l.emit(SepPipe)
-			return lexAggs
-		case unicode.IsSpace(r):
-			l.backup()
-			// emit any text we've accumulated.
-			if l.position > l.start {
-				l.emit(checkKeyWord(l.collected()))
-			}
-			return lexWhitespace
-		}
-	}
-}
-
-// lexWhitespace scans what is expected to be whitespace.
-func lexWhitespace(l *lexer) stateFn {
-	for {
-		r := l.next()
-		switch {
-		case r == eof:
-			return nil
-		case !unicode.IsSpace(r):
-			l.backup()
-			return lexText
-		default:
-			l.ignore()
-		}
-	}
-}

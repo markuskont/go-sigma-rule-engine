@@ -2,6 +2,8 @@ package condition
 
 import (
 	"fmt"
+	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -75,3 +77,89 @@ func (l *lexer) emit(k Token) {
 
 func (l lexer) collected() string { return l.input[l.start:l.position] }
 func (l lexer) todo() string      { return l.input[l.position:] }
+
+// stateFn is a function that is specific to a state within the string.
+type stateFn func(*lexer) stateFn
+
+func lexStatement(l *lexer) stateFn {
+	return lexText
+}
+
+func lexOneOf(l *lexer) stateFn {
+	l.position += len(StOne.Literal())
+	l.emit(StOne)
+	return lexText
+}
+
+func lexAllOf(l *lexer) stateFn {
+	l.position += len(StAll.Literal())
+	l.emit(StAll)
+	return lexText
+}
+
+func lexAggs(l *lexer) stateFn {
+	return l.errorf("aggregation not supported yet")
+}
+
+func lexEOF(l *lexer) stateFn {
+	l.emit(LitEof)
+	return nil
+}
+
+// lexText scans what is expected to be text.
+func lexText(l *lexer) stateFn {
+	for {
+		if strings.HasPrefix(l.todo(), StOne.Literal()) {
+			return lexOneOf
+		}
+		if strings.HasPrefix(l.todo(), StAll.Literal()) {
+			return lexAllOf
+		}
+		r := l.next()
+		switch {
+		case r == eof:
+			if l.position > l.start {
+				l.emit(checkKeyWord(l.collected()))
+			}
+			return lexEOF
+		case r == SepRpar.Rune():
+			// emit any text we've accumulated.
+			if l.position > l.start {
+				l.emit(checkKeyWord(l.collected()))
+			}
+			l.emit(SepRpar)
+			// TODO - entering a subsection resets the whole lookup order
+			return lexText
+		case r == SepLpar.Rune():
+			l.emit(SepLpar)
+			// TODO - entering a subsection resets the whole lookup order
+			return lexText
+		case r == SepPipe.Rune():
+			l.emit(SepPipe)
+			return lexAggs
+		case unicode.IsSpace(r):
+			l.backup()
+			// emit any text we've accumulated.
+			if l.position > l.start {
+				l.emit(checkKeyWord(l.collected()))
+			}
+			return lexWhitespace
+		}
+	}
+}
+
+// lexWhitespace scans what is expected to be whitespace.
+func lexWhitespace(l *lexer) stateFn {
+	for {
+		r := l.next()
+		switch {
+		case r == eof:
+			return lexEOF
+		case !unicode.IsSpace(r):
+			l.backup()
+			return lexText
+		default:
+			l.ignore()
+		}
+	}
+}
