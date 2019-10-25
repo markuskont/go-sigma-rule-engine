@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ccdcoe/go-peek/pkg/utils"
@@ -22,35 +23,6 @@ var sigmaCmd = &cobra.Command{
 	Run:   entrypoint,
 }
 
-type RawRule struct {
-	// Our custom fields
-	// Unique identifier that will be attached to positive match
-	ID int `yaml:"id" json:"id"`
-	// Detection logic type
-	// Is it simple string match or more complex correlation
-
-	// https://github.com/Neo23x0/sigma/wiki/Specification
-	Title       string `yaml:"title" json:"title"`
-	Status      string `yaml:"status" json:"status"`
-	Description string `yaml:"description" json:"description"`
-	Author      string `yaml:"author" json:"author"`
-	// A list of URL-s to external sources
-	References []string `yaml:"references" json:"references"`
-	Logsource  struct {
-		Product    string `yaml:"product" json:"product"`
-		Category   string `yaml:"category" json:"category"`
-		Service    string `yaml:"service" json:"service"`
-		Definition string `yaml:"definition" json:"definition"`
-	} `yaml:"logsource" json:"logsource"`
-
-	Detection map[string]interface{} `yaml:"detection" json:"detection"`
-
-	Fields         interface{} `yaml:"fields" json:"fields"`
-	Falsepositives interface{} `yaml:"falsepositives" json:"falsepositives"`
-	Level          interface{} `yaml:"level" json:"level"`
-	Tags           []string    `yaml:"tags" json:"tags"`
-}
-
 func entrypoint(cmd *cobra.Command, args []string) {
 	var err error
 	var dir string
@@ -60,14 +32,14 @@ func entrypoint(cmd *cobra.Command, args []string) {
 	if dir, err = utils.ExpandHome(dir); err != nil {
 		log.Fatal(err)
 	}
-	rules := make([]*RawRule, 0)
+	rules := make([]*types.RawRule, 0)
 	if err = filepath.Walk(dir, func(
 		path string,
 		info os.FileInfo,
 		err error,
 	) error {
 		if !info.IsDir() && strings.HasSuffix(path, "yml") {
-			var s RawRule
+			var s types.RawRule
 			data, err := ioutil.ReadFile(path) // just pass the file name
 			if err != nil {
 				log.WithFields(log.Fields{
