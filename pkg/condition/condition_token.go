@@ -176,6 +176,7 @@ func validTokenSequence(t1, t2 Token) bool {
 	case LitEof:
 		switch t1 {
 		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+			return true
 		}
 	}
 	return false

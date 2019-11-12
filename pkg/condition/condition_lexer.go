@@ -115,35 +115,42 @@ func lexText(l *lexer) stateFn {
 		if strings.HasPrefix(l.todo(), StAll.Literal()) {
 			return lexAllOf
 		}
+
 		r := l.next()
+
 		switch {
 		case r == eof:
 			if l.position > l.start {
 				l.emit(checkKeyWord(l.collected()))
 			}
 			return lexEOF
+
 		case r == SepRpar.Rune():
 			// emit any text we've accumulated.
 			if l.position > l.start {
+				l.backup()
 				l.emit(checkKeyWord(l.collected()))
+				l.next()
 			}
 			l.emit(SepRpar)
-			// TODO - entering a subsection resets the whole lookup order
 			return lexText
+
 		case r == SepLpar.Rune():
 			l.emit(SepLpar)
-			// TODO - entering a subsection resets the whole lookup order
 			return lexText
+
 		case r == SepPipe.Rune():
 			l.emit(SepPipe)
 			return lexAggs
+
 		case unicode.IsSpace(r):
-			l.backup()
 			// emit any text we've accumulated.
 			if l.position > l.start {
+				l.backup()
 				l.emit(checkKeyWord(l.collected()))
 			}
 			return lexWhitespace
+
 		}
 	}
 }

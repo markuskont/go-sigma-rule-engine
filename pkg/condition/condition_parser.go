@@ -91,7 +91,6 @@ func (p *parser) run() error {
 			}
 
 		case SepLpar:
-			fmt.Println("group begin")
 
 		case SepRpar:
 		case IdentifierAll:
@@ -107,7 +106,7 @@ func (p *parser) run() error {
 			}
 		case KeywordAnd, KeywordOr:
 		}
-		fmt.Println(item)
+		//fmt.Println(item)
 		p.total++
 	}
 	return nil
