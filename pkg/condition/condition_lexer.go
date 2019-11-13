@@ -61,6 +61,12 @@ func (l *lexer) scan() {
 	close(l.items)
 }
 
+func (l *lexer) unsuppf(format string, args ...interface{}) stateFn {
+	msg := fmt.Sprintf(format, args...)
+	l.items <- Item{T: TokUnsupp, Val: msg}
+	return nil
+}
+
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	msg := fmt.Sprintf(format, args...)
 	l.items <- Item{T: TokErr, Val: msg}
@@ -98,7 +104,7 @@ func lexAllOf(l *lexer) stateFn {
 }
 
 func lexAggs(l *lexer) stateFn {
-	return l.errorf("aggregation not supported yet")
+	return l.unsuppf("aggregation not supported yet [%s]", l.input)
 }
 
 func lexEOF(l *lexer) stateFn {

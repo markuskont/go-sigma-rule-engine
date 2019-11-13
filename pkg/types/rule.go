@@ -3,10 +3,10 @@ package types
 import "fmt"
 
 type RawRule struct {
-	// Unique identifier that will be attached to positive match
-	ID int `yaml:"id" json:"id"`
+	File string `yaml:"file" json:"file"`
 
 	// https://github.com/Neo23x0/sigma/wiki/Specification
+	ID          string `yaml:"id" json:"id"`
 	Title       string `yaml:"title" json:"title"`
 	Status      string `yaml:"status" json:"status"`
 	Description string `yaml:"description" json:"description"`
@@ -36,4 +36,11 @@ func (r RawRule) Condition() (string, error) {
 		return val, nil
 	}
 	return "", fmt.Errorf("condition key missing or not a string value")
+}
+
+func (r RawRule) GetCondition() string {
+	if c, err := r.Condition(); err == nil {
+		return c
+	}
+	return ""
 }

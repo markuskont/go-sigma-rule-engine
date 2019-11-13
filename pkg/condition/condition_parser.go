@@ -9,29 +9,53 @@ import (
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
-type idents struct {
-	// sigma detection map that contains condition query and relevant fields
-	sigma map[string]interface{}
-	// shortcut to sigma detection keys
-	identifiers []string
+type tokens []Item
+
+func (t tokens) index(tok Token) int {
+	for i, item := range t {
+		if item.T == tok {
+			return i
+		}
+	}
+	return -1
+}
+
+func (t tokens) reverseIndex(tok Token) int {
+	for i := len(t) - 1; i > 0; i-- {
+		if t[i].T == tok {
+			return i
+		}
+	}
+	return -1
+}
+
+func (t tokens) contains(tok Token) bool {
+	for _, item := range t {
+		if item.T == tok {
+			return true
+		}
+	}
+	return false
 }
 
 type parser struct {
 	lex *lexer
 
-	idents
-
 	// maintain a list of collected and validated tokens
-	// ma be useless and therefore nuked
-	items []Token
+	tokens
 
 	// memorize last token to validate proper sequence
 	// for example, two identifiers have to be joined via logical AND or OR, otherwise the sequence is invalid
 	previous Token
 
-	// total number of valid tokens collected
-	// to simplify handling trivial cases, like single keywords, selection or one of | all of statement
-	total int
+	// sigma detection map that contains condition query and relevant fields
+	sigma map[string]interface{}
+
+	// for debug
+	condition string
+
+	// sigma condition rules
+	rules []interface{}
 }
 
 func Parse(s map[string]interface{}) (*match.Tree, error) {
@@ -43,23 +67,13 @@ func Parse(s map[string]interface{}) (*match.Tree, error) {
 	if !ok {
 		return nil, fmt.Errorf("sigma rule condition missing or wrong type")
 	}
+	delete(s, "condition")
 	p := &parser{
-		lex: lex(raw),
-		idents: idents{
-			sigma: s,
-			identifiers: func() []string {
-				l := make([]string, 0)
-				for k, _ := range s {
-					if k == "condition" {
-						continue
-					}
-					l = append(l, k)
-				}
-				return l
-			}(),
-		},
-		items:    make([]Token, 0),
-		previous: TokBegin,
+		lex:       lex(raw),
+		sigma:     s,
+		tokens:    make([]Item, 0),
+		previous:  TokBegin,
+		condition: raw,
 	}
 	if err := p.run(); err != nil {
 		return nil, err
@@ -71,8 +85,12 @@ func (p *parser) run() error {
 	if p.lex == nil {
 		return fmt.Errorf("cannot run condition parser, lexer not initialized")
 	}
+	// Pass 1: collect tokens, do basic sequence validation and collect sigma fields
 	for item := range p.lex.items {
 
+		if item.T == TokUnsupp {
+			return ErrUnsupported{Msg: item.Val}
+		}
 		if !validTokenSequence(p.previous, item.T) {
 			return fmt.Errorf(
 				"invalid token sequence %s -> %s. Value: %s",
@@ -81,34 +99,21 @@ func (p *parser) run() error {
 				item.Val,
 			)
 		}
-		p.previous = item.T
-
-		switch item.T {
-		case TokErr:
-			return fmt.Errorf("invalid token: %s", item.Val)
-		case StOne, StAll:
-			if p.total > 0 {
-			}
-
-		case SepLpar:
-
-		case SepRpar:
-		case IdentifierAll:
-		case Identifier:
-		case IdentifierWithWildcard:
-			// error here
-		case LitEof:
-			switch p.total {
-			case 1:
-				// Should only be IDENT in elements
-			case 2:
-				// Should only be xOf and IDENT/THEM in elements
-			}
-		case KeywordAnd, KeywordOr:
+		if item.T != LitEof {
+			p.tokens = append(p.tokens, item)
 		}
-		//fmt.Println(item)
-		p.total++
+		p.previous = item.T
 	}
+	if p.previous != LitEof {
+		return fmt.Errorf("last element should be EOF, got %s", p.previous.String())
+	}
+
+	// Pass 2: find groups
+	/*
+		for p.contains(SepLpar) {
+
+		}
+	*/
 	return nil
 }
 
@@ -165,3 +170,9 @@ func (r ruleSelectionBranch) GetID() int {
 func (r *ruleSelectionBranch) SetID(id int) {
 	r.id = id
 }
+
+type ErrUnsupported struct {
+	Msg string
+}
+
+func (e ErrUnsupported) Error() string { return fmt.Sprintf("UNSUPPORTED TOKEN: %s", e.Msg) }

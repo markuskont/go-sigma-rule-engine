@@ -40,26 +40,25 @@ func entrypoint(cmd *cobra.Command, args []string) {
 		err error,
 	) error {
 		if !info.IsDir() && strings.HasSuffix(path, "yml") {
-			var s types.RawRule
+			var s *types.RawRule
 			data, err := ioutil.ReadFile(path) // just pass the file name
 			if err != nil {
 				log.WithFields(log.Fields{
 					"file": path,
-				}).Error(err)
+				}).Warn(err)
 				return nil
 			}
 			if err := yaml.Unmarshal([]byte(data), &s); err != nil {
 				log.WithFields(log.Fields{
 					"file": path,
-				}).Error(err)
+				}).Warn(err)
 				return nil
 			}
-			if s.Detection == nil {
+			if s.Detection == nil || len(s.Detection) < 2 {
 				log.WithFields(log.Fields{
-					"title":     s.Title,
-					"file":      path,
-					"detection": s.Detection,
-				}).Error("missing detection map, check rule")
+					"title": s.Title,
+					"file":  path,
+				}).Warn("missing detection map, check rule")
 				return nil
 			}
 			if _, err := s.Condition(); err != nil {
@@ -67,10 +66,11 @@ func entrypoint(cmd *cobra.Command, args []string) {
 					"title":     s.Title,
 					"file":      path,
 					"detection": s.Detection,
-				}).Errorf("%s, check rule", err)
+				}).Warnf("%s, check rule", err)
 				return nil
 			}
-			rules = append(rules, &s)
+			s.File = path
+			rules = append(rules, s)
 		}
 		return err
 	}); err != nil {
@@ -78,13 +78,26 @@ func entrypoint(cmd *cobra.Command, args []string) {
 	}
 	log.Infof("Got %d rules from %s", len(rules), dir)
 	for _, rule := range rules {
-		condition.Parse(rule.Detection)
+		if _, err := condition.Parse(rule.Detection); err != nil {
+			contextLogger := log.WithFields(log.Fields{
+				"id":   rule.ID,
+				"file": rule.File,
+			})
+			switch err.(type) {
+			case condition.ErrUnsupported:
+				contextLogger.Warn(err)
+			default:
+				contextLogger.Error(err)
+			}
+		}
 	}
 }
 
 func init() {
+	//log.SetFormatter(&log.JSONFormatter{})
 	rootCmd.AddCommand(sigmaCmd)
 
 	sigmaCmd.PersistentFlags().String("sigma-rules-dir", "", "Directory that contains sigma rules.")
 	viper.BindPFlag("sigma.rules.dir", sigmaCmd.PersistentFlags().Lookup("sigma-rules-dir"))
+
 }

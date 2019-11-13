@@ -150,7 +150,7 @@ func validTokenSequence(t1, t2 Token) bool {
 		}
 	case Identifier, IdentifierWithWildcard:
 		switch t1 {
-		case SepLpar, TokBegin, KeywordAnd, KeywordOr, KeywordNot:
+		case SepLpar, TokBegin, KeywordAnd, KeywordOr, KeywordNot, StOne:
 			return true
 		}
 	case KeywordAnd, KeywordOr:
@@ -174,6 +174,11 @@ func validTokenSequence(t1, t2 Token) bool {
 			return true
 		}
 	case LitEof:
+		switch t1 {
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+			return true
+		}
+	case SepPipe:
 		switch t1 {
 		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
 			return true
