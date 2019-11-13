@@ -55,7 +55,7 @@ func (l *lexer) scan() {
 	// When we begin processing, let's assume we're going to process text.
 	// One state function will return another until `nil` is returned to signal
 	// the end of our process.
-	for fn := lexText; fn != nil; {
+	for fn := lexCondition; fn != nil; {
 		fn = fn(l)
 	}
 	close(l.items)
@@ -88,19 +88,19 @@ func (l lexer) todo() string      { return l.input[l.position:] }
 type stateFn func(*lexer) stateFn
 
 func lexStatement(l *lexer) stateFn {
-	return lexText
+	return lexCondition
 }
 
 func lexOneOf(l *lexer) stateFn {
 	l.position += len(StOne.Literal())
 	l.emit(StOne)
-	return lexText
+	return lexCondition
 }
 
 func lexAllOf(l *lexer) stateFn {
 	l.position += len(StAll.Literal())
 	l.emit(StAll)
-	return lexText
+	return lexCondition
 }
 
 func lexAggs(l *lexer) stateFn {
@@ -112,8 +112,8 @@ func lexEOF(l *lexer) stateFn {
 	return nil
 }
 
-// lexText scans what is expected to be text.
-func lexText(l *lexer) stateFn {
+// lexCondition scans what is expected to be text.
+func lexCondition(l *lexer) stateFn {
 	for {
 		if strings.HasPrefix(l.todo(), StOne.Literal()) {
 			return lexOneOf
@@ -140,11 +140,11 @@ func lexText(l *lexer) stateFn {
 				l.next()
 			}
 			l.emit(SepRpar)
-			return lexText
+			return lexCondition
 
 		case r == SepLpar.Rune():
 			l.emit(SepLpar)
-			return lexText
+			return lexCondition
 
 		case r == SepPipe.Rune():
 			l.emit(SepPipe)
@@ -171,7 +171,7 @@ func lexWhitespace(l *lexer) stateFn {
 			return lexEOF
 		case !unicode.IsSpace(r):
 			l.backup()
-			return lexText
+			return lexCondition
 		default:
 			l.ignore()
 		}
