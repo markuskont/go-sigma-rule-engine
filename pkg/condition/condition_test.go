@@ -16,6 +16,7 @@ var data = []string{
 	"aaa and (bbb or ccc)",
 	`selection | count(dns_query) by parent_domain > 1000`,
 	`( selection1 and selection2 ) or selection3`,
+	`selection and ( sourceRDP or destinationRDP )`,
 	`(rundll_image or rundll_ofn) and selection`,
 }
 
