@@ -145,8 +145,8 @@ func lexText(l *lexer) stateFn {
 
 		case unicode.IsSpace(r):
 			// emit any text we've accumulated.
-			if l.position-1 > l.start {
-				l.backup()
+			l.backup()
+			if l.position > l.start {
 				l.emit(checkKeyWord(l.collected()))
 			}
 			return lexWhitespace
