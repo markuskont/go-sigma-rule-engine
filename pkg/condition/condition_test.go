@@ -15,6 +15,8 @@ var data = []string{
 	"aaa and bbb",
 	"aaa and (bbb or ccc)",
 	`selection | count(dns_query) by parent_domain > 1000`,
+	`( selection1 and selection2 ) or selection3`,
+	`(rundll_image or rundll_ofn) and selection`,
 }
 
 func TestLex(t *testing.T) {
@@ -26,6 +28,15 @@ func TestLex(t *testing.T) {
 		}
 		fmt.Printf("%+v\n", out)
 	}
+}
+
+func TestLex1(t *testing.T) {
+	l := lex(data[9])
+	out := make([]Item, 0)
+	for tok := range l.items {
+		out = append(out, tok)
+	}
+	fmt.Printf("%+v\n", out)
 }
 
 var detection1 = map[string]interface{}{

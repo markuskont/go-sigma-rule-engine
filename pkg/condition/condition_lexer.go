@@ -133,6 +133,7 @@ func lexText(l *lexer) stateFn {
 
 		case r == SepRpar.Rune():
 			// emit any text we've accumulated.
+			fmt.Println(l.todo())
 			if l.position > l.start {
 				l.backup()
 				l.emit(checkKeyWord(l.collected()))
