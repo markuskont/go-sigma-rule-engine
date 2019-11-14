@@ -2,6 +2,7 @@ package rule
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -64,7 +65,7 @@ func NewKeywordFromInterface(lowercase bool, expr interface{}) (*Keyword, error)
 		}
 	}
 	return nil, fmt.Errorf(
-		"Invalid type for parsing keyword expression. Should be slice of strings or a funky one element map where value is slice of strings. Got %+v", expr,
+		"Invalid type for parsing keyword expression. Should be slice of strings or a funky one element map where value is slice of strings. Got |%+v| with type |%s|", expr, reflect.TypeOf(expr).String(),
 	)
 }
 

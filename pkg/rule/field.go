@@ -92,10 +92,16 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 			f.nPatterns[k] = []float64{float64(condition)}
 		case []interface{}:
 			var t reflect.Kind
+			var stringAndNumber bool
 			// make sure all list types are the same
+		loop:
 			for i, item := range condition {
 				if i > 0 {
-					if t2 := reflect.TypeOf(item).Kind(); t2 != t {
+					if t2 := reflect.TypeOf(item).Kind(); t2 != t && (t == reflect.String || t2 == reflect.String) {
+						stringAndNumber = true
+						t = reflect.String
+						break loop
+					} else if t2 != t {
 						return f, fmt.Errorf(
 							"Selection/field rule parse fail for key %s list contains %s and %s",
 							k,
@@ -115,7 +121,20 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 					str := make([]string, len(condition))
 					for i, item := range condition {
 						// This should already be checked
-						str[i] = item.(string)
+						if stringAndNumber {
+							switch cast := v.(type) {
+							case string:
+								str[i] = cast
+							case int:
+								str[i] = strconv.Itoa(cast)
+							case float64:
+								str[i] = strconv.Itoa(int(cast))
+							default:
+
+							}
+						} else {
+							str[i] = item.(string)
+						}
 					}
 					return str
 				}()...)
