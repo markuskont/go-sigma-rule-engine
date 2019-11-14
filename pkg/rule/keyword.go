@@ -60,6 +60,19 @@ func NewKeywordFromInterface(lowercase bool, expr interface{}) (*Keyword, error)
 	switch v := expr.(type) {
 	case []string:
 		return NewKeyword(lowercase, v...)
+	case []interface{}:
+		slc := make([]string, 0)
+		for _, item := range v {
+			switch cast := item.(type) {
+			case string:
+				slc = append(slc, cast)
+			case int:
+				slc = append(slc, strconv.Itoa(cast))
+			case float64:
+				slc = append(slc, strconv.Itoa(int(cast)))
+			}
+		}
+		return NewKeyword(lowercase, slc...)
 	case map[string]interface{}:
 		if patterns, ok := v["Message"].([]string); ok {
 			return NewKeyword(lowercase, patterns...)
