@@ -84,19 +84,32 @@ func entrypoint(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 	log.Infof("Got %d rules from %s", len(rules), dir)
+	var good, bad, unhandled int
 	for _, rule := range rules {
-		if _, err := condition.Parse(rule.Detection); err != nil {
-			contextLogger := log.WithFields(log.Fields{
-				"file": rule.File,
-			})
+		contextLogger := log.WithFields(log.Fields{
+			"file": rule.File,
+		})
+		if tree, err := condition.Parse(rule.Detection); err != nil {
 			switch err.(type) {
 			case types.ErrUnsupportedToken, types.ErrIncompleteDetection:
 				contextLogger.Warn(err)
 			default:
 				contextLogger.Error(err)
 			}
+			bad++
+		} else if tree != nil {
+			contextLogger.Info("Seemed to parse fine")
+			good++
+		} else {
+			unhandled++
 		}
 	}
+	contextLogger := log.WithFields(log.Fields{
+		"ok":           good,
+		"errors":       bad,
+		"missing code": unhandled,
+	})
+	contextLogger.Info("Done")
 }
 
 func init() {
