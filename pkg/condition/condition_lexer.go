@@ -101,7 +101,7 @@ func lexCondition(l *lexer) stateFn {
 		case r == eof:
 			return lexEOF
 		case r == SepRpar.Rune():
-			return lexRpar
+			return lexRparWithTokens
 		case r == SepLpar.Rune():
 			return lexLpar
 		case r == SepPipe.Rune():
@@ -150,19 +150,39 @@ func lexLpar(l *lexer) stateFn {
 	return lexCondition
 }
 
-func lexRpar(l *lexer) stateFn {
+func lexRparWithTokens(l *lexer) stateFn {
 	// emit any text we've accumulated.
 	if l.position > l.start {
 		l.backup()
-		l.emit(checkKeyWord(l.collected()))
-		l.next()
+		// There may be N whitespace chars between token RPAR
+		// TODO - may be a more concise way to do this, right now loops like this are everywhere
+
+		if t := checkKeyWord(l.collected()); t != TokNil {
+			l.emit(t)
+		}
+
+		for {
+			switch r := l.next(); {
+			case r == eof:
+				return lexEOF
+			case unicode.IsSpace(r):
+				l.ignore()
+			default:
+				return lexRpar
+			}
+		}
 	}
+	return lexRpar
+}
+
+func lexRpar(l *lexer) stateFn {
 	l.emit(SepRpar)
 	return lexCondition
 }
 
 func lexAccumulateBeforeWhitespace(l *lexer) stateFn {
 	l.backup()
+	// emit any text we've accumulated.
 	if l.position > l.start {
 		l.emit(checkKeyWord(l.collected()))
 	}
@@ -171,10 +191,8 @@ func lexAccumulateBeforeWhitespace(l *lexer) stateFn {
 
 // lexWhitespace scans what is expected to be whitespace.
 func lexWhitespace(l *lexer) stateFn {
-	// emit any text we've accumulated.
 	for {
-		r := l.next()
-		switch {
+		switch r := l.next(); {
 		case r == eof:
 			return lexEOF
 		case !unicode.IsSpace(r):

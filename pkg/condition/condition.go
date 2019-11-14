@@ -12,7 +12,7 @@ type Item struct {
 
 func checkKeyWord(in string) Token {
 	if len(in) == 0 {
-		return TokErr
+		return TokNil
 	}
 	switch strings.ToLower(in) {
 	case KeywordAnd.Literal():

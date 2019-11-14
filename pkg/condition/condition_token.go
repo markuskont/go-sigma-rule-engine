@@ -8,6 +8,7 @@ const (
 	// Helpers for internal stuff
 	TokUnsupp
 	TokBegin
+	TokNil
 
 	// user-defined word
 	Identifier
@@ -86,6 +87,8 @@ func (t Token) String() string {
 		return "UNSUPPORTED"
 	case TokBegin:
 		return "BEGINNING"
+	case TokNil:
+		return "NIL"
 	default:
 		return "Unk"
 	}
@@ -123,7 +126,7 @@ func (t Token) Literal() string {
 		return "all of"
 	case StOne:
 		return "1 of"
-	case LitEof:
+	case LitEof, TokNil:
 		return ""
 	default:
 		return "Err"
