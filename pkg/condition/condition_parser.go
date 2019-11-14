@@ -59,28 +59,43 @@ type parser struct {
 }
 
 func Parse(s map[string]interface{}) (*match.Tree, error) {
-	// detection should have condition and at least 1 identifier
-	// TODO - 1 element is legit, provided its a selection or keywords search, condition is therefore redundant
-	// TODO - might be a good idea to simply return a single node tree if detection has 1 or 2 keys, which translates to only one simple search field. Parsing the condition statement of 1 IDENT is thus redundant
-	if s == nil || len(s) < 2 {
-		return nil, fmt.Errorf("sigma rule detection missing or has less than 2 elements")
+	if s == nil {
+		return nil, types.ErrMissingDetection{}
 	}
-	raw, ok := s["condition"].(string)
-	if !ok {
-		return nil, fmt.Errorf("sigma rule condition missing or wrong type")
+	switch len(s) {
+	case 0:
+		return nil, types.ErrMissingDetection{}
+	case 1:
+		if c, ok := s["condition"].(string); ok {
+			return nil, types.ErrIncompleteDetection{Condition: c}
+		}
+		// Simple case - should have only one search field, but should not have a condition field
+		return nil, nil
+	case 2:
+		if _, ok := s["condition"].(string); !ok {
+			return nil, types.ErrIncompleteDetection{Condition: "MISSING"}
+		}
+		// Simple case - one condition statement comprised of single IDENT that matches the second field name
+		return nil, nil
+	default:
+		// Complex case, time to build syntax tree out of condition statement
+		raw, ok := s["condition"].(string)
+		if !ok {
+			return nil, types.ErrMissingCondition{}
+		}
+		delete(s, "condition")
+		p := &parser{
+			lex:       lex(raw),
+			sigma:     s,
+			tokens:    make([]Item, 0),
+			previous:  TokBegin,
+			condition: raw,
+		}
+		if err := p.run(); err != nil {
+			return nil, err
+		}
+		return nil, nil
 	}
-	delete(s, "condition")
-	p := &parser{
-		lex:       lex(raw),
-		sigma:     s,
-		tokens:    make([]Item, 0),
-		previous:  TokBegin,
-		condition: raw,
-	}
-	if err := p.run(); err != nil {
-		return nil, err
-	}
-	return nil, nil
 }
 
 func (p *parser) run() error {
@@ -91,7 +106,7 @@ func (p *parser) run() error {
 	for item := range p.lex.items {
 
 		if item.T == TokUnsupp {
-			return ErrUnsupported{Msg: item.Val}
+			return types.ErrUnsupportedToken{Msg: item.Val}
 		}
 		if !validTokenSequence(p.previous, item.T) {
 			return fmt.Errorf(
@@ -164,7 +179,3 @@ func (r ruleSelectionBranch) GetID() int { return r.id }
 
 // SetID implements Identifier
 func (r *ruleSelectionBranch) SetID(id int) { r.id = id }
-
-type ErrUnsupported struct{ Msg string }
-
-func (e ErrUnsupported) Error() string { return fmt.Sprintf("UNSUPPORTED TOKEN: %s", e.Msg) }

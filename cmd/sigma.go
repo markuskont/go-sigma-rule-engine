@@ -54,7 +54,7 @@ func entrypoint(cmd *cobra.Command, args []string) {
 				}).Warn(err)
 				return nil
 			}
-			if s.Detection == nil || len(s.Detection) < 2 {
+			if s.Detection == nil {
 				log.WithFields(log.Fields{
 					"title": s.Title,
 					"file":  path,
@@ -84,7 +84,7 @@ func entrypoint(cmd *cobra.Command, args []string) {
 				"file": rule.File,
 			})
 			switch err.(type) {
-			case condition.ErrUnsupported:
+			case types.ErrUnsupportedToken, types.ErrIncompleteDetection:
 				contextLogger.Warn(err)
 			default:
 				contextLogger.Error(err)

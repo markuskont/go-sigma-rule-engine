@@ -1,6 +1,8 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type RawRule struct {
 	File string `yaml:"file" json:"file"`
@@ -20,7 +22,7 @@ type RawRule struct {
 		Definition string `yaml:"definition" json:"definition"`
 	} `yaml:"logsource" json:"logsource"`
 
-	Detection map[string]interface{} `yaml:"detection" json:"detection"`
+	Detection Detection `yaml:"detection" json:"detection"`
 
 	Fields         interface{} `yaml:"fields" json:"fields"`
 	Falsepositives interface{} `yaml:"falsepositives" json:"falsepositives"`
@@ -43,4 +45,16 @@ func (r RawRule) GetCondition() string {
 		return c
 	}
 	return ""
+}
+
+type Detection map[string]interface{}
+
+func (d Detection) Rules() []string {
+	tx := make([]string, 0)
+	for k, _ := range d {
+		if k != "condition" {
+			tx = append(tx, k)
+		}
+	}
+	return tx
 }
