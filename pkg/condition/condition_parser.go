@@ -60,6 +60,8 @@ type parser struct {
 
 func Parse(s map[string]interface{}) (*match.Tree, error) {
 	// detection should have condition and at least 1 identifier
+	// TODO - 1 element is legit, provided its a selection or keywords search, condition is therefore redundant
+	// TODO - might be a good idea to simply return a single node tree if detection has 1 or 2 keys, which translates to only one simple search field. Parsing the condition statement of 1 IDENT is thus redundant
 	if s == nil || len(s) < 2 {
 		return nil, fmt.Errorf("sigma rule detection missing or has less than 2 elements")
 	}
@@ -151,28 +153,18 @@ type ruleSelectionBranch struct {
 }
 
 // Match implements sigma Matcher
-func (r ruleSelectionBranch) Match(obj types.EventChecker) bool {
-	return r.Match(obj)
-}
+func (r ruleSelectionBranch) Match(obj types.EventChecker) bool { return r.Match(obj) }
 
 // Self returns Node or final rule object for debugging and/or walking the tree
 // Must be type switched externally
-func (r ruleSelectionBranch) Self() interface{} {
-	return r.Fields.Self()
-}
+func (r ruleSelectionBranch) Self() interface{} { return r.Fields.Self() }
 
 // GetID implements Identifier
-func (r ruleSelectionBranch) GetID() int {
-	return r.id
-}
+func (r ruleSelectionBranch) GetID() int { return r.id }
 
 // SetID implements Identifier
-func (r *ruleSelectionBranch) SetID(id int) {
-	r.id = id
-}
+func (r *ruleSelectionBranch) SetID(id int) { r.id = id }
 
-type ErrUnsupported struct {
-	Msg string
-}
+type ErrUnsupported struct{ Msg string }
 
 func (e ErrUnsupported) Error() string { return fmt.Sprintf("UNSUPPORTED TOKEN: %s", e.Msg) }
