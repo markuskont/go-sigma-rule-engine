@@ -87,6 +87,30 @@ func (l lexer) todo() string      { return l.input[l.position:] }
 // stateFn is a function that is specific to a state within the string.
 type stateFn func(*lexer) stateFn
 
+// lexCondition scans what is expected to be text.
+func lexCondition(l *lexer) stateFn {
+	for {
+		if strings.HasPrefix(l.todo(), StOne.Literal()) {
+			return lexOneOf
+		}
+		if strings.HasPrefix(l.todo(), StAll.Literal()) {
+			return lexAllOf
+		}
+		switch r := l.next(); {
+		case r == eof:
+			return lexEOF
+		case r == SepRpar.Rune():
+			return lexRpar
+		case r == SepLpar.Rune():
+			return lexLpar
+		case r == SepPipe.Rune():
+			return lexPipe
+		case unicode.IsSpace(r):
+			return lexWhitespace
+		}
+	}
+}
+
 func lexStatement(l *lexer) stateFn {
 	return lexCondition
 }
@@ -115,30 +139,6 @@ func lexEOF(l *lexer) stateFn {
 	return nil
 }
 
-// lexCondition scans what is expected to be text.
-func lexCondition(l *lexer) stateFn {
-	for {
-		if strings.HasPrefix(l.todo(), StOne.Literal()) {
-			return lexOneOf
-		}
-		if strings.HasPrefix(l.todo(), StAll.Literal()) {
-			return lexAllOf
-		}
-		switch r := l.next(); {
-		case r == eof:
-			return lexEOF
-		case r == SepRpar.Rune():
-			return lexRpar
-		case r == SepLpar.Rune():
-			return lexLpar
-		case r == SepPipe.Rune():
-			return lexPipe
-		case unicode.IsSpace(r):
-			return lexWhitespace
-		}
-	}
-}
-
 func lexPipe(l *lexer) stateFn {
 	l.emit(SepPipe)
 	return lexAggs
@@ -148,6 +148,7 @@ func lexLpar(l *lexer) stateFn {
 	l.emit(SepLpar)
 	return lexCondition
 }
+
 func lexRpar(l *lexer) stateFn {
 	// emit any text we've accumulated.
 	if l.position > l.start {
@@ -159,13 +160,17 @@ func lexRpar(l *lexer) stateFn {
 	return lexCondition
 }
 
-// lexWhitespace scans what is expected to be whitespace.
-func lexWhitespace(l *lexer) stateFn {
-	// emit any text we've accumulated.
+func lexAccumulateBeforeWhitespace(l *lexer) stateFn {
 	l.backup()
 	if l.position > l.start {
 		l.emit(checkKeyWord(l.collected()))
 	}
+	return lexWhitespace
+}
+
+// lexWhitespace scans what is expected to be whitespace.
+func lexWhitespace(l *lexer) stateFn {
+	// emit any text we've accumulated.
 	for {
 		r := l.next()
 		switch {
