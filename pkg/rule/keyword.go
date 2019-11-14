@@ -54,6 +54,20 @@ type Keyword struct {
 	Stats
 }
 
+func NewKeywordFromInterface(lowercase bool, expr interface{}) (*Keyword, error) {
+	switch v := expr.(type) {
+	case []string:
+		return NewKeyword(lowercase, v...)
+	case map[string]interface{}:
+		if patterns, ok := v["Message"].([]string); ok {
+			return NewKeyword(lowercase, patterns...)
+		}
+	}
+	return nil, fmt.Errorf(
+		"Invalid type for parsing keyword expression. Should be slice of strings or a funky one element map where value is slice of strings. Got %+v", expr,
+	)
+}
+
 func NewKeyword(lowercase bool, patterns ...string) (*Keyword, error) {
 	if patterns == nil || len(patterns) == 0 {
 		return nil, fmt.Errorf("no patterns defined for keyword match rule")

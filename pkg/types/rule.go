@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 )
 
 type RawRule struct {
@@ -47,14 +48,53 @@ func (r RawRule) GetCondition() string {
 	return ""
 }
 
+type SearchExprType int
+
+const (
+	ExprUnk SearchExprType = iota
+	ExprSelection
+	ExprKeywords
+)
+
+type SearchExpr struct {
+	Name    string
+	Type    SearchExprType
+	Content interface{}
+}
+
+func (s *SearchExpr) Guess() SearchExpr {
+	if strings.HasPrefix(s.Name, "keyword") {
+		s.Type = ExprKeywords
+	} else {
+		s.Type = ExprSelection
+	}
+	return *s
+}
+
 type Detection map[string]interface{}
 
-func (d Detection) Rules() []string {
-	tx := make([]string, 0)
-	for k, _ := range d {
-		if k != "condition" {
-			tx = append(tx, k)
+func (d Detection) Fields() <-chan SearchExpr {
+	tx := make(chan SearchExpr, 0)
+	go func() {
+		defer close(tx)
+		for k, v := range d {
+			if k != "condition" {
+				e := SearchExpr{
+					Name:    k,
+					Content: v,
+				}
+				tx <- e.Guess()
+			}
 		}
+	}()
+	return tx
+}
+
+func (d Detection) FieldSlice() []string {
+	tx := make([]string, 0)
+	rx := d.Fields()
+	for item := range rx {
+		tx = append(tx, item.Name)
 	}
 	return tx
 }

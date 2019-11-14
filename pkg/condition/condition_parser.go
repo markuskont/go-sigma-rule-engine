@@ -2,6 +2,7 @@ package condition
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
@@ -58,7 +59,7 @@ type parser struct {
 	rules []interface{}
 }
 
-func Parse(s map[string]interface{}) (*match.Tree, error) {
+func Parse(s types.Detection) (*match.Tree, error) {
 	if s == nil {
 		return nil, types.ErrMissingDetection{}
 	}
@@ -66,17 +67,24 @@ func Parse(s map[string]interface{}) (*match.Tree, error) {
 	case 0:
 		return nil, types.ErrMissingDetection{}
 	case 1:
+		// Simple case - should have only one search field, but should not have a condition field
 		if c, ok := s["condition"].(string); ok {
 			return nil, types.ErrIncompleteDetection{Condition: c}
 		}
-		// Simple case - should have only one search field, but should not have a condition field
-		return nil, nil
 	case 2:
-		if _, ok := s["condition"].(string); !ok {
-			return nil, types.ErrIncompleteDetection{Condition: "MISSING"}
-		}
 		// Simple case - one condition statement comprised of single IDENT that matches the second field name
-		return nil, nil
+		if c, ok := s["condition"].(string); !ok {
+			return nil, types.ErrIncompleteDetection{Condition: "MISSING"}
+		} else {
+			if _, ok := s[c]; !ok {
+				return nil, types.ErrIncompleteDetection{
+					Condition: c,
+					Msg:       fmt.Sprintf("Field %s defined in condition missing from map.", c),
+					Keys:      s.FieldSlice(),
+				}
+			}
+		}
+		delete(s, "condition")
 	default:
 		// Complex case, time to build syntax tree out of condition statement
 		raw, ok := s["condition"].(string)
@@ -95,6 +103,41 @@ func Parse(s map[string]interface{}) (*match.Tree, error) {
 			return nil, err
 		}
 		return nil, nil
+	}
+	// Should only have one element as complex scenario is handled separately
+	rx := s.Fields()
+	ast := &match.Tree{}
+	root, err := newRuleMatcherFromIdent(<-rx, false)
+	if err != nil {
+		return nil, err
+	}
+	ast.Root = root
+	return ast, nil
+}
+
+func newRuleMatcherFromIdent(v types.SearchExpr, toLower bool) (match.Branch, error) {
+	switch v.Type {
+	case types.ExprKeywords:
+		return rule.NewKeywordFromInterface(toLower, v.Content)
+	case types.ExprSelection:
+		m, ok := v.Content.(map[interface{}]interface{})
+		if !ok {
+			return nil, fmt.Errorf(
+				"selection rule %s should be defined as a map, got %s",
+				v.Name,
+				reflect.TypeOf(v.Content).String(),
+			)
+		}
+		m2 := make(map[string]interface{})
+		for k, v := range m {
+			sk, ok := k.(string)
+			if !ok {
+			}
+			m2[sk] = v
+		}
+		return rule.NewFields(m2, toLower, false)
+	default:
+		return nil, fmt.Errorf("unable to parse rule definition")
 	}
 }
 

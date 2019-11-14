@@ -83,6 +83,10 @@ func initConfig() {
 	}
 }
 func initLogging() {
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors: false,
+		FullTimestamp: true,
+	})
 	if quiet {
 		log.SetLevel(log.ErrorLevel)
 	}

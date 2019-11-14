@@ -17,11 +17,12 @@ func (e ErrMissingCondition) Error() string { return "complex sigma rule is miss
 type ErrIncompleteDetection struct {
 	Condition string
 	Keys      []string
+	Msg       string
 }
 
 func (e ErrIncompleteDetection) Error() string {
 	return fmt.Sprintf(
-		"incomplete rule, missing fields from condition. [%s]. Has %+v.",
+		"incomplete rule, missing fields from condition. [%s]. Has %+v. %s",
 		e.Condition,
 		func() []string {
 			if e.Keys != nil {
@@ -29,6 +30,7 @@ func (e ErrIncompleteDetection) Error() string {
 			}
 			return []string{}
 		}(),
+		e.Msg,
 	)
 }
 

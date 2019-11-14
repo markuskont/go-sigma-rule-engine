@@ -85,6 +85,11 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 				f.nPatterns = make(map[string]numPatterns)
 			}
 			f.nPatterns[k] = []float64{condition}
+		case int:
+			if f.nPatterns == nil {
+				f.nPatterns = make(map[string]numPatterns)
+			}
+			f.nPatterns[k] = []float64{float64(condition)}
 		case []interface{}:
 			var t reflect.Kind
 			// make sure all list types are the same
@@ -130,6 +135,21 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 					for i, item := range condition {
 						// this should already be checked
 						flt[i] = item.(float64)
+					}
+					return flt
+				}()
+			case reflect.Int:
+				if f.nPatterns == nil {
+					f.nPatterns = make(map[string]numPatterns)
+				}
+				if f.nPatterns == nil {
+					f.nPatterns = make(map[string]numPatterns)
+				}
+				f.nPatterns[k] = func() []float64 {
+					flt := make([]float64, len(condition))
+					for i, item := range condition {
+						// this should already be checked
+						flt[i] = float64(item.(int))
 					}
 					return flt
 				}()

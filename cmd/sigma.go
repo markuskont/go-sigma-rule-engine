@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -48,6 +49,12 @@ func entrypoint(cmd *cobra.Command, args []string) {
 				}).Warn(err)
 				return nil
 			}
+			if bytes.Contains(data, []byte("---")) {
+				log.WithFields(log.Fields{
+					"file": path,
+				}).Warn("Multi-part yaml with key collisions. Thank you pythonistas.")
+				return nil
+			}
 			if err := yaml.Unmarshal([]byte(data), &s); err != nil {
 				log.WithFields(log.Fields{
 					"file": path,
@@ -80,7 +87,6 @@ func entrypoint(cmd *cobra.Command, args []string) {
 	for _, rule := range rules {
 		if _, err := condition.Parse(rule.Detection); err != nil {
 			contextLogger := log.WithFields(log.Fields{
-				"id":   rule.ID,
 				"file": rule.File,
 			})
 			switch err.(type) {
