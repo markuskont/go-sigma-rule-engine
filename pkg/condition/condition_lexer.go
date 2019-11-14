@@ -106,7 +106,7 @@ func lexCondition(l *lexer) stateFn {
 		case r == SepPipe.Rune():
 			return lexPipe
 		case unicode.IsSpace(r):
-			return lexWhitespace
+			return lexAccumulateBeforeWhitespace
 		}
 	}
 }
