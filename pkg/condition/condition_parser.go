@@ -132,6 +132,7 @@ func newRuleMatcherFromIdent(v types.SearchExpr, toLower bool) (match.Branch, er
 		for k, v := range m {
 			sk, ok := k.(string)
 			if !ok {
+				return nil, fmt.Errorf("failed to create selection rule from interface")
 			}
 			m2[sk] = v
 		}

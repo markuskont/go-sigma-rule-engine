@@ -71,6 +71,10 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 	// Thank you pythonistas
 	for k, v := range raw {
 		switch condition := v.(type) {
+		case nil:
+			// TODO
+			// Boolean pattern is a thing
+			// should handle in case json parser picks null value from rule
 		case string:
 			if f.sPatterns == nil {
 				f.sPatterns = make(map[string]stringPatterns)
