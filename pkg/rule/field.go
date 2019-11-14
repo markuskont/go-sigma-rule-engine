@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
@@ -70,6 +71,12 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 	}
 	// Thank you pythonistas
 	for k, v := range raw {
+		// TODO - key might also have a piped specification for substring placement
+		// TODO - cont. example is : Image|endswith and CommandLine|contains
+		// TODO - this is a temporary hack, use HasPrefix/HasSuffix/Contains methods instead
+		if strings.Contains(k, "|") {
+			k = strings.Split(k, "|")[0]
+		}
 		switch condition := v.(type) {
 		case nil:
 			// TODO

@@ -120,23 +120,27 @@ func newRuleMatcherFromIdent(v types.SearchExpr, toLower bool) (match.Branch, er
 	case types.ExprKeywords:
 		return rule.NewKeywordFromInterface(toLower, v.Content)
 	case types.ExprSelection:
-		m, ok := v.Content.(map[interface{}]interface{})
-		if !ok {
+		switch m := v.Content.(type) {
+		case map[string]interface{}:
+			return rule.NewFields(m, toLower, false)
+		case map[interface{}]interface{}:
+			m2 := make(map[string]interface{})
+			for k, v := range m {
+				sk, ok := k.(string)
+				if !ok {
+					return nil, fmt.Errorf("failed to create selection rule from interface")
+				}
+				m2[sk] = v
+			}
+			return rule.NewFields(m2, toLower, false)
+
+		default:
 			return nil, fmt.Errorf(
 				"selection rule %s should be defined as a map, got %s",
 				v.Name,
 				reflect.TypeOf(v.Content).String(),
 			)
 		}
-		m2 := make(map[string]interface{})
-		for k, v := range m {
-			sk, ok := k.(string)
-			if !ok {
-				return nil, fmt.Errorf("failed to create selection rule from interface")
-			}
-			m2[sk] = v
-		}
-		return rule.NewFields(m2, toLower, false)
 	default:
 		return nil, fmt.Errorf("unable to parse rule definition")
 	}
