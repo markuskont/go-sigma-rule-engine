@@ -108,6 +108,9 @@ func lexAggs(l *lexer) stateFn {
 }
 
 func lexEOF(l *lexer) stateFn {
+	if l.position > l.start {
+		l.emit(checkKeyWord(l.collected()))
+	}
 	l.emit(LitEof)
 	return nil
 }
@@ -121,48 +124,48 @@ func lexCondition(l *lexer) stateFn {
 		if strings.HasPrefix(l.todo(), StAll.Literal()) {
 			return lexAllOf
 		}
-
-		r := l.next()
-
-		switch {
+		switch r := l.next(); {
 		case r == eof:
-			if l.position > l.start {
-				l.emit(checkKeyWord(l.collected()))
-			}
 			return lexEOF
-
 		case r == SepRpar.Rune():
-			// emit any text we've accumulated.
-			if l.position > l.start {
-				l.backup()
-				l.emit(checkKeyWord(l.collected()))
-				l.next()
-			}
-			l.emit(SepRpar)
-			return lexCondition
-
+			return lexRpar
 		case r == SepLpar.Rune():
-			l.emit(SepLpar)
-			return lexCondition
-
+			return lexLpar
 		case r == SepPipe.Rune():
-			l.emit(SepPipe)
-			return lexAggs
-
+			return lexPipe
 		case unicode.IsSpace(r):
-			// emit any text we've accumulated.
-			l.backup()
-			if l.position > l.start {
-				l.emit(checkKeyWord(l.collected()))
-			}
 			return lexWhitespace
-
 		}
 	}
 }
 
+func lexPipe(l *lexer) stateFn {
+	l.emit(SepPipe)
+	return lexAggs
+}
+
+func lexLpar(l *lexer) stateFn {
+	l.emit(SepLpar)
+	return lexCondition
+}
+func lexRpar(l *lexer) stateFn {
+	// emit any text we've accumulated.
+	if l.position > l.start {
+		l.backup()
+		l.emit(checkKeyWord(l.collected()))
+		l.next()
+	}
+	l.emit(SepRpar)
+	return lexCondition
+}
+
 // lexWhitespace scans what is expected to be whitespace.
 func lexWhitespace(l *lexer) stateFn {
+	// emit any text we've accumulated.
+	l.backup()
+	if l.position > l.start {
+		l.emit(checkKeyWord(l.collected()))
+	}
 	for {
 		r := l.next()
 		switch {
