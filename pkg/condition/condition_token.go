@@ -4,6 +4,8 @@ type Token int
 
 const (
 	TokErr Token = iota
+
+	// Helpers for internal stuff
 	TokUnsupp
 	TokBegin
 
@@ -78,8 +80,14 @@ func (t Token) String() string {
 		return "AGG"
 	case LitEof:
 		return "EOF"
+	case TokErr:
+		return "ERR"
+	case TokUnsupp:
+		return "UNSUPPORTED"
+	case TokBegin:
+		return "BEGINNING"
 	default:
-		return "Err"
+		return "Unk"
 	}
 }
 
@@ -150,7 +158,7 @@ func validTokenSequence(t1, t2 Token) bool {
 		}
 	case Identifier, IdentifierWithWildcard:
 		switch t1 {
-		case SepLpar, TokBegin, KeywordAnd, KeywordOr, KeywordNot, StOne:
+		case SepLpar, TokBegin, KeywordAnd, KeywordOr, KeywordNot, StOne, StAll:
 			return true
 		}
 	case KeywordAnd, KeywordOr:
@@ -165,7 +173,7 @@ func validTokenSequence(t1, t2 Token) bool {
 		}
 	case SepLpar:
 		switch t1 {
-		case KeywordAnd, KeywordOr, KeywordNot:
+		case KeywordAnd, KeywordOr, KeywordNot, TokBegin:
 			return true
 		}
 	case SepRpar:

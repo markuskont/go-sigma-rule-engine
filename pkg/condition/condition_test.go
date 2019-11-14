@@ -18,6 +18,7 @@ var data = []string{
 	`( selection1 and selection2 ) or selection3`,
 	`selection and ( sourceRDP or destinationRDP )`,
 	`(rundll_image or rundll_ofn) and selection`,
+	`(selection1 and not 1 of filter*) or selection2 or selection3 or selection4`,
 }
 
 func TestLex(t *testing.T) {
@@ -29,15 +30,6 @@ func TestLex(t *testing.T) {
 		}
 		fmt.Printf("%+v\n", out)
 	}
-}
-
-func TestLex1(t *testing.T) {
-	l := lex(data[9])
-	out := make([]Item, 0)
-	for tok := range l.items {
-		out = append(out, tok)
-	}
-	fmt.Printf("%+v\n", out)
 }
 
 var detection1 = map[string]interface{}{
