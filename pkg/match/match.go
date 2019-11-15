@@ -78,14 +78,11 @@ func (n NodeAnd) Match(obj types.EventChecker) bool {
 func (n NodeAnd) Self() interface{} { return n }
 
 type NodeNot struct {
-	ID int
 	Branch
 }
 
 // Match implements sigma Matcher
-func (n NodeNot) Match(obj types.EventChecker) bool {
-	return !n.Match(obj)
-}
+func (n NodeNot) Match(obj types.EventChecker) bool { return !n.Match(obj) }
 
 // Self returns Node or final rule object for debugging and/or walking the tree
 // Must be type switched externally

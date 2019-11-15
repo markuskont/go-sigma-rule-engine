@@ -74,8 +74,10 @@ type condWrapper struct {
 // simple search == just a valid group sequence with no sub-groups
 // maybe will stay, maybe exists just until I figure out the parse logic
 func parseSimpleSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
-	var negate bool
-	var cond Token
+	var (
+		negate bool
+		cond   Token
+	)
 	group := make([]*condWrapper, 0)
 	for _, item := range t {
 		switch item.T {
@@ -105,10 +107,9 @@ func parseSimpleSearch(t tokens, data types.Detection, c rule.Config) (match.Bra
 		}
 	}
 
-	// TODO - might be able to do this in single pass
-	for _, item := range group {
+	j, _ := json.Marshal(group)
+	fmt.Printf("%s\n", string(j))
 
-	}
 	return nil, fmt.Errorf("WIP")
 }
 

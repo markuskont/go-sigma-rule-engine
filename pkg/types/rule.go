@@ -101,10 +101,11 @@ func (d Detection) FieldSlice() []string {
 
 func (d Detection) Get(key string) *SearchExpr {
 	if val, ok := d[key]; ok {
-		return &SearchExpr{
+		e := &SearchExpr{
 			Name:    key,
 			Content: val,
 		}
+		return e.Guess()
 	}
 	return nil
 }
