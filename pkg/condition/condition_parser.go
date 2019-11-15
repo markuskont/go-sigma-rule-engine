@@ -3,8 +3,46 @@ package condition
 import (
 	"fmt"
 
+	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
+
+func parseSearch(t tokens, data types.Detection) (match.Branch, error) {
+	fmt.Printf("Parsing %+v\n", t)
+
+	// seek to LPAR -> store offset set balance as 1
+	// seek from offset to end -> increment balance when encountering LPAR, decrement when encountering RPAR
+	// increment group count on every decrement
+	// stop when balance is 0, error of EOF if balance is positive or negative
+	// if group count is > 0, fill sub brances via recursion
+	// finally, build branch from identifiers and logic statements
+
+	var balance, groups int
+	var from, to int
+	to = len(t) - 1
+	for i, item := range t {
+		switch item.T {
+		case SepLpar:
+			balance++
+			if groups == 0 {
+				from = i
+			}
+		case SepRpar:
+			balance--
+			if balance == 0 {
+				groups++
+				to = i
+			}
+		}
+	}
+
+	if balance > 0 || balance < 0 {
+		return nil, fmt.Errorf("Broken rule group")
+	}
+	fmt.Printf("got %d groups between %d and %d\n", groups, from, to)
+
+	return nil, nil
+}
 
 type parser struct {
 	lex *lexer
@@ -17,7 +55,7 @@ type parser struct {
 	previous Token
 
 	// sigma detection map that contains condition query and relevant fields
-	sigma map[string]interface{}
+	sigma types.Detection
 
 	// for debug
 	condition string
@@ -35,6 +73,8 @@ func (p *parser) run() error {
 		return err
 	}
 	// Pass 2: find groups
+	fmt.Println("------------------")
+	parseSearch(p.tokens, p.sigma)
 	return nil
 }
 

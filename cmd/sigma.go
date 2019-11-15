@@ -89,11 +89,15 @@ func entrypoint(cmd *cobra.Command, args []string) {
 		contextLogger := log.WithFields(log.Fields{
 			"file": rule.File,
 		})
+		contextLogger.Trace("parsing rule")
 		if tree, err := condition.Parse(rule.Detection); err != nil {
 			switch err.(type) {
 			case types.ErrUnsupportedToken, types.ErrIncompleteDetection:
 				unsupported++
 				contextLogger.Warn(err)
+			case types.ErrWip:
+				unsupported++
+				contextLogger.Debugf(">>>>%s", err)
 			default:
 				bad++
 				contextLogger.Error(err)
@@ -115,10 +119,8 @@ func entrypoint(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	//log.SetFormatter(&log.JSONFormatter{})
 	rootCmd.AddCommand(sigmaCmd)
 
 	sigmaCmd.PersistentFlags().String("sigma-rules-dir", "", "Directory that contains sigma rules.")
 	viper.BindPFlag("sigma.rules.dir", sigmaCmd.PersistentFlags().Lookup("sigma-rules-dir"))
-
 }

@@ -57,7 +57,7 @@ func Parse(s types.Detection) (*match.Tree, error) {
 		if err := p.run(); err != nil {
 			return nil, err
 		}
-		return nil, nil
+		return nil, types.ErrWip{}
 	}
 	// Should only have one element as complex scenario is handled separately
 	rx := s.Fields()

@@ -37,3 +37,7 @@ func (e ErrIncompleteDetection) Error() string {
 type ErrUnsupportedToken struct{ Msg string }
 
 func (e ErrUnsupportedToken) Error() string { return fmt.Sprintf("UNSUPPORTED TOKEN: %s", e.Msg) }
+
+type ErrWip struct{}
+
+func (e ErrWip) Error() string { return fmt.Sprintf("Work in progress") }
