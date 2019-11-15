@@ -2,42 +2,10 @@ package condition
 
 import (
 	"fmt"
-	"reflect"
-	"strings"
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
-	"github.com/markuskont/go-sigma-rule-engine/pkg/rule"
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
-
-type tokens []Item
-
-func (t tokens) index(tok Token) int {
-	for i, item := range t {
-		if item.T == tok {
-			return i
-		}
-	}
-	return -1
-}
-
-func (t tokens) reverseIndex(tok Token) int {
-	for i := len(t) - 1; i > 0; i-- {
-		if t[i].T == tok {
-			return i
-		}
-	}
-	return -1
-}
-
-func (t tokens) contains(tok Token) bool {
-	for _, item := range t {
-		if item.T == tok {
-			return true
-		}
-	}
-	return false
-}
 
 type parser struct {
 	lex *lexer
@@ -116,76 +84,19 @@ func Parse(s types.Detection) (*match.Tree, error) {
 	return ast, nil
 }
 
-func interfaceMapToStringInterfaceMap(m map[interface{}]interface{}) (map[string]interface{}, error) {
-	m2 := make(map[string]interface{})
-	for k, v := range m {
-		sk, ok := k.(string)
-		if !ok {
-			return m2, fmt.Errorf("failed to create selection rule from interface")
-		}
-		m2[sk] = v
-	}
-	return m2, nil
-
-}
-
-func newRuleMatcherFromIdent(v types.SearchExpr, toLower bool) (match.Branch, error) {
-	switch v.Type {
-	case types.ExprKeywords:
-		return rule.NewKeywordFromInterface(toLower, v.Content)
-	case types.ExprSelection:
-		switch m := v.Content.(type) {
-		case map[string]interface{}:
-			return rule.NewFields(m, toLower, false)
-		case []interface{}:
-			// might be a list of selections where each entry is a distinct selection rule joined by logical OR
-			branch := make(rule.FieldsList, 0)
-			for _, raw := range m {
-				var (
-					elem *rule.Fields
-					err  error
-				)
-				switch expr := raw.(type) {
-				case map[interface{}]interface{}:
-					m2, err := interfaceMapToStringInterfaceMap(expr)
-					if err != nil {
-						return nil, err
-					}
-					elem, err = rule.NewFields(m2, toLower, false)
-				case map[string]interface{}:
-					elem, err = rule.NewFields(expr, toLower, false)
-				default:
-					return nil, fmt.Errorf("TODO")
-				}
-				if err != nil {
-					return nil, err
-				}
-				branch = append(branch, elem)
-			}
-			return branch, nil
-		case map[interface{}]interface{}:
-			m2, err := interfaceMapToStringInterfaceMap(m)
-			if err != nil {
-				return nil, err
-			}
-			return rule.NewFields(m2, toLower, false)
-		default:
-			return nil, fmt.Errorf(
-				"selection rule %s should be defined as a map, got %s",
-				v.Name,
-				reflect.TypeOf(v.Content).String(),
-			)
-		}
-	default:
-		return nil, fmt.Errorf("unable to parse rule definition")
-	}
-}
-
 func (p *parser) run() error {
 	if p.lex == nil {
 		return fmt.Errorf("cannot run condition parser, lexer not initialized")
 	}
 	// Pass 1: collect tokens, do basic sequence validation and collect sigma fields
+	if err := p.collectAndValidateTokenSequences(); err != nil {
+		return err
+	}
+	// Pass 2: find groups
+	return nil
+}
+
+func (p *parser) collectAndValidateTokenSequences() error {
 	for item := range p.lex.items {
 
 		if item.T == TokUnsupp {
@@ -207,58 +118,5 @@ func (p *parser) run() error {
 	if p.previous != LitEof {
 		return fmt.Errorf("last element should be EOF, got %s", p.previous.String())
 	}
-
-	// Pass 2: find groups
-	/*
-		for p.contains(SepLpar) {
-
-		}
-	*/
 	return nil
 }
-
-func isKeywords(s string) bool { return strings.HasPrefix(s, "keywords") }
-
-type ruleKeywordBranch struct {
-	id int
-	rule.Keyword
-}
-
-// Match implements sigma Matcher
-func (r ruleKeywordBranch) Match(obj types.EventChecker) bool {
-	return r.Keyword.Match(obj)
-}
-
-// Self returns Node or final rule object for debugging and/or walking the tree
-// Must be type switched externally
-func (r ruleKeywordBranch) Self() interface{} {
-	return r.Keyword.Self()
-}
-
-// GetID implements Identifier
-func (r ruleKeywordBranch) GetID() int {
-	return r.id
-}
-
-// SetID implements Identifier
-func (r *ruleKeywordBranch) SetID(id int) {
-	r.id = id
-}
-
-type ruleSelectionBranch struct {
-	id int
-	rule.Fields
-}
-
-// Match implements sigma Matcher
-func (r ruleSelectionBranch) Match(obj types.EventChecker) bool { return r.Match(obj) }
-
-// Self returns Node or final rule object for debugging and/or walking the tree
-// Must be type switched externally
-func (r ruleSelectionBranch) Self() interface{} { return r.Fields.Self() }
-
-// GetID implements Identifier
-func (r ruleSelectionBranch) GetID() int { return r.id }
-
-// SetID implements Identifier
-func (r *ruleSelectionBranch) SetID(id int) { r.id = id }

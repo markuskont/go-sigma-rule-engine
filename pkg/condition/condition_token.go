@@ -197,3 +197,32 @@ func validTokenSequence(t1, t2 Token) bool {
 	}
 	return false
 }
+
+type tokens []Item
+
+func (t tokens) index(tok Token) int {
+	for i, item := range t {
+		if item.T == tok {
+			return i
+		}
+	}
+	return -1
+}
+
+func (t tokens) reverseIndex(tok Token) int {
+	for i := len(t) - 1; i > 0; i-- {
+		if t[i].T == tok {
+			return i
+		}
+	}
+	return -1
+}
+
+func (t tokens) contains(tok Token) bool {
+	for _, item := range t {
+		if item.T == tok {
+			return true
+		}
+	}
+	return false
+}
