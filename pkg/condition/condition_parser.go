@@ -59,6 +59,7 @@ type parser struct {
 	rules []interface{}
 }
 
+// TODO - perhaps we should invoke parse only if we actually need to parse the query statement and simply instantiate a single-branch rule otherwise
 func Parse(s types.Detection) (*match.Tree, error) {
 	if s == nil {
 		return nil, types.ErrMissingDetection{}

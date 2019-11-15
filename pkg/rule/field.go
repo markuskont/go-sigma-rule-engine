@@ -109,6 +109,7 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 			for i, item := range condition {
 				if i > 0 {
 					if t2 := reflect.TypeOf(item).Kind(); t2 != t && (t == reflect.String || t2 == reflect.String) {
+						// Just convert all values to string if a single item happens to be one
 						stringAndNumber = true
 						t = reflect.String
 						break loop

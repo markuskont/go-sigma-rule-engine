@@ -22,48 +22,51 @@ type Identifier interface {
 	SetID(int)
 }
 
-const (
-	None Condition = iota
-	And
-	Or
-	Not
-	Null
-)
-
-type Node struct {
-	ID int
-
-	Condition
-
-	L Branch
-	R Branch
-}
-
-func (m *Node) Match(obj types.EventChecker) bool {
-	if m.L != nil || m.R != nil {
-		return true
-	}
-	return false
-}
-
-func (n Node) Self() interface{} { return n }
-
 type Tree struct {
 	Root Branch
 }
 
-func (t Tree) Find(id int) interface{} {
-	n := t.Root.Self()
-	run := true
-	for run {
-		switch n.(type) {
-		case Node:
-		default:
-			run = false
-		}
-	}
-	return n
-}
-
 func (t Tree) Match(obj types.EventChecker) bool { return t.Root.Match(obj) }
 func (t Tree) Self() interface{}                 { return t.Root }
+
+type NodeOr struct {
+	ID   int
+	L, R Branch
+}
+
+// Match implements sigma Matcher
+func (n NodeOr) Match(obj types.EventChecker) bool {
+	return n.L.Match(obj) || n.R.Match(obj)
+}
+
+// Self returns Node or final rule object for debugging and/or walking the tree
+// Must be type switched externally
+func (n NodeOr) Self() interface{} { return n }
+
+type NodeAnd struct {
+	ID   int
+	L, R Branch
+}
+
+// Match implements sigma Matcher
+func (n NodeAnd) Match(obj types.EventChecker) bool {
+	return n.L.Match(obj) && n.R.Match(obj)
+}
+
+// Self returns Node or final rule object for debugging and/or walking the tree
+// Must be type switched externally
+func (n NodeAnd) Self() interface{} { return n }
+
+type NodeNot struct {
+	ID int
+	Branch
+}
+
+// Match implements sigma Matcher
+func (n NodeNot) Match(obj types.EventChecker) bool {
+	return !n.Match(obj)
+}
+
+// Self returns Node or final rule object for debugging and/or walking the tree
+// Must be type switched externally
+func (n NodeNot) Self() interface{} { return n }
