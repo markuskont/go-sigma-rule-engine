@@ -18,3 +18,28 @@ func interfaceMapToStringInterfaceMap(m map[interface{}]interface{}) (map[string
 }
 
 func isKeywords(s string) bool { return strings.HasPrefix(s, "keywords") }
+
+func checkKeyWord(in string) Token {
+	if len(in) == 0 {
+		return TokNil
+	}
+	switch strings.ToLower(in) {
+	case KeywordAnd.Literal():
+		return KeywordAnd
+	case KeywordOr.Literal():
+		return KeywordOr
+	case KeywordNot.Literal():
+		return KeywordNot
+	case "sum", "min", "max", "count", "avg":
+		return KeywordAgg
+	case IdentifierAll.Literal():
+		return IdentifierAll
+	default:
+		if strings.Contains(in, "*") {
+			return IdentifierWithWildcard
+		}
+		return Identifier
+	}
+}
+
+var eof = rune(0)
