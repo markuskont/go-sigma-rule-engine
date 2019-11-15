@@ -9,7 +9,10 @@ import (
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
-func newRuleMatcherFromIdent(v types.SearchExpr, toLower bool) (match.Branch, error) {
+func newRuleMatcherFromIdent(v *types.SearchExpr, toLower bool) (match.Branch, error) {
+	if v == nil {
+		return nil, fmt.Errorf("Missing rule search expression")
+	}
 	switch v.Type {
 	case types.ExprKeywords:
 		return rule.NewKeywordFromInterface(toLower, v.Content)

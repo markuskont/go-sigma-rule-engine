@@ -46,7 +46,6 @@ func Parse(s types.Detection) (*match.Tree, error) {
 		if !ok {
 			return nil, types.ErrMissingCondition{}
 		}
-		delete(s, "condition")
 		p := &parser{
 			lex:       lex(raw),
 			sigma:     s,
@@ -62,7 +61,8 @@ func Parse(s types.Detection) (*match.Tree, error) {
 	// Should only have one element as complex scenario is handled separately
 	rx := s.Fields()
 	ast := &match.Tree{}
-	root, err := newRuleMatcherFromIdent(<-rx, false)
+	r := <-rx
+	root, err := newRuleMatcherFromIdent(&r, false)
 	if err != nil {
 		return nil, err
 	}

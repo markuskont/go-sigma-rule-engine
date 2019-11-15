@@ -29,6 +29,26 @@ type Tree struct {
 func (t Tree) Match(obj types.EventChecker) bool { return t.Root.Match(obj) }
 func (t Tree) Self() interface{}                 { return t.Root }
 
+// NodeSimple is a dumbfuck simple way of implementing binary search tree - by not implementing it
+// query can have more elements than 2, so simple branch with left and right wont cut it
+// idea is to have a list of branches where each element must return true if match is invoked
+// each element is another generic, so for example NOT element has to handle negation on it's own
+type NodeSimple []Branch
+
+// Match implements sigma Matcher
+func (n NodeSimple) Match(obj types.EventChecker) bool {
+	for _, elem := range n {
+		if elem.Match(obj) == false {
+			return false
+		}
+	}
+	return true
+}
+
+// Self returns Node or final rule object for debugging and/or walking the tree
+// Must be type switched externally
+func (n NodeSimple) Self() interface{} { return n }
+
 type NodeOr struct {
 	ID   int
 	L, R Branch

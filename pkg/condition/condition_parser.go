@@ -1,13 +1,19 @@
 package condition
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/rule"
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
-func parseSearch(t tokens, data types.Detection) (match.Branch, error) {
+type offsets struct {
+	From, To int
+}
+
+func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
 	fmt.Printf("Parsing %+v\n", t)
 
 	// seek to LPAR -> store offset set balance as 1
@@ -17,31 +23,93 @@ func parseSearch(t tokens, data types.Detection) (match.Branch, error) {
 	// if group count is > 0, fill sub brances via recursion
 	// finally, build branch from identifiers and logic statements
 
-	var balance, groups int
-	var from, to int
-	to = len(t) - 1
+	var balance, found int
+	groups := make([]*offsets, 0)
+
+	// pass 1 - discover groups
+	// TODO - later run fn recursively to parse all sub-elements
 	for i, item := range t {
 		switch item.T {
 		case SepLpar:
-			balance++
-			if groups == 0 {
-				from = i
+			if balance == 0 {
+				groups = append(groups, &offsets{From: i, To: -1})
 			}
+			balance++
 		case SepRpar:
 			balance--
 			if balance == 0 {
-				groups++
-				to = i
+				groups[found].To = i
+				found++
 			}
+
+		case IdentifierAll:
+			return nil, fmt.Errorf("TODO - THEM identifier")
+		case IdentifierWithWildcard:
+			return nil, fmt.Errorf("TODO - wildcard identifier")
+		case StOne, StAll:
+			return nil, fmt.Errorf("TODO - X of statement")
+
 		}
 	}
 
 	if balance > 0 || balance < 0 {
 		return nil, fmt.Errorf("Broken rule group")
 	}
-	fmt.Printf("got %d groups between %d and %d\n", groups, from, to)
 
-	return nil, nil
+	// TODO - debug, remove
+	if len(groups) > 0 {
+		j, _ := json.Marshal(groups)
+		fmt.Printf("%s\n", data["condition"].(string))
+		fmt.Printf("got %d groups offsets are %s\n", len(groups), string(j))
+		return nil, fmt.Errorf("TODO - implement parsing sub-groups recursively")
+	}
+	return parseSimpleSearch(t, data, c)
+}
+
+type condWrapper struct {
+	Token
+	match.Branch
+}
+
+// simple search == just a valid group sequence with no sub-groups
+// maybe will stay, maybe exists just until I figure out the parse logic
+func parseSimpleSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
+	var negate bool
+	var cond Token
+	group := make([]*condWrapper, 0)
+	for _, item := range t {
+		switch item.T {
+		case Identifier:
+			r, err := newRuleMatcherFromIdent(data.Get(item.Val), c.LowerCase)
+			if err != nil {
+				return nil, err
+			}
+			group = append(group, &condWrapper{
+				Branch: func() match.Branch {
+					if negate {
+						return match.NodeNot{Branch: r}
+					}
+					return r
+				}(),
+				Token: cond,
+			})
+
+			negate = false
+			cond = 0
+		case KeywordNot:
+			negate = true
+		case KeywordAnd:
+			cond = KeywordAnd
+		case KeywordOr:
+			cond = KeywordOr
+		}
+	}
+
+	// TODO - might be able to do this in single pass
+	for _, item := range group {
+
+	}
+	return nil, fmt.Errorf("WIP")
 }
 
 type parser struct {
@@ -74,7 +142,9 @@ func (p *parser) run() error {
 	}
 	// Pass 2: find groups
 	fmt.Println("------------------")
-	parseSearch(p.tokens, p.sigma)
+	if _, err := parseSearch(p.tokens, p.sigma, rule.Config{}); err != nil {
+		return err
+	}
 	return nil
 }
 
