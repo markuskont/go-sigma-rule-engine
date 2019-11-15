@@ -4,11 +4,16 @@ type Token int
 
 const (
 	TokErr Token = iota
+
+	// Helpers for internal stuff
 	TokUnsupp
+	TokBegin
+	TokNil
 
 	// user-defined word
 	Identifier
 	IdentifierWithWildcard
+	IdentifierAll
 
 	// Literals
 	LitEof
@@ -30,7 +35,10 @@ const (
 	KeywordOr
 	KeywordNot
 	KeywordAgg
-	KeywordThem
+
+	// TODO
+	KeywordNear
+	KeywordBy
 
 	// Statements
 	StOne
@@ -41,6 +49,8 @@ func (t Token) String() string {
 	switch t {
 	case Identifier, IdentifierWithWildcard:
 		return "IDENT"
+	case IdentifierAll:
+		return "THEM"
 	case SepLpar:
 		return "LPAR"
 	case SepRpar:
@@ -67,12 +77,20 @@ func (t Token) String() string {
 		return "ALL"
 	case StOne:
 		return "ONE"
-	case KeywordThem:
-		return "THEM"
 	case KeywordAgg:
 		return "AGG"
+	case LitEof:
+		return "EOF"
+	case TokErr:
+		return "ERR"
+	case TokUnsupp:
+		return "UNSUPPORTED"
+	case TokBegin:
+		return "BEGINNING"
+	case TokNil:
+		return "NIL"
 	default:
-		return "Err"
+		return "Unk"
 	}
 }
 
@@ -80,6 +98,8 @@ func (t Token) Literal() string {
 	switch t {
 	case Identifier, IdentifierWithWildcard:
 		return "keywords"
+	case IdentifierAll:
+		return "them"
 	case SepLpar:
 		return "("
 	case SepRpar:
@@ -106,8 +126,8 @@ func (t Token) Literal() string {
 		return "all of"
 	case StOne:
 		return "1 of"
-	case KeywordThem:
-		return "them"
+	case LitEof, TokNil:
+		return ""
 	default:
 		return "Err"
 	}
@@ -124,4 +144,56 @@ func (t Token) Rune() rune {
 	default:
 		return eof
 	}
+}
+
+// detect invalid token sequences
+func validTokenSequence(t1, t2 Token) bool {
+	switch t2 {
+	case StAll, StOne:
+		switch t1 {
+		case TokBegin, SepLpar, KeywordAnd, KeywordOr, KeywordNot:
+			return true
+		}
+	case IdentifierAll:
+		switch t1 {
+		case StAll, StOne:
+			return true
+		}
+	case Identifier, IdentifierWithWildcard:
+		switch t1 {
+		case SepLpar, TokBegin, KeywordAnd, KeywordOr, KeywordNot, StOne, StAll:
+			return true
+		}
+	case KeywordAnd, KeywordOr:
+		switch t1 {
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+			return true
+		}
+	case KeywordNot:
+		switch t1 {
+		case KeywordAnd, KeywordOr, SepLpar, TokBegin:
+			return true
+		}
+	case SepLpar:
+		switch t1 {
+		case KeywordAnd, KeywordOr, KeywordNot, TokBegin:
+			return true
+		}
+	case SepRpar:
+		switch t1 {
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepLpar:
+			return true
+		}
+	case LitEof:
+		switch t1 {
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+			return true
+		}
+	case SepPipe:
+		switch t1 {
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+			return true
+		}
+	}
+	return false
 }

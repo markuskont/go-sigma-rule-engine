@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
@@ -70,7 +71,17 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 	}
 	// Thank you pythonistas
 	for k, v := range raw {
+		// TODO - key might also have a piped specification for substring placement
+		// TODO - cont. example is : Image|endswith and CommandLine|contains
+		// TODO - this is a temporary hack, use HasPrefix/HasSuffix/Contains methods instead
+		if strings.Contains(k, "|") {
+			k = strings.Split(k, "|")[0]
+		}
 		switch condition := v.(type) {
+		case nil:
+			// TODO
+			// Boolean pattern is a thing
+			// should handle in case json parser picks null value from rule
 		case string:
 			if f.sPatterns == nil {
 				f.sPatterns = make(map[string]stringPatterns)
@@ -85,12 +96,24 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 				f.nPatterns = make(map[string]numPatterns)
 			}
 			f.nPatterns[k] = []float64{condition}
+		case int:
+			if f.nPatterns == nil {
+				f.nPatterns = make(map[string]numPatterns)
+			}
+			f.nPatterns[k] = []float64{float64(condition)}
 		case []interface{}:
 			var t reflect.Kind
+			var stringAndNumber bool
 			// make sure all list types are the same
+		loop:
 			for i, item := range condition {
 				if i > 0 {
-					if t2 := reflect.TypeOf(item).Kind(); t2 != t {
+					if t2 := reflect.TypeOf(item).Kind(); t2 != t && (t == reflect.String || t2 == reflect.String) {
+						// Just convert all values to string if a single item happens to be one
+						stringAndNumber = true
+						t = reflect.String
+						break loop
+					} else if t2 != t {
 						return f, fmt.Errorf(
 							"Selection/field rule parse fail for key %s list contains %s and %s",
 							k,
@@ -110,7 +133,20 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 					str := make([]string, len(condition))
 					for i, item := range condition {
 						// This should already be checked
-						str[i] = item.(string)
+						if stringAndNumber {
+							switch cast := v.(type) {
+							case string:
+								str[i] = cast
+							case int:
+								str[i] = strconv.Itoa(cast)
+							case float64:
+								str[i] = strconv.Itoa(int(cast))
+							default:
+
+							}
+						} else {
+							str[i] = item.(string)
+						}
 					}
 					return str
 				}()...)
@@ -130,6 +166,21 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 					for i, item := range condition {
 						// this should already be checked
 						flt[i] = item.(float64)
+					}
+					return flt
+				}()
+			case reflect.Int:
+				if f.nPatterns == nil {
+					f.nPatterns = make(map[string]numPatterns)
+				}
+				if f.nPatterns == nil {
+					f.nPatterns = make(map[string]numPatterns)
+				}
+				f.nPatterns[k] = func() []float64 {
+					flt := make([]float64, len(condition))
+					for i, item := range condition {
+						// this should already be checked
+						flt[i] = float64(item.(int))
 					}
 					return flt
 				}()

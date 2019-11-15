@@ -2,6 +2,8 @@ package condition
 
 import (
 	"fmt"
+	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -53,10 +55,16 @@ func (l *lexer) scan() {
 	// When we begin processing, let's assume we're going to process text.
 	// One state function will return another until `nil` is returned to signal
 	// the end of our process.
-	for fn := lexText; fn != nil; {
+	for fn := lexCondition; fn != nil; {
 		fn = fn(l)
 	}
 	close(l.items)
+}
+
+func (l *lexer) unsuppf(format string, args ...interface{}) stateFn {
+	msg := fmt.Sprintf(format, args...)
+	l.items <- Item{T: TokUnsupp, Val: msg}
+	return nil
 }
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
@@ -75,3 +83,123 @@ func (l *lexer) emit(k Token) {
 
 func (l lexer) collected() string { return l.input[l.start:l.position] }
 func (l lexer) todo() string      { return l.input[l.position:] }
+
+// stateFn is a function that is specific to a state within the string.
+type stateFn func(*lexer) stateFn
+
+// lexCondition scans what is expected to be text.
+func lexCondition(l *lexer) stateFn {
+	for {
+		// TODO - run these cheks only if we have accumulated a word, not on every char
+		if strings.HasPrefix(l.todo(), StOne.Literal()) {
+			return lexOneOf
+		}
+		if strings.HasPrefix(l.todo(), StAll.Literal()) {
+			return lexAllOf
+		}
+		switch r := l.next(); {
+		case r == eof:
+			return lexEOF
+		case r == SepRpar.Rune():
+			return lexRparWithTokens
+		case r == SepLpar.Rune():
+			return lexLpar
+		case r == SepPipe.Rune():
+			return lexPipe
+		case unicode.IsSpace(r):
+			return lexAccumulateBeforeWhitespace
+		}
+	}
+}
+
+func lexStatement(l *lexer) stateFn {
+	return lexCondition
+}
+
+func lexOneOf(l *lexer) stateFn {
+	l.position += len(StOne.Literal())
+	l.emit(StOne)
+	return lexCondition
+}
+
+func lexAllOf(l *lexer) stateFn {
+	l.position += len(StAll.Literal())
+	l.emit(StAll)
+	return lexCondition
+}
+
+func lexAggs(l *lexer) stateFn {
+	return l.unsuppf("aggregation not supported yet [%s]", l.input)
+}
+
+func lexEOF(l *lexer) stateFn {
+	if l.position > l.start {
+		l.emit(checkKeyWord(l.collected()))
+	}
+	l.emit(LitEof)
+	return nil
+}
+
+func lexPipe(l *lexer) stateFn {
+	l.emit(SepPipe)
+	return lexAggs
+}
+
+func lexLpar(l *lexer) stateFn {
+	l.emit(SepLpar)
+	return lexCondition
+}
+
+func lexRparWithTokens(l *lexer) stateFn {
+	// emit any text we've accumulated.
+	if l.position > l.start {
+		l.backup()
+		// There may be N whitespace chars between token RPAR
+		// TODO - may be a more concise way to do this, right now loops like this are everywhere
+
+		if t := checkKeyWord(l.collected()); t != TokNil {
+			l.emit(t)
+		}
+
+		for {
+			switch r := l.next(); {
+			case r == eof:
+				return lexEOF
+			case unicode.IsSpace(r):
+				l.ignore()
+			default:
+				return lexRpar
+			}
+		}
+	}
+	return lexRpar
+}
+
+func lexRpar(l *lexer) stateFn {
+	l.emit(SepRpar)
+	return lexCondition
+}
+
+func lexAccumulateBeforeWhitespace(l *lexer) stateFn {
+	l.backup()
+	// emit any text we've accumulated.
+	if l.position > l.start {
+		l.emit(checkKeyWord(l.collected()))
+	}
+	return lexWhitespace
+}
+
+// lexWhitespace scans what is expected to be whitespace.
+func lexWhitespace(l *lexer) stateFn {
+	for {
+		switch r := l.next(); {
+		case r == eof:
+			return lexEOF
+		case !unicode.IsSpace(r):
+			l.backup()
+			return lexCondition
+		default:
+			l.ignore()
+		}
+	}
+}

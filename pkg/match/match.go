@@ -10,46 +10,63 @@ type Branch interface {
 	// Self returns Node or final rule object for debugging and/or walking the tree
 	// Must be type switched externally
 	Self() interface{}
+	//Identifier
 }
 
-const (
-	None Condition = iota
-	And
-	Or
-	Not
-	Null
-)
-
-type Node struct {
-	id int
-
-	Condition
-
-	L Branch
-	R Branch
-}
-
-func (m *Node) Match(obj types.EventChecker) bool {
-	if m.L != nil || m.R != nil {
-		return true
-	}
-	return false
+// Identifier implements ID retreival and modification mechanisms for adding elements to and finding them from a tree
+// That way, a node may be created and kept as interface yet knowing where to place it in a tree
+type Identifier interface {
+	// GetID implements Identifier
+	GetID() int
+	// SetID implements Identifier
+	SetID(int)
 }
 
 type Tree struct {
-	root *Node
+	Root Branch
 }
 
-func NewTree(root *Node) *Tree {
-	if root == nil {
-		root = &Node{
-			id: 0,
-		}
-	}
-	return &Tree{
-		root: root,
-	}
+func (t Tree) Match(obj types.EventChecker) bool { return t.Root.Match(obj) }
+func (t Tree) Self() interface{}                 { return t.Root }
+
+type NodeOr struct {
+	ID   int
+	L, R Branch
 }
 
-func (t Tree) Match(obj types.EventChecker) bool { return t.root.Match(obj) }
-func (t Tree) Self() interface{}                 { return t.root }
+// Match implements sigma Matcher
+func (n NodeOr) Match(obj types.EventChecker) bool {
+	return n.L.Match(obj) || n.R.Match(obj)
+}
+
+// Self returns Node or final rule object for debugging and/or walking the tree
+// Must be type switched externally
+func (n NodeOr) Self() interface{} { return n }
+
+type NodeAnd struct {
+	ID   int
+	L, R Branch
+}
+
+// Match implements sigma Matcher
+func (n NodeAnd) Match(obj types.EventChecker) bool {
+	return n.L.Match(obj) && n.R.Match(obj)
+}
+
+// Self returns Node or final rule object for debugging and/or walking the tree
+// Must be type switched externally
+func (n NodeAnd) Self() interface{} { return n }
+
+type NodeNot struct {
+	ID int
+	Branch
+}
+
+// Match implements sigma Matcher
+func (n NodeNot) Match(obj types.EventChecker) bool {
+	return !n.Match(obj)
+}
+
+// Self returns Node or final rule object for debugging and/or walking the tree
+// Must be type switched externally
+func (n NodeNot) Self() interface{} { return n }

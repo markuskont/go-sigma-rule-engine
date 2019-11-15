@@ -2,7 +2,9 @@ package rule
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
@@ -52,6 +54,51 @@ type Keyword struct {
 	stringPatterns
 	toLower bool
 	Stats
+}
+
+func NewKeywordFromInterface(lowercase bool, expr interface{}) (*Keyword, error) {
+	switch v := expr.(type) {
+	case []string:
+		return NewKeyword(lowercase, v...)
+	case []interface{}:
+		slc := make([]string, 0)
+		for _, item := range v {
+			switch cast := item.(type) {
+			case string:
+				slc = append(slc, cast)
+			case int:
+				slc = append(slc, strconv.Itoa(cast))
+			case float64:
+				slc = append(slc, strconv.Itoa(int(cast)))
+			}
+		}
+		return NewKeyword(lowercase, slc...)
+	case map[string]interface{}:
+		if patterns, ok := v["Message"].([]string); ok {
+			return NewKeyword(lowercase, patterns...)
+		}
+	case map[interface{}]interface{}:
+		if vals, ok := v["Message"]; ok {
+			switch data := vals.(type) {
+			case []interface{}:
+				slc := make([]string, 0)
+				for _, item := range data {
+					switch cast := item.(type) {
+					case string:
+						slc = append(slc, cast)
+					case int:
+						slc = append(slc, strconv.Itoa(cast))
+					case float64:
+						slc = append(slc, strconv.Itoa(int(cast)))
+					}
+				}
+				return NewKeyword(lowercase, slc...)
+			}
+		}
+	}
+	return nil, fmt.Errorf(
+		"Invalid type for parsing keyword expression. Should be slice of strings or a funky one element map where value is slice of strings. Or other stuff. Got |%+v| with type |%s|", expr, reflect.TypeOf(expr).String(),
+	)
 }
 
 func NewKeyword(lowercase bool, patterns ...string) (*Keyword, error) {
