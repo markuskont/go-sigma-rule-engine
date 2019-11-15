@@ -116,6 +116,19 @@ func Parse(s types.Detection) (*match.Tree, error) {
 	return ast, nil
 }
 
+func interfaceMapToStringInterfaceMap(m map[interface{}]interface{}) (map[string]interface{}, error) {
+	m2 := make(map[string]interface{})
+	for k, v := range m {
+		sk, ok := k.(string)
+		if !ok {
+			return m2, fmt.Errorf("failed to create selection rule from interface")
+		}
+		m2[sk] = v
+	}
+	return m2, nil
+
+}
+
 func newRuleMatcherFromIdent(v types.SearchExpr, toLower bool) (match.Branch, error) {
 	switch v.Type {
 	case types.ExprKeywords:
@@ -124,17 +137,38 @@ func newRuleMatcherFromIdent(v types.SearchExpr, toLower bool) (match.Branch, er
 		switch m := v.Content.(type) {
 		case map[string]interface{}:
 			return rule.NewFields(m, toLower, false)
-		case map[interface{}]interface{}:
-			m2 := make(map[string]interface{})
-			for k, v := range m {
-				sk, ok := k.(string)
-				if !ok {
-					return nil, fmt.Errorf("failed to create selection rule from interface")
+		case []interface{}:
+			// might be a list of selections where each entry is a distinct selection rule joined by logical OR
+			branch := make(rule.FieldsList, 0)
+			for _, raw := range m {
+				var (
+					elem *rule.Fields
+					err  error
+				)
+				switch expr := raw.(type) {
+				case map[interface{}]interface{}:
+					m2, err := interfaceMapToStringInterfaceMap(expr)
+					if err != nil {
+						return nil, err
+					}
+					elem, err = rule.NewFields(m2, toLower, false)
+				case map[string]interface{}:
+					elem, err = rule.NewFields(expr, toLower, false)
+				default:
+					return nil, fmt.Errorf("TODO")
 				}
-				m2[sk] = v
+				if err != nil {
+					return nil, err
+				}
+				branch = append(branch, elem)
+			}
+			return branch, nil
+		case map[interface{}]interface{}:
+			m2, err := interfaceMapToStringInterfaceMap(m)
+			if err != nil {
+				return nil, err
 			}
 			return rule.NewFields(m2, toLower, false)
-
 		default:
 			return nil, fmt.Errorf(
 				"selection rule %s should be defined as a map, got %s",
