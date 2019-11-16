@@ -74,41 +74,56 @@ type condWrapper struct {
 // simple search == just a valid group sequence with no sub-groups
 // maybe will stay, maybe exists just until I figure out the parse logic
 func parseSimpleSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
-	var (
-		negate bool
-		cond   Token
-	)
-	group := make([]*condWrapper, 0)
-	for _, item := range t {
-		switch item.T {
-		case Identifier:
-			r, err := newRuleMatcherFromIdent(data.Get(item.Val), c.LowerCase)
-			if err != nil {
-				return nil, err
-			}
-			group = append(group, &condWrapper{
-				Branch: func() match.Branch {
-					if negate {
-						return match.NodeNot{Branch: r}
-					}
-					return r
-				}(),
-				Token: cond,
-			})
 
-			negate = false
-			cond = 0
-		case KeywordNot:
-			negate = true
-		case KeywordAnd:
-			cond = KeywordAnd
-		case KeywordOr:
-			cond = KeywordOr
+	for t.len() > 0 {
+		rules := make([]match.Branch, 0)
+		if idx := t.index(KeywordOr); idx > 0 {
+			for i, item := range t.head(idx) {
+				switch item.T {
+				case Identifier:
+					r, err := newRuleMatcherFromIdent(data.Get(item.Val), c.LowerCase)
+					if err != nil {
+						return nil, err
+					}
+					rules = append(rules, func() match.Branch {
+						if t.head(idx).isNegated(i) {
+							return match.NodeNot{Branch: r}
+						}
+						return r
+					}())
+				}
+			}
 		}
 	}
 
-	j, _ := json.Marshal(group)
-	fmt.Printf("%s\n", string(j))
+	/*
+		for i, item := range t {
+			switch item.T {
+			case Identifier:
+				r, err := newRuleMatcherFromIdent(data.Get(item.Val), c.LowerCase)
+				if err != nil {
+					return nil, err
+				}
+				group = append(group, &condWrapper{
+					Branch: func() match.Branch {
+						if t.isNegated(i) {
+							return match.NodeNot{Branch: r}
+						}
+						return r
+					}(),
+					Token: cond,
+				})
+
+				cond = 0
+			case KeywordAnd:
+				cond = KeywordAnd
+			case KeywordOr:
+				cond = KeywordOr
+			}
+		}
+		j, _ := json.Marshal(group)
+		fmt.Printf("------>>>>>>>%s\n", string(j))
+	*/
 
 	return nil, fmt.Errorf("WIP")
 }

@@ -200,6 +200,65 @@ func validTokenSequence(t1, t2 Token) bool {
 
 type tokens []Item
 
+func (t tokens) len() int { return len(t) }
+func (t tokens) lastIdx() int {
+	return t.len() - 1
+}
+func (t tokens) tail(i int) tokens {
+	if i < 0 || i > t.lastIdx() {
+		return t
+	}
+	return t[i:]
+}
+func (t tokens) head(i int) tokens {
+	if i < 0 || i > t.lastIdx() {
+		return t
+	}
+	return t[:i]
+}
+
+func (t tokens) countAnd() int {
+	var c int
+	for _, item := range t {
+		if item.T == KeywordAnd {
+			c++
+		}
+	}
+	return c
+}
+
+func (t tokens) countOr() int {
+	var c int
+	for _, item := range t {
+		if item.T == KeywordOr {
+			c++
+		}
+	}
+	return c
+}
+
+func (t tokens) count(tok ...Token) []int {
+	c := make([]int, len(t))
+	for _, item := range t {
+		for i, token := range tok {
+			if item.T == token {
+				c[i]++
+			}
+		}
+	}
+	return c
+}
+
+func (t tokens) isNegated(index int) bool {
+	if index < 1 || index > len(t)-1 {
+		return false
+	}
+	if tok := t[index-1]; tok.T == KeywordNot {
+		return true
+	}
+	return false
+}
+
 func (t tokens) index(tok Token) int {
 	for i, item := range t {
 		if item.T == tok {
