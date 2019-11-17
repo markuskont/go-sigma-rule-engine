@@ -47,56 +47,38 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 // simple search == just a valid group sequence with no sub-groups
 // maybe will stay, maybe exists just until I figure out the parse logic
 func parseSimpleSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
-
-	for t.len() > 0 {
-		rules := make([]match.Branch, 0)
-		if idx := t.index(KeywordOr); idx > 0 {
-			for i, item := range t.head(idx) {
-				switch item.T {
-				case Identifier:
-					r, err := newRuleMatcherFromIdent(data.Get(item.Val), c.LowerCase)
-					if err != nil {
-						return nil, err
-					}
-					rules = append(rules, func() match.Branch {
-						if t.head(idx).isNegated(i) {
-							return match.NodeNot{Branch: r}
-						}
-						return r
-					}())
-				}
+	var (
+		negated   bool
+		rules     = make([]match.Branch, 0)
+		modifiers = []Token{TokNil}
+	)
+	for _, item := range t {
+		switch item.T {
+		case KeywordNot:
+			negated = true
+		case KeywordAnd:
+			modifiers = append(modifiers, KeywordAnd)
+		case KeywordOr:
+			modifiers = append(modifiers, KeywordOr)
+		case Identifier:
+			r, err := newRuleMatcherFromIdent(data.Get(item.Val), c.LowerCase)
+			if err != nil {
+				return nil, err
 			}
+			// no modifier on this rule, mark it as such for second pass
+			if len(modifiers)-1 != len(rules) {
+				modifiers = append(modifiers, TokNil)
+			}
+			rules = append(rules, func() match.Branch {
+				if negated {
+					return match.NodeNot{Branch: r}
+				}
+				return r
+			}())
+			// reset modifiers
+			negated = false
 		}
 	}
-
-	/*
-		for i, item := range t {
-			switch item.T {
-			case Identifier:
-				r, err := newRuleMatcherFromIdent(data.Get(item.Val), c.LowerCase)
-				if err != nil {
-					return nil, err
-				}
-				group = append(group, &condWrapper{
-					Branch: func() match.Branch {
-						if t.isNegated(i) {
-							return match.NodeNot{Branch: r}
-						}
-						return r
-					}(),
-					Token: cond,
-				})
-
-				cond = 0
-			case KeywordAnd:
-				cond = KeywordAnd
-			case KeywordOr:
-				cond = KeywordOr
-			}
-		}
-		j, _ := json.Marshal(group)
-		fmt.Printf("------>>>>>>>%s\n", string(j))
-	*/
 
 	return nil, fmt.Errorf("WIP")
 }
