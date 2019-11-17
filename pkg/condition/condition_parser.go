@@ -44,11 +44,6 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 	return parseSimpleSearch(t, data, c)
 }
 
-type condWrapper struct {
-	Token
-	match.Branch
-}
-
 // simple search == just a valid group sequence with no sub-groups
 // maybe will stay, maybe exists just until I figure out the parse logic
 func parseSimpleSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
