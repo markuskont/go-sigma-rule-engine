@@ -1,5 +1,7 @@
 package condition
 
+import "fmt"
+
 type Token int
 
 const (
@@ -284,4 +286,38 @@ func (t tokens) contains(tok Token) bool {
 		}
 	}
 	return false
+}
+
+type offsets struct {
+	From, To int
+}
+
+func newGroupOffsetInTokens(t tokens) ([]*offsets, bool, error) {
+	if t == nil || t.len() == 0 {
+		return nil, false, nil
+	}
+	if !t.contains(SepLpar) {
+		return nil, false, nil
+	}
+	groups := make([]*offsets, 0)
+	var balance, found int
+	for i, item := range t {
+		switch item.T {
+		case SepLpar:
+			if balance == 0 {
+				groups = append(groups, &offsets{From: i, To: -1})
+			}
+			balance++
+		case SepRpar:
+			balance--
+			if balance == 0 {
+				groups[found].To = i
+				found++
+			}
+		}
+	}
+	if balance > 0 || balance < 0 {
+		return groups, false, fmt.Errorf("Broken rule group")
+	}
+	return groups, true, nil
 }

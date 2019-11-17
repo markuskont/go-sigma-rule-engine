@@ -9,10 +9,6 @@ import (
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
-type offsets struct {
-	From, To int
-}
-
 func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
 	fmt.Printf("Parsing %+v\n", t)
 
@@ -23,47 +19,30 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 	// if group count is > 0, fill sub brances via recursion
 	// finally, build branch from identifiers and logic statements
 
-	var balance, found int
-	groups := make([]*offsets, 0)
+	if t.contains(IdentifierAll) {
+		return nil, fmt.Errorf("TODO - THEM identifier")
+	}
+	if t.contains(IdentifierWithWildcard) {
+		return nil, fmt.Errorf("TODO - wildcard identifier")
+	}
+	if t.contains(StOne) || t.contains(StAll) {
+		return nil, fmt.Errorf("TODO - X of statement")
+	}
 
 	// pass 1 - discover groups
-	// TODO - later run fn recursively to parse all sub-elements
-	for i, item := range t {
-		switch item.T {
-		case SepLpar:
-			if balance == 0 {
-				groups = append(groups, &offsets{From: i, To: -1})
-			}
-			balance++
-		case SepRpar:
-			balance--
-			if balance == 0 {
-				groups[found].To = i
-				found++
-			}
-
-		case IdentifierAll:
-			return nil, fmt.Errorf("TODO - THEM identifier")
-		case IdentifierWithWildcard:
-			return nil, fmt.Errorf("TODO - wildcard identifier")
-		case StOne, StAll:
-			return nil, fmt.Errorf("TODO - X of statement")
-
-		}
+	groups, ok, err := newGroupOffsetInTokens(t)
+	if err != nil {
+		return nil, err
 	}
-
-	if balance > 0 || balance < 0 {
-		return nil, fmt.Errorf("Broken rule group")
-	}
-
-	// TODO - debug, remove
-	if len(groups) > 0 {
+	if ok {
 		j, _ := json.Marshal(groups)
 		fmt.Printf("%s\n", data["condition"].(string))
 		fmt.Printf("got %d groups offsets are %s\n", len(groups), string(j))
 		return nil, fmt.Errorf("TODO - implement parsing sub-groups recursively")
 	}
-	return parseSimpleSearch(t, data, c)
+
+	return nil, nil
+	//return parseSimpleSearch(t, data, c)
 }
 
 type condWrapper struct {
