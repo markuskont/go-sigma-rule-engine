@@ -41,8 +41,7 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 		return nil, fmt.Errorf("TODO - implement parsing sub-groups recursively")
 	}
 
-	return nil, nil
-	//return parseSimpleSearch(t, data, c)
+	return parseSimpleSearch(t, data, c)
 }
 
 type condWrapper struct {
