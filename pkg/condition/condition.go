@@ -18,9 +18,29 @@ func Parse(s types.Detection) (*match.Tree, error) {
 	if s == nil {
 		return nil, types.ErrMissingDetection{}
 	}
+	if len(s) < 3 {
+		return parseSimpleScenario(s)
+	}
+	// Complex case, time to build syntax tree out of condition statement
+	raw, ok := s["condition"].(string)
+	if !ok {
+		return nil, types.ErrMissingCondition{}
+	}
+	p := &parser{
+		lex:       lex(raw),
+		sigma:     s,
+		tokens:    make([]Item, 0),
+		previous:  TokBegin,
+		condition: raw,
+	}
+	if err := p.run(); err != nil {
+		return nil, err
+	}
+	return nil, types.ErrWip{}
+}
+
+func parseSimpleScenario(s types.Detection) (*match.Tree, error) {
 	switch len(s) {
-	case 0:
-		return nil, types.ErrMissingDetection{}
 	case 1:
 		// Simple case - should have only one search field, but should not have a condition field
 		if c, ok := s["condition"].(string); ok {
@@ -41,24 +61,8 @@ func Parse(s types.Detection) (*match.Tree, error) {
 		}
 		delete(s, "condition")
 	default:
-		// Complex case, time to build syntax tree out of condition statement
-		raw, ok := s["condition"].(string)
-		if !ok {
-			return nil, types.ErrMissingCondition{}
-		}
-		p := &parser{
-			lex:       lex(raw),
-			sigma:     s,
-			tokens:    make([]Item, 0),
-			previous:  TokBegin,
-			condition: raw,
-		}
-		if err := p.run(); err != nil {
-			return nil, err
-		}
-		return nil, types.ErrWip{}
+		return nil, types.ErrMissingDetection{}
 	}
-	// Should only have one element as complex scenario is handled separately
 	rx := s.Fields()
 	ast := &match.Tree{}
 	r := <-rx
