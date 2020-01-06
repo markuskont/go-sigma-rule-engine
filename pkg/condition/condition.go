@@ -21,22 +21,7 @@ func Parse(s types.Detection) (*match.Tree, error) {
 	if len(s) < 3 {
 		return parseSimpleScenario(s)
 	}
-	// Complex case, time to build syntax tree out of condition statement
-	raw, ok := s["condition"].(string)
-	if !ok {
-		return nil, types.ErrMissingCondition{}
-	}
-	p := &parser{
-		lex:       lex(raw),
-		sigma:     s,
-		tokens:    make([]Item, 0),
-		previous:  TokBegin,
-		condition: raw,
-	}
-	if err := p.run(); err != nil {
-		return nil, err
-	}
-	return nil, types.ErrWip{}
+	return parseComplexScenario(s)
 }
 
 func parseSimpleScenario(s types.Detection) (*match.Tree, error) {
@@ -72,4 +57,24 @@ func parseSimpleScenario(s types.Detection) (*match.Tree, error) {
 	}
 	ast.Root = root
 	return ast, nil
+}
+
+func parseComplexScenario(s types.Detection) (*match.Tree, error) {
+	// Complex case, time to build syntax tree out of condition statement
+	raw, ok := s["condition"].(string)
+	if !ok {
+		return nil, types.ErrMissingCondition{}
+	}
+	p := &parser{
+		lex:       lex(raw),
+		sigma:     s,
+		tokens:    make([]Item, 0),
+		previous:  TokBegin,
+		condition: raw,
+	}
+	if err := p.run(); err != nil {
+		return nil, err
+	}
+	return nil, types.ErrWip{}
+
 }
