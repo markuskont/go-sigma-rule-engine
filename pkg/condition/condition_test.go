@@ -33,23 +33,29 @@ func TestLex(t *testing.T) {
 }
 
 var detection1 = map[string]interface{}{
-	"condition": "Image and not CommandLine or ParentImage",
-	"Image": []string{
-		`*\schtasks.exe`,
-		`*\nslookup.exe`,
-		`*\certutil.exe`,
-		`*\bitsadmin.exe`,
-		`*\mshta.exe`,
+	"condition": "selection1 and not selection2 or selection3",
+	"selection1": map[string]interface{}{
+		"Image": []string{
+			`*\schtasks.exe`,
+			`*\nslookup.exe`,
+			`*\certutil.exe`,
+			`*\bitsadmin.exe`,
+			`*\mshta.exe`,
+		},
 	},
-	"CommandLine": `+R +H +S +A *.cui`,
-	"ParentImage": []string{
-		`*\mshta.exe`,
-		`*\powershell.exe`,
-		`*\cmd.exe`,
-		`*\rundll32.exe`,
-		`*\cscript.exe`,
-		`*\wscript.exe`,
-		`*\wmiprvse.exe`,
+	"selection2": map[string]interface{}{
+		"ParentImage": []string{
+			`*\mshta.exe`,
+			`*\powershell.exe`,
+			`*\cmd.exe`,
+			`*\rundll32.exe`,
+			`*\cscript.exe`,
+			`*\wscript.exe`,
+			`*\wmiprvse.exe`,
+		},
+	},
+	"selection3": map[string]interface{}{
+		"CommandLine": `+R +H +S +A *.cui`,
 	},
 }
 

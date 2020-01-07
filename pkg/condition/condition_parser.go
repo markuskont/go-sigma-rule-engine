@@ -124,6 +124,8 @@ type parser struct {
 
 	// for debug
 	condition string
+
+	result match.Branch
 }
 
 func (p *parser) run() error {
@@ -135,9 +137,11 @@ func (p *parser) run() error {
 		return err
 	}
 	// Pass 2: find groups
-	if _, err := parseSearch(p.tokens, p.sigma, rule.Config{}); err != nil {
+	b, err := parseSearch(p.tokens, p.sigma, rule.Config{})
+	if err != nil {
 		return err
 	}
+	p.result = b
 	return nil
 }
 
