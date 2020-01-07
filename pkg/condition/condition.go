@@ -76,5 +76,4 @@ func parseComplexScenario(s types.Detection) (*match.Tree, error) {
 		return nil, err
 	}
 	return nil, types.ErrWip{}
-
 }

@@ -38,7 +38,7 @@ func newRuleMatcherFromIdent(v *types.SearchExpr, toLower bool) (match.Branch, e
 				case map[string]interface{}:
 					elem, err = rule.NewFields(expr, toLower, false)
 				default:
-					return nil, fmt.Errorf("TODO")
+					return nil, fmt.Errorf("Unhandled rule search expression type")
 				}
 				if err != nil {
 					return nil, err

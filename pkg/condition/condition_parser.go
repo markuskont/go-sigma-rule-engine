@@ -1,7 +1,6 @@
 package condition
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
@@ -9,6 +8,7 @@ import (
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
+// TODO - only use this function as wrapper for unsupported conditions
 func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
 	fmt.Printf("Parsing %+v\n", t)
 
@@ -20,25 +20,22 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 	// finally, build branch from identifiers and logic statements
 
 	if t.contains(IdentifierAll) {
-		return nil, fmt.Errorf("TODO - THEM identifier")
+		return nil, types.ErrUnsupportedToken{Msg: IdentifierAll.Literal()}
 	}
 	if t.contains(IdentifierWithWildcard) {
-		return nil, fmt.Errorf("TODO - wildcard identifier")
+		return nil, types.ErrUnsupportedToken{Msg: IdentifierWithWildcard.Literal()}
 	}
 	if t.contains(StOne) || t.contains(StAll) {
-		return nil, fmt.Errorf("TODO - X of statement")
+		return nil, types.ErrUnsupportedToken{Msg: fmt.Sprintf("%s / %s", StAll.Literal(), StOne.Literal())}
 	}
 
 	// pass 1 - discover groups
-	groups, ok, err := newGroupOffsetInTokens(t)
+	_, ok, err := newGroupOffsetInTokens(t)
 	if err != nil {
 		return nil, err
 	}
 	if ok {
-		j, _ := json.Marshal(groups)
-		fmt.Printf("%s\n", data["condition"].(string))
-		fmt.Printf("got %d groups offsets are %s\n", len(groups), string(j))
-		return nil, fmt.Errorf("TODO - implement parsing sub-groups recursively")
+		return nil, types.ErrUnsupportedToken{Msg: "GROUP"}
 	}
 
 	return parseSimpleSearch(t, data, c)
@@ -46,41 +43,70 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 
 // simple search == just a valid group sequence with no sub-groups
 // maybe will stay, maybe exists just until I figure out the parse logic
-func parseSimpleSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
-	var (
-		negated   bool
-		rules     = make([]match.Branch, 0)
-		modifiers = []Token{TokNil}
-	)
-	for _, item := range t {
-		switch item.T {
-		case KeywordNot:
-			negated = true
-		case KeywordAnd:
-			modifiers = append(modifiers, KeywordAnd)
-		case KeywordOr:
-			modifiers = append(modifiers, KeywordOr)
-		case Identifier:
-			r, err := newRuleMatcherFromIdent(data.Get(item.Val), c.LowerCase)
+func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
+	rules := make([]tokens, 0)
+	branch := make([]match.Branch, 0)
+
+	var start int
+	last := len(t) - 1
+	for pos, item := range t {
+		if item.T == KeywordOr || pos == last {
+			switch pos {
+			case last:
+				rules = append(rules, t[pos:])
+			default:
+				rules = append(rules, t[start:pos])
+				start = pos + 1
+			}
+		}
+	}
+
+	// TODO - recursively parse nested groups
+	for _, group := range rules {
+		if l := len(group); l == 1 || (l == 2 && group.isNegated()) {
+			var ident Item
+			switch l {
+			case 1:
+				ident = group[0]
+			case 2:
+				ident = group[1]
+			}
+			// TODO - move to separate fn to reduce redundant code
+			r, err := newRuleMatcherFromIdent(detect.Get(ident.Val), c.LowerCase)
 			if err != nil {
 				return nil, err
 			}
-			// no modifier on this rule, mark it as such for second pass
-			if len(modifiers)-1 != len(rules) {
-				modifiers = append(modifiers, TokNil)
-			}
-			rules = append(rules, func() match.Branch {
-				if negated {
+			branch = append(branch, func() match.Branch {
+				if group.isNegated() {
 					return match.NodeNot{Branch: r}
 				}
 				return r
 			}())
-			// reset modifiers
-			negated = false
+			continue
 		}
+		andGroup := make([]match.Branch, 0)
+		for _, item := range group {
+			switch item.T {
+			case Identifier:
+				r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
+				if err != nil {
+					return nil, err
+				}
+				andGroup = append(andGroup, func() match.Branch {
+					if group.isNegated() {
+						return match.NodeNot{Branch: r}
+					}
+					return r
+				}())
+			}
+		}
+		branch = append(branch, match.NodeSimpleAnd(andGroup))
+	}
+	if len(branch) == 1 {
+		return branch[0], nil
 	}
 
-	return nil, fmt.Errorf("WIP")
+	return match.NodeSimpleOr(branch), nil
 }
 
 type parser struct {
@@ -98,9 +124,6 @@ type parser struct {
 
 	// for debug
 	condition string
-
-	// sigma condition rules
-	rules []interface{}
 }
 
 func (p *parser) run() error {
@@ -112,7 +135,6 @@ func (p *parser) run() error {
 		return err
 	}
 	// Pass 2: find groups
-	fmt.Println("------------------")
 	if _, err := parseSearch(p.tokens, p.sigma, rule.Config{}); err != nil {
 		return err
 	}

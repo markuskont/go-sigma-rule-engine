@@ -212,11 +212,31 @@ func (t tokens) tail(i int) tokens {
 	}
 	return t[i:]
 }
+
 func (t tokens) head(i int) tokens {
 	if i < 0 || i > t.lastIdx() {
 		return t
 	}
 	return t[:i]
+}
+
+func (t tokens) nextKeyword() (int, Token) {
+	for i, item := range t {
+		if item.T == KeywordAnd || item.T == KeywordOr {
+			return i, item.T
+		}
+	}
+	return -1, TokNil
+}
+
+func (t tokens) getTokenIndices(tok Token) []int {
+	out := make([]int, 0)
+	for i, item := range t {
+		if item.T == tok {
+			out = append(out, i)
+		}
+	}
+	return out
 }
 
 func (t tokens) countAnd() int {
@@ -251,11 +271,8 @@ func (t tokens) count(tok ...Token) []int {
 	return c
 }
 
-func (t tokens) isNegated(index int) bool {
-	if index < 1 || index > len(t)-1 {
-		return false
-	}
-	if tok := t[index-1]; tok.T == KeywordNot {
+func (t tokens) isNegated() bool {
+	if len(t) > 1 && t[0].T == KeywordNot {
 		return true
 	}
 	return false
