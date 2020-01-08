@@ -202,6 +202,35 @@ func validTokenSequence(t1, t2 Token) bool {
 
 type tokens []Item
 
+func (t tokens) splitByOr() []tokens {
+	var start int
+
+	rules := make([]tokens, 0)
+	last := len(t) - 1
+
+	if t.contains(KeywordOr) {
+		for pos, item := range t {
+			if item.T == KeywordOr || pos == last {
+				switch pos {
+				case last:
+					rules = append(rules, func() tokens {
+						if last > 0 && t[pos-1].T == KeywordNot {
+							return t[pos-1:]
+						}
+						return t[pos:]
+					}())
+				default:
+					rules = append(rules, t[start:pos])
+					start = pos + 1
+				}
+			}
+		}
+	} else {
+		rules = append(rules, t)
+	}
+	return rules
+}
+
 func (t tokens) len() int { return len(t) }
 func (t tokens) lastIdx() int {
 	return t.len() - 1
@@ -309,26 +338,35 @@ type offsets struct {
 	From, To int
 }
 
-func newGroupOffsetInTokens(t tokens) ([]*offsets, bool, error) {
+func (o *offsets) SetFrom(i int) *offsets {
+	o.From = i
+	return o
+}
+func (o *offsets) SetTo(i int) *offsets {
+	o.To = i
+	return o
+}
+
+func newGroupOffsetInTokens(t tokens) ([]offsets, bool, error) {
 	if t == nil || t.len() == 0 {
 		return nil, false, nil
 	}
 	if !t.contains(SepLpar) {
 		return nil, false, nil
 	}
-	groups := make([]*offsets, 0)
+	groups := make([]offsets, 0)
 	var balance, found int
 	for i, item := range t {
 		switch item.T {
 		case SepLpar:
 			if balance == 0 {
-				groups = append(groups, &offsets{From: i, To: -1})
+				groups = append(groups, offsets{From: i + 1, To: -1})
 			}
 			balance++
 		case SepRpar:
 			balance--
 			if balance == 0 {
-				groups[found].To = i
+				groups[found].SetTo(i)
 				found++
 			}
 		}

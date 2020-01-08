@@ -241,6 +241,25 @@ var detection4_negative = []map[string]string{
 	},
 }
 
+var detection5 = map[string]interface{}{
+	"condition": "(selection1 and selection2) or (selection3 and not (selection4 and selection5))",
+	"selection1": map[string]interface{}{
+		"Field1": `aaa`,
+	},
+	"selection2": map[string]interface{}{
+		"Field2": `bbb`,
+	},
+	"selection3": map[string]interface{}{
+		"Field3": `ccc`,
+	},
+	"selection4": map[string]interface{}{
+		"Field4": `ddd`,
+	},
+	"selection5": map[string]interface{}{
+		"Field5": `eee`,
+	},
+}
+
 type testCase struct {
 	Rule               map[string]interface{}
 	Positive, Negative []map[string]string
@@ -266,6 +285,9 @@ var testCases = []testCase{
 		Rule:     detection4,
 		Positive: detection4_positive,
 		Negative: detection4_negative,
+	},
+	testCase{
+		Rule: detection5,
 	},
 }
 

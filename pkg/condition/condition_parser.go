@@ -29,47 +29,27 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 	// if group count is > 0, fill sub brances via recursion
 	// finally, build branch from identifiers and logic statements
 
-	_, ok, err := newGroupOffsetInTokens(t)
+	groups, ok, err := newGroupOffsetInTokens(t)
 	if err != nil {
 		return nil, err
 	}
-	if ok {
-		return nil, types.ErrUnsupportedToken{Msg: "GROUP"}
+	if !ok {
+		return parseSimpleSearch(t, data, c)
 	}
-
-	return parseSimpleSearch(t, data, c)
+	fmt.Println("------")
+	fmt.Println(t)
+	for _, g := range groups {
+		fmt.Println(t[g.From:g.To])
+	}
+	return nil, types.ErrUnsupportedToken{Msg: "GROUP"}
 }
 
 // simple search == just a valid group sequence with no sub-groups
 // maybe will stay, maybe exists just until I figure out the parse logic
 func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
-	rules := make([]tokens, 0)
+	rules := t.splitByOr()
+
 	branch := make([]match.Branch, 0)
-
-	var start int
-	last := len(t) - 1
-	if t.contains(KeywordOr) {
-		for pos, item := range t {
-			if item.T == KeywordOr || pos == last {
-				switch pos {
-				case last:
-					rules = append(rules, func() tokens {
-						if last > 0 && t[pos-1].T == KeywordNot {
-							return t[pos-1:]
-						}
-						return t[pos:]
-					}())
-				default:
-					rules = append(rules, t[start:pos])
-					start = pos + 1
-				}
-			}
-		}
-	} else {
-		rules = append(rules, t)
-	}
-
-	// TODO - recursively parse nested groups
 	for _, group := range rules {
 		if l := len(group); l == 1 || (l == 2 && group.isNegated()) {
 			var ident Item
