@@ -101,6 +101,15 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 				f.nPatterns = make(map[string]numPatterns)
 			}
 			f.nPatterns[k] = []float64{float64(condition)}
+		case []string:
+			if f.sPatterns == nil {
+				f.sPatterns = make(map[string]stringPatterns)
+			}
+			patterns, err := newStringPatterns(condition...)
+			if err != nil {
+				return f, err
+			}
+			f.sPatterns[k] = *patterns
 		case []interface{}:
 			var t reflect.Kind
 			var stringAndNumber bool

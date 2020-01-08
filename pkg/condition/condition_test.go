@@ -5,6 +5,32 @@ import (
 	"testing"
 )
 
+type dummyObject map[string]string
+
+// GetMessage implements MessageGetter
+func (d dummyObject) GetMessage() []string {
+	keys := []string{
+		"Image",
+		"CommandLine",
+		"ParentImage",
+	}
+	res := make([]string, 0)
+	for _, k := range keys {
+		if val, ok := d[k]; ok {
+			res = append(res, val)
+		}
+	}
+	return res
+}
+
+// GetField returns a success status and arbitrary field content if requested map key is present
+func (d dummyObject) GetField(key string) (interface{}, bool) {
+	if val, ok := d[key]; ok {
+		return val, ok
+	}
+	return nil, false
+}
+
 var data = []string{
 	"aaa",
 	"bbb1",
@@ -33,7 +59,7 @@ func TestLex(t *testing.T) {
 }
 
 var detection1 = map[string]interface{}{
-	"condition": "selection1 and not selection2 or selection3",
+	"condition": "not selection1",
 	"selection1": map[string]interface{}{
 		"Image": []string{
 			`*\schtasks.exe`,
@@ -42,8 +68,6 @@ var detection1 = map[string]interface{}{
 			`*\bitsadmin.exe`,
 			`*\mshta.exe`,
 		},
-	},
-	"selection2": map[string]interface{}{
 		"ParentImage": []string{
 			`*\mshta.exe`,
 			`*\powershell.exe`,
@@ -54,8 +78,9 @@ var detection1 = map[string]interface{}{
 			`*\wmiprvse.exe`,
 		},
 	},
-	"selection3": map[string]interface{}{
-		"CommandLine": `+R +H +S +A *.cui`,
+	"selection2": map[string]interface{}{
+		//"CommandLine": `+R +H +S +A *.cui`,
+		"CommandLine": `aaa`,
 	},
 }
 
@@ -63,17 +88,7 @@ var detection1_positive = []map[string]string{
 	map[string]string{
 		"Image":       `C:\test\bitsadmin.exe`,
 		"CommandLine": `+R +H +A asd.cui`,
-		"ParentImage": `C:\test\bbb.exe`,
-	},
-	map[string]string{
-		"Image":       `C:\test\aaa.exe`,
-		"CommandLine": `+R +H +A asd.cui`,
-		"ParentImage": `C:\test\powershell.exe`,
-	},
-	map[string]string{
-		"Image":       `C:\test\aaa.exe`,
-		"CommandLine": `+R +H +A asd.cui`,
-		"ParentImage": `C:\test\powershell.exe`,
+		"ParentImage": `C:\test\wmiprvse.exe`,
 	},
 }
 
@@ -83,37 +98,13 @@ var detection1_negative = []map[string]string{
 		"CommandLine": `+R +H +S +A asd.cui`,
 		"ParentImage": `C:\test\bbb.exe`,
 	},
-	map[string]string{
-		"Image":       `C:\test\aaa.exe`,
-		"CommandLine": `+R +H +A asd.cui`,
-		"ParentImage": `C:\test\lll.exe`,
-	},
-}
-
-type dummyObject map[string]string
-
-// GetMessage implements MessageGetter
-func (d dummyObject) GetMessage() []string {
-	keys := []string{
-		"Image",
-		"CommandLine",
-		"ParentImage",
-	}
-	res := make([]string, 0)
-	for _, k := range keys {
-		if val, ok := d[k]; ok {
-			res = append(res, val)
-		}
-	}
-	return res
-}
-
-// GetField returns a success status and arbitrary field content if requested map key is present
-func (d dummyObject) GetField(key string) (interface{}, bool) {
-	if val, ok := d[key]; ok {
-		return val, ok
-	}
-	return nil, false
+	/*
+		map[string]string{
+			"Image":       `C:\test\aaa.exe`,
+			"CommandLine": `+R +H +A asd.cui`,
+			"ParentImage": `C:\test\lll.exe`,
+		},
+	*/
 }
 
 func TestParse(t *testing.T) {
@@ -126,11 +117,13 @@ func TestParse(t *testing.T) {
 			t.Fatalf("positive case %d failed to match", i)
 		}
 	}
-	for i, negative := range detection1_negative {
-		if parser.Match(dummyObject(negative)) {
-			t.Fatalf("negative case %d matched but should not have", i)
+	/*
+		for i, negative := range detection1_negative {
+			if parser.Match(dummyObject(negative)) {
+				t.Fatalf("negative case %d matched but should not have", i)
+			}
 		}
-	}
+	*/
 }
 
 var invalidConditions = []string{
