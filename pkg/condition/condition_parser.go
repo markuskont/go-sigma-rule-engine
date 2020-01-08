@@ -69,7 +69,6 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 		rules = append(rules, t)
 	}
 
-	fmt.Println(rules)
 	// TODO - recursively parse nested groups
 	for _, group := range rules {
 		if l := len(group); l == 1 || (l == 2 && group.isNegated()) {

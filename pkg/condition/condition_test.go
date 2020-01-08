@@ -193,6 +193,54 @@ var detection3_negative = []map[string]string{
 	},
 }
 
+var detection4 = map[string]interface{}{
+	"condition": "selection1 and not selection2 and not selection3",
+	"selection1": map[string]interface{}{
+		"Image": []string{
+			`*\schtasks.exe`,
+			`*\nslookup.exe`,
+			`*\certutil.exe`,
+			`*\bitsadmin.exe`,
+			`*\mshta.exe`,
+		},
+	},
+	"selection2": map[string]interface{}{
+		"ParentImage": []string{
+			`*\mshta.exe`,
+			`*\powershell.exe`,
+			`*\cmd.exe`,
+			`*\rundll32.exe`,
+			`*\cscript.exe`,
+			`*\wscript.exe`,
+			`*\wmiprvse.exe`,
+		},
+	},
+	"selection3": map[string]interface{}{
+		"CommandLine": `+R +H +S +A *.cui`,
+	},
+}
+
+var detection4_positive = []map[string]string{
+	map[string]string{
+		"Image":       `C:\test\bitsadmin.exe`,
+		"ParentImage": `C:\totallylegit\firefox.exe`,
+		"CommandLine": `+R +H +A asd.txt`,
+	},
+	map[string]string{
+		"Image":       `C:\test\nslookup.exe`,
+		"ParentImage": `C:\dropper\python.exe`,
+		"CommandLine": `--help`,
+	},
+}
+
+var detection4_negative = []map[string]string{
+	map[string]string{
+		"Image":       `C:\test\bitsadmin.exe`,
+		"CommandLine": `+R +H +S +A lll.cui`,
+		"ParentImage": `C:\test\mshta.exe`,
+	},
+}
+
 type testCase struct {
 	Rule               map[string]interface{}
 	Positive, Negative []map[string]string
@@ -213,6 +261,11 @@ var testCases = []testCase{
 		Rule:     detection3,
 		Positive: detection3_positive,
 		Negative: detection3_negative,
+	},
+	testCase{
+		Rule:     detection4,
+		Positive: detection4_positive,
+		Negative: detection4_negative,
 	},
 }
 
