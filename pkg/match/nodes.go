@@ -69,8 +69,7 @@ type NodeNot struct {
 
 // Match implements sigma Matcher
 func (n NodeNot) Match(obj types.EventChecker) bool {
-	panic("HERE")
-	return !n.Match(obj)
+	return !n.Branch.Match(obj)
 }
 
 // Self returns Node or final rule object for debugging and/or walking the tree

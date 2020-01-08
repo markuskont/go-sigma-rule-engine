@@ -49,16 +49,20 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 
 	var start int
 	last := len(t) - 1
-	for pos, item := range t {
-		if item.T == KeywordOr || pos == last {
-			switch pos {
-			case last:
-				rules = append(rules, t[pos:])
-			default:
-				rules = append(rules, t[start:pos])
-				start = pos + 1
+	if t.contains(KeywordOr) {
+		for pos, item := range t {
+			if item.T == KeywordOr || pos == last {
+				switch pos {
+				case last:
+					rules = append(rules, t[pos:])
+				default:
+					rules = append(rules, t[start:pos])
+					start = pos + 1
+				}
 			}
 		}
+	} else {
+		rules = append(rules, t)
 	}
 
 	// TODO - recursively parse nested groups
