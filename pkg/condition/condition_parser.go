@@ -10,15 +10,6 @@ import (
 
 // TODO - only use this function as wrapper for unsupported conditions
 func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
-	fmt.Printf("Parsing %+v\n", t)
-
-	// seek to LPAR -> store offset set balance as 1
-	// seek from offset to end -> increment balance when encountering LPAR, decrement when encountering RPAR
-	// increment group count on every decrement
-	// stop when balance is 0, error of EOF if balance is positive or negative
-	// if group count is > 0, fill sub brances via recursion
-	// finally, build branch from identifiers and logic statements
-
 	if t.contains(IdentifierAll) {
 		return nil, types.ErrUnsupportedToken{Msg: IdentifierAll.Literal()}
 	}
@@ -30,6 +21,14 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 	}
 
 	// pass 1 - discover groups
+
+	// seek to LPAR -> store offset set balance as 1
+	// seek from offset to end -> increment balance when encountering LPAR, decrement when encountering RPAR
+	// increment group count on every decrement
+	// stop when balance is 0, error of EOF if balance is positive or negative
+	// if group count is > 0, fill sub brances via recursion
+	// finally, build branch from identifiers and logic statements
+
 	_, ok, err := newGroupOffsetInTokens(t)
 	if err != nil {
 		return nil, err
@@ -89,7 +88,7 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 			continue
 		}
 		andGroup := make([]match.Branch, 0)
-		for _, item := range group {
+		for i, item := range group {
 			switch item.T {
 			case Identifier:
 				r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
@@ -97,7 +96,7 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 					return nil, err
 				}
 				andGroup = append(andGroup, func() match.Branch {
-					if group.isNegated() {
+					if i > 0 && group[i-1:].isNegated() {
 						return match.NodeNot{Branch: r}
 					}
 					return r

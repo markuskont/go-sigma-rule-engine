@@ -1,7 +1,6 @@
 package condition
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -47,6 +46,7 @@ var data = []string{
 	`(selection1 and not 1 of filter*) or selection2 or selection3 or selection4`,
 }
 
+/*
 func TestLex(t *testing.T) {
 	for _, str := range data {
 		l := lex(str)
@@ -57,9 +57,10 @@ func TestLex(t *testing.T) {
 		fmt.Printf("%+v\n", out)
 	}
 }
+*/
 
 var detection1 = map[string]interface{}{
-	"condition": "not selection1",
+	"condition": "selection1 and not selection3",
 	"selection1": map[string]interface{}{
 		"Image": []string{
 			`*\schtasks.exe`,
@@ -78,9 +79,8 @@ var detection1 = map[string]interface{}{
 			`*\wmiprvse.exe`,
 		},
 	},
-	"selection2": map[string]interface{}{
-		//"CommandLine": `+R +H +S +A *.cui`,
-		"CommandLine": `aaa`,
+	"selection3": map[string]interface{}{
+		"CommandLine": `+R +H +S +A *.cui`,
 	},
 }
 
@@ -90,40 +90,107 @@ var detection1_positive = []map[string]string{
 		"CommandLine": `+R +H +A asd.cui`,
 		"ParentImage": `C:\test\wmiprvse.exe`,
 	},
+	map[string]string{
+		"Image":       `C:\test\bitsadmin.exe`,
+		"CommandLine": `aaa`,
+		"ParentImage": `C:\test\wmiprvse.exe`,
+	},
 }
 
 var detection1_negative = []map[string]string{
 	map[string]string{
 		"Image":       `C:\test\bitsadmin.exe`,
-		"CommandLine": `+R +H +S +A asd.cui`,
-		"ParentImage": `C:\test\bbb.exe`,
+		"CommandLine": `+R +H +S +A lll.cui`,
+		"ParentImage": `C:\test\mshta.exe`,
 	},
-	/*
-		map[string]string{
-			"Image":       `C:\test\aaa.exe`,
-			"CommandLine": `+R +H +A asd.cui`,
-			"ParentImage": `C:\test\lll.exe`,
+}
+
+var detection2 = map[string]interface{}{
+	"condition": "selection1 or selection2",
+	"selection1": map[string]interface{}{
+		"Image": []string{
+			`*\schtasks.exe`,
+			`*\nslookup.exe`,
+			`*\certutil.exe`,
+			`*\bitsadmin.exe`,
+			`*\mshta.exe`,
 		},
-	*/
+	},
+	"selection2": map[string]interface{}{
+		"ParentImage": []string{
+			`*\mshta.exe`,
+			`*\powershell.exe`,
+			`*\cmd.exe`,
+			`*\rundll32.exe`,
+			`*\cscript.exe`,
+			`*\wscript.exe`,
+			`*\wmiprvse.exe`,
+		},
+	},
+}
+
+var detection2_positive = []map[string]string{
+	map[string]string{
+		"Image":       `C:\test\bitsadmin.exe`,
+		"ParentImage": `C:\test\wmiprvse.exe`,
+	},
+	map[string]string{
+		"Image":       `C:\test\bitsadmin.exe`,
+		"ParentImage": `C:\test\aaa.exe`,
+	},
+	map[string]string{
+		"Image":       `C:\test\bbb.exe`,
+		"ParentImage": `C:\test\wmiprvse.exe`,
+	},
+}
+
+var detection2_negative = []map[string]string{
+	map[string]string{
+		"Image":       `C:\test\bbb.exe`,
+		"ParentImage": `C:\trololo\zzz.ini`,
+	},
+}
+
+type testCase struct {
+	Rule               map[string]interface{}
+	Positive, Negative []map[string]string
+}
+
+var testCases = []testCase{
+	testCase{
+		Rule:     detection1,
+		Positive: detection1_positive,
+		Negative: detection1_negative,
+	},
+	testCase{
+		Rule:     detection2,
+		Positive: detection2_positive,
+		Negative: detection2_negative,
+	},
 }
 
 func TestParse(t *testing.T) {
-	parser, err := Parse(detection1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i, positive := range detection1_positive {
-		if !parser.Match(dummyObject(positive)) {
-			t.Fatalf("positive case %d failed to match", i)
+
+	for j, c := range testCases {
+		parser, err := Parse(c.Rule)
+		if err != nil {
+			t.Fatal(err)
 		}
-	}
-	/*
-		for i, negative := range detection1_negative {
-			if parser.Match(dummyObject(negative)) {
-				t.Fatalf("negative case %d matched but should not have", i)
+		if c.Positive != nil {
+			for i, positive := range c.Positive {
+				if !parser.Match(dummyObject(positive)) {
+					t.Fatalf("%d positive case %d failed to match", j, i)
+				}
 			}
 		}
-	*/
+		if c.Negative != nil {
+			for i, negative := range c.Negative {
+				if parser.Match(dummyObject(negative)) {
+					t.Fatalf("%d negative case %d matched but should not have", j, i)
+				}
+			}
+		}
+	}
 }
 
 var invalidConditions = []string{

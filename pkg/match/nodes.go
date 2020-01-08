@@ -1,6 +1,8 @@
 package match
 
-import "github.com/markuskont/go-sigma-rule-engine/pkg/types"
+import (
+	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
+)
 
 type NodeSimpleAnd []Branch
 
