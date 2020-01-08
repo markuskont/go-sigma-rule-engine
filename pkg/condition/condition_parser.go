@@ -53,7 +53,12 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 			if item.T == KeywordOr || pos == last {
 				switch pos {
 				case last:
-					rules = append(rules, t[pos:])
+					rules = append(rules, func() tokens {
+						if last > 0 && t[pos-1].T == KeywordNot {
+							return t[pos-1:]
+						}
+						return t[pos:]
+					}())
 				default:
 					rules = append(rules, t[start:pos])
 					start = pos + 1
@@ -64,6 +69,7 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 		rules = append(rules, t)
 	}
 
+	fmt.Println(rules)
 	// TODO - recursively parse nested groups
 	for _, group := range rules {
 		if l := len(group); l == 1 || (l == 2 && group.isNegated()) {
@@ -113,6 +119,7 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 }
 
 type parser struct {
+	// lexer that tokenizes input string
 	lex *lexer
 
 	// maintain a list of collected and validated tokens
@@ -128,6 +135,7 @@ type parser struct {
 	// for debug
 	condition string
 
+	// resulting rule that can be collected later
 	result match.Branch
 }
 

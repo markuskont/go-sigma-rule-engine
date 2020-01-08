@@ -151,6 +151,41 @@ var detection2_negative = []map[string]string{
 	},
 }
 
+var detection3 = map[string]interface{}{
+	"condition": "selection1 or not selection2",
+	"selection1": map[string]interface{}{
+		"Image": []string{
+			`*\schtasks.exe`,
+			`*\nslookup.exe`,
+			`*\certutil.exe`,
+			`*\bitsadmin.exe`,
+			`*\mshta.exe`,
+		},
+	},
+	"selection2": map[string]interface{}{
+		"ParentImage": []string{
+			`*\mshta.exe`,
+			`*\powershell.exe`,
+			`*\cmd.exe`,
+			`*\rundll32.exe`,
+			`*\cscript.exe`,
+			`*\wscript.exe`,
+			`*\wmiprvse.exe`,
+		},
+	},
+}
+
+var detection3_positive = []map[string]string{
+	map[string]string{
+		"Image":       `D:\test\bitsadmin.exe`,
+		"ParentImage": `C:\test\aaa.exe`,
+	},
+	map[string]string{
+		"Image":       `D:\test\zzz.exe`,
+		"ParentImage": `C:\test\ttt.ini`,
+	},
+}
+
 type testCase struct {
 	Rule               map[string]interface{}
 	Positive, Negative []map[string]string
@@ -166,6 +201,10 @@ var testCases = []testCase{
 		Rule:     detection2,
 		Positive: detection2_positive,
 		Negative: detection2_negative,
+	},
+	testCase{
+		Rule:     detection3,
+		Positive: detection3_positive,
 	},
 }
 
