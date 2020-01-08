@@ -186,6 +186,13 @@ var detection3_positive = []map[string]string{
 	},
 }
 
+var detection3_negative = []map[string]string{
+	map[string]string{
+		"Image":       `D:\test\aaa.exe`,
+		"ParentImage": `C:\test\mshta.exe`,
+	},
+}
+
 type testCase struct {
 	Rule               map[string]interface{}
 	Positive, Negative []map[string]string
@@ -205,6 +212,7 @@ var testCases = []testCase{
 	testCase{
 		Rule:     detection3,
 		Positive: detection3_positive,
+		Negative: detection3_negative,
 	},
 }
 
