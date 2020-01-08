@@ -14,6 +14,7 @@ import (
 var (
 	cfgFile string
 	quiet   bool
+	debug   bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -54,7 +55,8 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Quiet output. Suppress warnings and other stuff.")
+	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Quiet output. Suppress warnings and other stuff. Cannot be used together with --debug and --quiet will take precedence.")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Debug mode. Enable trace logging. Cannot be used together with --quiet.")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -89,5 +91,7 @@ func initLogging() {
 	})
 	if quiet {
 		log.SetLevel(log.ErrorLevel)
+	} else if debug {
+		log.SetLevel(log.TraceLevel)
 	}
 }

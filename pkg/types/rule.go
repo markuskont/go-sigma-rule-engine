@@ -62,13 +62,13 @@ type SearchExpr struct {
 	Content interface{}
 }
 
-func (s *SearchExpr) Guess() SearchExpr {
+func (s *SearchExpr) Guess() *SearchExpr {
 	if strings.HasPrefix(s.Name, "keyword") {
 		s.Type = ExprKeywords
 	} else {
 		s.Type = ExprSelection
 	}
-	return *s
+	return s
 }
 
 type Detection map[string]interface{}
@@ -83,7 +83,7 @@ func (d Detection) Fields() <-chan SearchExpr {
 					Name:    k,
 					Content: v,
 				}
-				tx <- e.Guess()
+				tx <- *e.Guess()
 			}
 		}
 	}()
@@ -97,4 +97,15 @@ func (d Detection) FieldSlice() []string {
 		tx = append(tx, item.Name)
 	}
 	return tx
+}
+
+func (d Detection) Get(key string) *SearchExpr {
+	if val, ok := d[key]; ok {
+		e := &SearchExpr{
+			Name:    key,
+			Content: val,
+		}
+		return e.Guess()
+	}
+	return nil
 }

@@ -1,5 +1,7 @@
 package condition
 
+import "fmt"
+
 type Token int
 
 const (
@@ -196,4 +198,143 @@ func validTokenSequence(t1, t2 Token) bool {
 		}
 	}
 	return false
+}
+
+type tokens []Item
+
+func (t tokens) len() int { return len(t) }
+func (t tokens) lastIdx() int {
+	return t.len() - 1
+}
+func (t tokens) tail(i int) tokens {
+	if i < 0 || i > t.lastIdx() {
+		return t
+	}
+	return t[i:]
+}
+
+func (t tokens) head(i int) tokens {
+	if i < 0 || i > t.lastIdx() {
+		return t
+	}
+	return t[:i]
+}
+
+func (t tokens) nextKeyword() (int, Token) {
+	for i, item := range t {
+		if item.T == KeywordAnd || item.T == KeywordOr {
+			return i, item.T
+		}
+	}
+	return -1, TokNil
+}
+
+func (t tokens) getTokenIndices(tok Token) []int {
+	out := make([]int, 0)
+	for i, item := range t {
+		if item.T == tok {
+			out = append(out, i)
+		}
+	}
+	return out
+}
+
+func (t tokens) countAnd() int {
+	var c int
+	for _, item := range t {
+		if item.T == KeywordAnd {
+			c++
+		}
+	}
+	return c
+}
+
+func (t tokens) countOr() int {
+	var c int
+	for _, item := range t {
+		if item.T == KeywordOr {
+			c++
+		}
+	}
+	return c
+}
+
+func (t tokens) count(tok ...Token) []int {
+	c := make([]int, len(t))
+	for _, item := range t {
+		for i, token := range tok {
+			if item.T == token {
+				c[i]++
+			}
+		}
+	}
+	return c
+}
+
+func (t tokens) isNegated() bool {
+	if len(t) > 1 && t[0].T == KeywordNot {
+		return true
+	}
+	return false
+}
+
+func (t tokens) index(tok Token) int {
+	for i, item := range t {
+		if item.T == tok {
+			return i
+		}
+	}
+	return -1
+}
+
+func (t tokens) reverseIndex(tok Token) int {
+	for i := len(t) - 1; i > 0; i-- {
+		if t[i].T == tok {
+			return i
+		}
+	}
+	return -1
+}
+
+func (t tokens) contains(tok Token) bool {
+	for _, item := range t {
+		if item.T == tok {
+			return true
+		}
+	}
+	return false
+}
+
+type offsets struct {
+	From, To int
+}
+
+func newGroupOffsetInTokens(t tokens) ([]*offsets, bool, error) {
+	if t == nil || t.len() == 0 {
+		return nil, false, nil
+	}
+	if !t.contains(SepLpar) {
+		return nil, false, nil
+	}
+	groups := make([]*offsets, 0)
+	var balance, found int
+	for i, item := range t {
+		switch item.T {
+		case SepLpar:
+			if balance == 0 {
+				groups = append(groups, &offsets{From: i, To: -1})
+			}
+			balance++
+		case SepRpar:
+			balance--
+			if balance == 0 {
+				groups[found].To = i
+				found++
+			}
+		}
+	}
+	if balance > 0 || balance < 0 {
+		return groups, false, fmt.Errorf("Broken rule group")
+	}
+	return groups, true, nil
 }

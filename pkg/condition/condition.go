@@ -2,7 +2,10 @@
 package condition
 
 import (
-	"strings"
+	"fmt"
+
+	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
 type Item struct {
@@ -10,27 +13,67 @@ type Item struct {
 	Val string
 }
 
-func checkKeyWord(in string) Token {
-	if len(in) == 0 {
-		return TokNil
+// TODO - perhaps we should invoke parse only if we actually need to parse the query statement and simply instantiate a single-branch rule otherwise
+func Parse(s types.Detection) (*match.Tree, error) {
+	if s == nil {
+		return nil, types.ErrMissingDetection{}
 	}
-	switch strings.ToLower(in) {
-	case KeywordAnd.Literal():
-		return KeywordAnd
-	case KeywordOr.Literal():
-		return KeywordOr
-	case KeywordNot.Literal():
-		return KeywordNot
-	case "sum", "min", "max", "count", "avg":
-		return KeywordAgg
-	case IdentifierAll.Literal():
-		return IdentifierAll
-	default:
-		if strings.Contains(in, "*") {
-			return IdentifierWithWildcard
-		}
-		return Identifier
+	if len(s) < 3 {
+		return parseSimpleScenario(s)
 	}
+	return parseComplexScenario(s)
 }
 
-var eof = rune(0)
+func parseSimpleScenario(s types.Detection) (*match.Tree, error) {
+	switch len(s) {
+	case 1:
+		// Simple case - should have only one search field, but should not have a condition field
+		if c, ok := s["condition"].(string); ok {
+			return nil, types.ErrIncompleteDetection{Condition: c}
+		}
+	case 2:
+		// Simple case - one condition statement comprised of single IDENT that matches the second field name
+		if c, ok := s["condition"].(string); !ok {
+			return nil, types.ErrIncompleteDetection{Condition: "MISSING"}
+		} else {
+			if _, ok := s[c]; !ok {
+				return nil, types.ErrIncompleteDetection{
+					Condition: c,
+					Msg:       fmt.Sprintf("Field %s defined in condition missing from map.", c),
+					Keys:      s.FieldSlice(),
+				}
+			}
+		}
+		delete(s, "condition")
+	default:
+		return nil, types.ErrMissingDetection{}
+	}
+	rx := s.Fields()
+	ast := &match.Tree{}
+	r := <-rx
+	root, err := newRuleMatcherFromIdent(&r, false)
+	if err != nil {
+		return nil, err
+	}
+	ast.Root = root
+	return ast, nil
+}
+
+func parseComplexScenario(s types.Detection) (*match.Tree, error) {
+	// Complex case, time to build syntax tree out of condition statement
+	raw, ok := s["condition"].(string)
+	if !ok {
+		return nil, types.ErrMissingCondition{}
+	}
+	p := &parser{
+		lex:       lex(raw),
+		sigma:     s,
+		tokens:    make([]Item, 0),
+		previous:  TokBegin,
+		condition: raw,
+	}
+	if err := p.run(); err != nil {
+		return nil, err
+	}
+	return &match.Tree{Root: p.result}, nil
+}

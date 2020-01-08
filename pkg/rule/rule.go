@@ -2,6 +2,11 @@ package rule
 
 import "github.com/markuskont/go-sigma-rule-engine/pkg/types"
 
+type Config struct {
+	LowerCase   bool
+	NumToString bool
+}
+
 type FieldsList []*Fields
 
 // Match implements sigma Matcher
