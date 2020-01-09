@@ -2,8 +2,6 @@ package condition
 
 import (
 	"fmt"
-
-	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
 )
 
 type Token int
@@ -346,35 +344,6 @@ func (t tokens) contains(tok Token) bool {
 		}
 	}
 	return false
-}
-
-type tokenizer struct {
-	tokens
-	start    int
-	position int
-
-	atGroup int
-	groups  []offsets
-
-	items chan match.Branch
-}
-
-func (t *tokenizer) run() error {
-	fmt.Println("------")
-	for t.position < len(t.tokens)-1 {
-		/*
-			bits := t.tokens[:t.groups[t.atGroup].From]
-			if len(bits) > 0 {
-				fmt.Println(bits)
-			}
-		*/
-		//t.atGroup++
-
-		fmt.Println(">>>>>", t.tokens[t.position])
-
-		t.position++
-	}
-	return nil
 }
 
 type offsets struct {

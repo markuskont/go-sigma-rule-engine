@@ -29,17 +29,14 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 
 	rules := t.splitByOr()
 
-	fmt.Println("------")
-	for _, r := range rules {
-		fmt.Println(r)
+	for _, group := range rules {
+		fmt.Println(group)
 	}
-	fmt.Println("******")
 
 	return nil, types.ErrUnsupportedToken{Msg: "GROUP"}
 }
 
 // simple search == just a valid group sequence with no sub-groups
-// maybe will stay, maybe exists just until I figure out the parse logic
 func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
 	rules := t.splitByOr()
 
