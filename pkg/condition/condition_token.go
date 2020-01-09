@@ -1,6 +1,10 @@
 package condition
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
+)
 
 type Token int
 
@@ -183,7 +187,7 @@ func validTokenSequence(t1, t2 Token) bool {
 		}
 	case SepRpar:
 		switch t1 {
-		case Identifier, IdentifierAll, IdentifierWithWildcard, SepLpar:
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepLpar, SepRpar:
 			return true
 		}
 	case LitEof:
@@ -203,30 +207,40 @@ func validTokenSequence(t1, t2 Token) bool {
 type tokens []Item
 
 func (t tokens) splitByOr() []tokens {
-	var start int
+
+	if !t.contains(KeywordOr) {
+		return []tokens{t}
+	}
+
+	var start, groupBalance int
 
 	rules := make([]tokens, 0)
 	last := len(t) - 1
 
-	if t.contains(KeywordOr) {
-		for pos, item := range t {
-			if item.T == KeywordOr || pos == last {
-				switch pos {
-				case last:
-					rules = append(rules, func() tokens {
-						if last > 0 && t[pos-1].T == KeywordNot {
-							return t[pos-1:]
-						}
-						return t[pos:]
-					}())
-				default:
-					rules = append(rules, t[start:pos])
-					start = pos + 1
-				}
+	for pos, item := range t {
+
+		switch v := item.T; {
+		case v == SepLpar:
+			groupBalance++
+		case v == SepRpar:
+			groupBalance--
+		}
+
+		if (item.T == KeywordOr && groupBalance == 0) || pos == last {
+			switch pos {
+			case last:
+				rules = append(rules, func() tokens {
+					if last > 0 && t[pos-1].T == KeywordNot {
+						return t[pos-1:]
+					}
+					return t[start:]
+				}())
+			default:
+				rules = append(rules, t[start:pos])
+				start = pos + 1
 			}
 		}
-	} else {
-		rules = append(rules, t)
+
 	}
 	return rules
 }
@@ -334,6 +348,35 @@ func (t tokens) contains(tok Token) bool {
 	return false
 }
 
+type tokenizer struct {
+	tokens
+	start    int
+	position int
+
+	atGroup int
+	groups  []offsets
+
+	items chan match.Branch
+}
+
+func (t *tokenizer) run() error {
+	fmt.Println("------")
+	for t.position < len(t.tokens)-1 {
+		/*
+			bits := t.tokens[:t.groups[t.atGroup].From]
+			if len(bits) > 0 {
+				fmt.Println(bits)
+			}
+		*/
+		//t.atGroup++
+
+		fmt.Println(">>>>>", t.tokens[t.position])
+
+		t.position++
+	}
+	return nil
+}
+
 type offsets struct {
 	From, To int
 }
@@ -360,13 +403,13 @@ func newGroupOffsetInTokens(t tokens) ([]offsets, bool, error) {
 		switch item.T {
 		case SepLpar:
 			if balance == 0 {
-				groups = append(groups, offsets{From: i + 1, To: -1})
+				groups = append(groups, offsets{From: i, To: -1})
 			}
 			balance++
 		case SepRpar:
 			balance--
 			if balance == 0 {
-				groups[found].SetTo(i)
+				groups[found].SetTo(i + 1)
 				found++
 			}
 		}

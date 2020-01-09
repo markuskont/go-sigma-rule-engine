@@ -8,7 +8,6 @@ import (
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
-// TODO - only use this function as wrapper for unsupported conditions
 func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
 	if t.contains(IdentifierAll) {
 		return nil, types.ErrUnsupportedToken{Msg: IdentifierAll.Literal()}
@@ -20,27 +19,22 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 		return nil, types.ErrUnsupportedToken{Msg: fmt.Sprintf("%s / %s", StAll.Literal(), StOne.Literal())}
 	}
 
-	// pass 1 - discover groups
-
-	// seek to LPAR -> store offset set balance as 1
-	// seek from offset to end -> increment balance when encountering LPAR, decrement when encountering RPAR
-	// increment group count on every decrement
-	// stop when balance is 0, error of EOF if balance is positive or negative
-	// if group count is > 0, fill sub brances via recursion
-	// finally, build branch from identifiers and logic statements
-
-	groups, ok, err := newGroupOffsetInTokens(t)
+	_, ok, err := newGroupOffsetInTokens(t)
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
 		return parseSimpleSearch(t, data, c)
 	}
+
+	rules := t.splitByOr()
+
 	fmt.Println("------")
-	fmt.Println(t)
-	for _, g := range groups {
-		fmt.Println(t[g.From:g.To])
+	for _, r := range rules {
+		fmt.Println(r)
 	}
+	fmt.Println("******")
+
 	return nil, types.ErrUnsupportedToken{Msg: "GROUP"}
 }
 
@@ -48,6 +42,12 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 // maybe will stay, maybe exists just until I figure out the parse logic
 func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
 	rules := t.splitByOr()
+
+	fmt.Println("------")
+	for _, r := range rules {
+		fmt.Println(r)
+	}
+	fmt.Println("******")
 
 	branch := make([]match.Branch, 0)
 	for _, group := range rules {
