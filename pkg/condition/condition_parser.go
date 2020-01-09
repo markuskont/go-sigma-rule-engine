@@ -8,7 +8,7 @@ import (
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
-func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
+func parseSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
 	if t.contains(IdentifierAll) {
 		return nil, types.ErrUnsupportedToken{Msg: IdentifierAll.Literal()}
 	}
@@ -24,14 +24,35 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 		return nil, err
 	}
 	if !ok {
-		return parseSimpleSearch(t, data, c)
+		return parseSimpleSearch(t, detect, c)
 	}
 
 	rules := t.splitByOr()
 
+	branch := make([]match.Branch, 0)
 	for _, group := range rules {
-		fmt.Println(group)
+		if l := len(group); l == 1 || (l == 2 && group.isNegated()) {
+			var ident Item
+			switch l {
+			case 1:
+				ident = group[0]
+			case 2:
+				ident = group[1]
+			}
+			r, err := newRuleMatcherFromIdent(detect.Get(ident.Val), c.LowerCase)
+			if err != nil {
+				return nil, err
+			}
+			branch = append(branch, func() match.Branch {
+				if group.isNegated() {
+					return match.NodeNot{Branch: r}
+				}
+				return r
+			}())
+			continue
+		}
 	}
+	fmt.Println(branch)
 
 	return nil, types.ErrUnsupportedToken{Msg: "GROUP"}
 }
@@ -56,7 +77,6 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 			case 2:
 				ident = group[1]
 			}
-			// TODO - move to separate fn to reduce redundant code
 			r, err := newRuleMatcherFromIdent(detect.Get(ident.Val), c.LowerCase)
 			if err != nil {
 				return nil, err
