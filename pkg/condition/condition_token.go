@@ -224,6 +224,11 @@ func (t *tokensHandler) discoverSubGroups() *tokensHandler {
 	return t
 }
 
+func (t tokensHandler) isSimpleIdent() bool {
+	l := len(t.tokens)
+	return l == 1 || (l == 2 && t.isNegated())
+}
+
 type tokens []Item
 
 func (t tokens) splitByToken(tok Token) []*tokensHandler {
