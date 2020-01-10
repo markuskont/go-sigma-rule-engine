@@ -82,7 +82,7 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 
 		fmt.Println("xxx", "SUB", group.tokens, "->", group.subGroups)
 
-		for _, pos := range group.subGroups {
+		for i, pos := range group.subGroups {
 
 			fmt.Println("***", "SUB", group.tokens, "->", pos)
 
@@ -98,7 +98,6 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 							return nil, err
 						}
 						branch = append(branch, func() match.Branch {
-							//fmt.Println(i, regular, item)
 							if i > 0 && regular[i-1:].isNegated() {
 								return match.NodeNot{Branch: r}
 							}
@@ -122,6 +121,25 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 				return b
 			}())
 
+			if i == len(group.subGroups)-1 {
+				if regular := group.tokens[pos.To:]; len(regular) != 0 {
+					for i, item := range regular {
+						switch t := item.T; {
+						case t == Identifier:
+							r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
+							if err != nil {
+								return nil, err
+							}
+							branch = append(branch, func() match.Branch {
+								if i > 0 && regular[i-1:].isNegated() {
+									return match.NodeNot{Branch: r}
+								}
+								return r
+							}())
+						}
+					}
+				}
+			}
 		}
 		return match.NodeSimpleAnd(branch), nil
 	}
