@@ -8,7 +8,7 @@ import (
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
-func parseSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
+func parseSearch(t tokens, detect types.Detection, c rule.Config, entry bool) (match.Branch, error) {
 	if t.contains(IdentifierAll) {
 		return nil, types.ErrUnsupportedToken{Msg: IdentifierAll.Literal()}
 	}
@@ -29,18 +29,20 @@ func parseSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch,
 
 	rules := t.splitByToken(KeywordOr)
 
-	fmt.Println("---------------------------")
-	fmt.Println(">>>", t)
-	for _, r := range rules {
-		fmt.Print(">|<", r.tokens)
-	}
-	fmt.Printf("\n")
-	fmt.Println("---------------------------")
+	if entry {
+		fmt.Println("---------------------------")
+		fmt.Println(">>>", t)
+		for _, r := range rules {
+			fmt.Print(" >|< ", r.tokens)
+		}
+		fmt.Printf("\n")
+		fmt.Println("---------------------------")
 
-	for _, group := range rules {
-		fmt.Println(group.tokens)
+		for _, group := range rules {
+			fmt.Println(group.tokens)
+		}
+		fmt.Println("***************************")
 	}
-	fmt.Println("***************************")
 
 	branch := make([]match.Branch, 0)
 	for i, group := range rules {
@@ -59,6 +61,13 @@ func parseSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch,
 		return branch[0], nil
 	}
 
+	if entry {
+		fmt.Println("ccccccccccccccccccccccccccc")
+		for _, r := range branch {
+			fmt.Println("RES ->", r)
+		}
+	}
+
 	return match.NodeSimpleOr(branch), nil
 }
 
@@ -74,8 +83,12 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 		fmt.Println("xxx", "SUB", group.tokens, "->", group.subGroups)
 
 		for _, pos := range group.subGroups {
+
 			fmt.Println("***", "SUB", group.tokens, "->", pos)
+
 			// Grab statement before the group
+			sub := group.tokens[pos.From+1 : pos.To-1]
+
 			if regular := group.tokens[offset:pos.From]; len(regular) > 0 {
 				for i, item := range regular {
 					switch t := item.T; {
@@ -95,19 +108,20 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 				}
 				// move offset to group end
 				offset = pos.To
-
-				sub := group.tokens[pos.From+1 : pos.To-1]
-				b, err := parseSearch(sub, detect, c)
-				if err != nil {
-					return nil, err
-				}
-				branch = append(branch, func() match.Branch {
-					if pos.From > 0 && group.tokens[pos.From-1].T == KeywordNot {
-						return match.NodeNot{Branch: b}
-					}
-					return b
-				}())
 			}
+
+			fmt.Println("***", "SUB PARSING", sub)
+			b, err := parseSearch(sub, detect, c, false)
+			if err != nil {
+				return nil, err
+			}
+			branch = append(branch, func() match.Branch {
+				if pos.From > 0 && group.tokens[pos.From-1].T == KeywordNot {
+					return match.NodeNot{Branch: b}
+				}
+				return b
+			}())
+
 		}
 		return match.NodeSimpleAnd(branch), nil
 	}
@@ -217,7 +231,7 @@ func (p *parser) run() error {
 		return err
 	}
 	// Pass 2: find groups
-	b, err := parseSearch(p.tokens, p.sigma, rule.Config{})
+	b, err := parseSearch(p.tokens, p.sigma, rule.Config{}, true)
 	if err != nil {
 		return err
 	}

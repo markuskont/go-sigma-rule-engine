@@ -180,7 +180,7 @@ func validTokenSequence(t1, t2 Token) bool {
 		}
 	case SepLpar:
 		switch t1 {
-		case KeywordAnd, KeywordOr, KeywordNot, TokBegin:
+		case KeywordAnd, KeywordOr, KeywordNot, TokBegin, SepLpar:
 			return true
 		}
 	case SepRpar:

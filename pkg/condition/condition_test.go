@@ -242,7 +242,9 @@ var detection4_negative = []map[string]string{
 }
 
 var detection5 = map[string]interface{}{
-	"condition": "selection1 or not selection2 and (selection3 or (selection4 and selection5)) or (selection3 and selection2) and selection3 or selection1",
+	//"condition": "selection1 or not selection2 and (selection3 or (selection4 and selection5)) and (selection3 and selection2) and selection3 or selection1",
+	"condition": "selection1 and selection2 or ((selection2 or selection3) and selection5)", // THIS IS NOT FINE
+	//"condition": "selection1 and selection2 or selection4 and (selection2 or selection3) ", // THIS IS FINE
 	"selection1": map[string]interface{}{
 		"Field1": `aaa`,
 	},
