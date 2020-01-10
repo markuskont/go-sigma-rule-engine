@@ -27,17 +27,17 @@ func parseSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch,
 		return parseSimpleSearch(t, detect, c)
 	}
 
-	rules := t.splitByOr()
+	rules := t.splitByToken(KeywordOr)
 
 	branch := make([]match.Branch, 0)
 	for _, group := range rules {
-		if l := len(group); l == 1 || (l == 2 && group.isNegated()) {
+		if l := len(group.tokens); l == 1 || (l == 2 && group.isNegated()) {
 			var ident Item
 			switch l {
 			case 1:
-				ident = group[0]
+				ident = group.tokens[0]
 			case 2:
-				ident = group[1]
+				ident = group.tokens[1]
 			}
 			r, err := newRuleMatcherFromIdent(detect.Get(ident.Val), c.LowerCase)
 			if err != nil {
@@ -60,17 +60,17 @@ func parseSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch,
 
 // simple search == just a valid group sequence with no sub-groups
 func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
-	rules := t.splitByOr()
+	rules := t.splitByToken(KeywordOr)
 
 	branch := make([]match.Branch, 0)
 	for _, group := range rules {
-		if l := len(group); l == 1 || (l == 2 && group.isNegated()) {
+		if l := len(group.tokens); l == 1 || (l == 2 && group.isNegated()) {
 			var ident Item
 			switch l {
 			case 1:
-				ident = group[0]
+				ident = group.tokens[0]
 			case 2:
-				ident = group[1]
+				ident = group.tokens[1]
 			}
 			r, err := newRuleMatcherFromIdent(detect.Get(ident.Val), c.LowerCase)
 			if err != nil {
@@ -84,7 +84,7 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 			}())
 		} else {
 			andGroup := make([]match.Branch, 0)
-			for i, item := range group {
+			for i, item := range group.tokens {
 				switch item.T {
 				case Identifier:
 					r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
@@ -92,7 +92,7 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 						return nil, err
 					}
 					andGroup = append(andGroup, func() match.Branch {
-						if i > 0 && group[i-1:].isNegated() {
+						if i > 0 && group.tokens[i-1:].isNegated() {
 							return match.NodeNot{Branch: r}
 						}
 						return r

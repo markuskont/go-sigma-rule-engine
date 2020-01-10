@@ -202,39 +202,76 @@ func validTokenSequence(t1, t2 Token) bool {
 	return false
 }
 
+type tokensHandler struct {
+	tokens
+	hasSubGroup bool
+	subGroups   []offsets
+	err         error
+}
+
+func (t *tokensHandler) discoverSubGroups() *tokensHandler {
+	groups, ok, err := newGroupOffsetInTokens(t.tokens)
+	if err != nil {
+		t.err = err
+	}
+	if ok {
+		t.hasSubGroup = true
+		t.subGroups = groups
+	} else {
+		t.hasSubGroup = false
+		t.subGroups = make([]offsets, 0)
+	}
+	return t
+}
+
 type tokens []Item
 
-func (t tokens) splitByOr() []tokens {
+func (t tokens) splitByToken(tok Token) []*tokensHandler {
 
 	if !t.contains(KeywordOr) {
-		return []tokens{t}
+		return []*tokensHandler{&tokensHandler{tokens: t}}
 	}
 
 	var start, groupBalance int
 
-	rules := make([]tokens, 0)
+	//rules := &tokensHandler{ tokens: make(tokens, 0), }
+	rules := make([]*tokensHandler, 0)
 	last := len(t) - 1
 
 	for pos, item := range t {
 
+		var hasSubGroup bool
 		switch v := item.T; {
 		case v == SepLpar:
 			groupBalance++
 		case v == SepRpar:
 			groupBalance--
+			if groupBalance == 0 {
+				hasSubGroup = true
+			}
 		}
 
-		if (item.T == KeywordOr && groupBalance == 0) || pos == last {
+		if (item.T == tok && groupBalance == 0) || pos == last {
 			switch pos {
 			case last:
-				rules = append(rules, func() tokens {
+				rules = append(rules, func() *tokensHandler {
 					if last > 0 && t[pos-1].T == KeywordNot {
-						return t[pos-1:]
+						return &tokensHandler{
+							tokens:      t[pos-1:],
+							hasSubGroup: hasSubGroup,
+						}
 					}
-					return t[start:]
-				}())
+					return &tokensHandler{
+						tokens:      t[start:],
+						hasSubGroup: hasSubGroup,
+					}
+				}().discoverSubGroups())
 			default:
-				rules = append(rules, t[start:pos])
+				g := &tokensHandler{
+					tokens:      t[start:pos],
+					hasSubGroup: hasSubGroup,
+				}
+				rules = append(rules, g.discoverSubGroups())
 				start = pos + 1
 			}
 		}
