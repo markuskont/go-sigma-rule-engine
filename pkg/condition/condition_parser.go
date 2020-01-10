@@ -49,7 +49,8 @@ func parseSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch,
 				}
 				return r
 			}())
-			continue
+		} else {
+
 		}
 	}
 	fmt.Println(branch)
@@ -60,12 +61,6 @@ func parseSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch,
 // simple search == just a valid group sequence with no sub-groups
 func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
 	rules := t.splitByOr()
-
-	fmt.Println("------")
-	for _, r := range rules {
-		fmt.Println(r)
-	}
-	fmt.Println("******")
 
 	branch := make([]match.Branch, 0)
 	for _, group := range rules {
@@ -87,25 +82,25 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 				}
 				return r
 			}())
-			continue
-		}
-		andGroup := make([]match.Branch, 0)
-		for i, item := range group {
-			switch item.T {
-			case Identifier:
-				r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
-				if err != nil {
-					return nil, err
-				}
-				andGroup = append(andGroup, func() match.Branch {
-					if i > 0 && group[i-1:].isNegated() {
-						return match.NodeNot{Branch: r}
+		} else {
+			andGroup := make([]match.Branch, 0)
+			for i, item := range group {
+				switch item.T {
+				case Identifier:
+					r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
+					if err != nil {
+						return nil, err
 					}
-					return r
-				}())
+					andGroup = append(andGroup, func() match.Branch {
+						if i > 0 && group[i-1:].isNegated() {
+							return match.NodeNot{Branch: r}
+						}
+						return r
+					}())
+				}
 			}
+			branch = append(branch, match.NodeSimpleAnd(andGroup))
 		}
-		branch = append(branch, match.NodeSimpleAnd(andGroup))
 	}
 	if len(branch) == 1 {
 		return branch[0], nil
