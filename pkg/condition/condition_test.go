@@ -242,8 +242,7 @@ var detection4_negative = []map[string]string{
 }
 
 var detection5 = map[string]interface{}{
-	//"condition": "selection1 or not selection2 and (selection3 or (selection4 and selection5)) and (selection3 and selection2) and selection3 or selection1",
-	"condition": "selection1 and selection2 and (selection3 or selection4)", // THIS IS NOT FINE
+	"condition": "selection1 and selection2 and (selection3 or selection4) or selection5",
 	"selection1": map[string]interface{}{
 		"Field1": `aaa`,
 	},
@@ -273,6 +272,60 @@ var detection5_positive = []map[string]string{
 		"Field2": `this is bbbad`,
 		"Field3": `this is BaadD`,
 		"Field4": `this is dddad`,
+	},
+	map[string]string{
+		"Field5": `this is deeead`,
+	},
+}
+
+var detection5_negative = []map[string]string{
+	map[string]string{
+		"Field1": `this is BAaad`,
+		"Field2": `this is bbbad`,
+		"Field3": `this is cccad`,
+		"Field4": `this is baaad`,
+	},
+	map[string]string{
+		"Field1": `this is baaad`,
+		"Field2": `this is bbbad`,
+		"Field3": `this is BaadD`,
+		"Field4": `this is dDdad`,
+	},
+}
+
+var detection6 = map[string]interface{}{
+	"condition": "(selection5 and ((selection1 and not selection2) or (not selection3 and selection4)))",
+	"selection1": map[string]interface{}{
+		"Field1": `aaa`,
+	},
+	"selection2": map[string]interface{}{
+		"Field2": `bbb`,
+	},
+	"selection3": map[string]interface{}{
+		"Field3": `ccc`,
+	},
+	"selection4": map[string]interface{}{
+		"Field4": `ddd`,
+	},
+	"selection5": map[string]interface{}{
+		"Field5": `eee`,
+	},
+}
+
+var detection6_positive = []map[string]string{
+	map[string]string{
+		"Field1": `this is baaad`,
+		"Field2": `this is zzzad`,
+		"Field3": `this is CCCad`,
+		"Field4": `this is baaad`,
+		"Field5": `this is beeed`,
+	},
+	map[string]string{
+		"Field1": `this is xxxxx`,
+		"Field2": `this is zzzzz`,
+		"Field3": `this is CCCad`,
+		"Field4": `this is ddded`,
+		"Field5": `this is beeed`,
 	},
 }
 
@@ -305,6 +358,11 @@ var testCases = []testCase{
 	testCase{
 		Rule:     detection5,
 		Positive: detection5_positive,
+		Negative: detection5_negative,
+	},
+	testCase{
+		Rule:     detection6,
+		Positive: detection6_positive,
 	},
 }
 
