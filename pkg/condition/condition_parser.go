@@ -8,8 +8,7 @@ import (
 	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
 )
 
-// TODO - only use this function as wrapper for unsupported conditions
-func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, error) {
+func parseSearch(t tokens, detect types.Detection, c rule.Config, entry bool) (match.Branch, error) {
 	if t.contains(IdentifierAll) {
 		return nil, types.ErrUnsupportedToken{Msg: IdentifierAll.Literal()}
 	}
@@ -20,66 +19,126 @@ func parseSearch(t tokens, data types.Detection, c rule.Config) (match.Branch, e
 		return nil, types.ErrUnsupportedToken{Msg: fmt.Sprintf("%s / %s", StAll.Literal(), StOne.Literal())}
 	}
 
-	// pass 1 - discover groups
+	rules := t.splitByToken(KeywordOr)
 
-	// seek to LPAR -> store offset set balance as 1
-	// seek from offset to end -> increment balance when encountering LPAR, decrement when encountering RPAR
-	// increment group count on every decrement
-	// stop when balance is 0, error of EOF if balance is positive or negative
-	// if group count is > 0, fill sub brances via recursion
-	// finally, build branch from identifiers and logic statements
-
-	_, ok, err := newGroupOffsetInTokens(t)
-	if err != nil {
-		return nil, err
-	}
-	if ok {
-		return nil, types.ErrUnsupportedToken{Msg: "GROUP"}
+	branch := make([]match.Branch, 0)
+	for _, group := range rules {
+		group.discoverSubGroups()
+		b, err := newBranchFromGroup(*group, detect, c)
+		if err != nil {
+			return nil, err
+		}
+		branch = append(branch, b)
 	}
 
-	return parseSimpleSearch(t, data, c)
+	if len(branch) == 1 {
+		return branch[0], nil
+	}
+
+	return match.NodeSimpleOr(branch), nil
 }
 
-// simple search == just a valid group sequence with no sub-groups
-// maybe will stay, maybe exists just until I figure out the parse logic
-func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
-	rules := make([]tokens, 0)
-	branch := make([]match.Branch, 0)
+func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Config) (match.Branch, error) {
 
-	var start int
-	last := len(t) - 1
-	if t.contains(KeywordOr) {
-		for pos, item := range t {
-			if item.T == KeywordOr || pos == last {
-				switch pos {
-				case last:
-					rules = append(rules, func() tokens {
-						if last > 0 && t[pos-1].T == KeywordNot {
-							return t[pos-1:]
+	// recursion here
+	if group.hasSubGroup {
+		branch := make([]match.Branch, 0)
+		var offset int
+
+		for i, pos := range group.subGroups {
+
+			// Grab statement before the group
+			sub := group.tokens[pos.From+1 : pos.To-1]
+
+			if regular := group.tokens[offset:pos.From]; len(regular) > 0 {
+				for i, item := range regular {
+					switch t := item.T; {
+					case t == Identifier:
+						r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
+						if err != nil {
+							return nil, err
 						}
-						return t[pos:]
-					}())
-				default:
-					rules = append(rules, t[start:pos])
-					start = pos + 1
+						branch = append(branch, func() match.Branch {
+							if i > 0 && regular[i-1:].isNegated() {
+								return match.NodeNot{Branch: r}
+							}
+							return r
+						}())
+					}
+				}
+				// move offset to group end
+				offset = pos.To
+			}
+
+			b, err := parseSearch(sub, detect, c, false)
+			if err != nil {
+				return nil, err
+			}
+			branch = append(branch, func() match.Branch {
+				if pos.From > 0 && group.tokens[pos.From-1].T == KeywordNot {
+					return match.NodeNot{Branch: b}
+				}
+				return b
+			}())
+
+			if i == len(group.subGroups)-1 {
+				if regular := group.tokens[pos.To:]; len(regular) != 0 {
+					for i, item := range regular {
+						switch t := item.T; {
+						case t == Identifier:
+							r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
+							if err != nil {
+								return nil, err
+							}
+							branch = append(branch, func() match.Branch {
+								if i > 0 && regular[i-1:].isNegated() {
+									return match.NodeNot{Branch: r}
+								}
+								return r
+							}())
+						}
+					}
 				}
 			}
 		}
-	} else {
-		rules = append(rules, t)
+		return match.NodeSimpleAnd(branch), nil
 	}
 
-	// TODO - recursively parse nested groups
+	if group.isSimpleIdent() {
+		var ident Item
+		switch len(group.tokens) {
+		case 1:
+			ident = group.tokens[0]
+		case 2:
+			ident = group.tokens[1]
+		}
+		r, err := newRuleMatcherFromIdent(detect.Get(ident.Val), c.LowerCase)
+		return func() match.Branch {
+			if group.isNegated() {
+				return match.NodeNot{Branch: r}
+			}
+			return r
+		}(), err
+	}
+
+	// TODO - handle everything in this function
+	return parseSimpleSearch(group.tokens, detect, c)
+}
+
+// simple search == just a valid group sequence with no sub-groups
+func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
+	rules := t.splitByToken(KeywordOr)
+
+	branch := make([]match.Branch, 0)
 	for _, group := range rules {
-		if l := len(group); l == 1 || (l == 2 && group.isNegated()) {
+		if l := len(group.tokens); l == 1 || (l == 2 && group.isNegated()) {
 			var ident Item
 			switch l {
 			case 1:
-				ident = group[0]
+				ident = group.tokens[0]
 			case 2:
-				ident = group[1]
+				ident = group.tokens[1]
 			}
-			// TODO - move to separate fn to reduce redundant code
 			r, err := newRuleMatcherFromIdent(detect.Get(ident.Val), c.LowerCase)
 			if err != nil {
 				return nil, err
@@ -90,25 +149,25 @@ func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.B
 				}
 				return r
 			}())
-			continue
-		}
-		andGroup := make([]match.Branch, 0)
-		for i, item := range group {
-			switch item.T {
-			case Identifier:
-				r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
-				if err != nil {
-					return nil, err
-				}
-				andGroup = append(andGroup, func() match.Branch {
-					if i > 0 && group[i-1:].isNegated() {
-						return match.NodeNot{Branch: r}
+		} else {
+			andGroup := make([]match.Branch, 0)
+			for i, item := range group.tokens {
+				switch item.T {
+				case Identifier:
+					r, err := newRuleMatcherFromIdent(detect.Get(item.Val), c.LowerCase)
+					if err != nil {
+						return nil, err
 					}
-					return r
-				}())
+					andGroup = append(andGroup, func() match.Branch {
+						if i > 0 && group.tokens[i-1:].isNegated() {
+							return match.NodeNot{Branch: r}
+						}
+						return r
+					}())
+				}
 			}
+			branch = append(branch, match.NodeSimpleAnd(andGroup))
 		}
-		branch = append(branch, match.NodeSimpleAnd(andGroup))
 	}
 	if len(branch) == 1 {
 		return branch[0], nil
@@ -147,7 +206,7 @@ func (p *parser) run() error {
 		return err
 	}
 	// Pass 2: find groups
-	b, err := parseSearch(p.tokens, p.sigma, rule.Config{})
+	b, err := parseSearch(p.tokens, p.sigma, rule.Config{}, true)
 	if err != nil {
 		return err
 	}

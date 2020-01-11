@@ -1,6 +1,8 @@
 package condition
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Token int
 
@@ -178,12 +180,12 @@ func validTokenSequence(t1, t2 Token) bool {
 		}
 	case SepLpar:
 		switch t1 {
-		case KeywordAnd, KeywordOr, KeywordNot, TokBegin:
+		case KeywordAnd, KeywordOr, KeywordNot, TokBegin, SepLpar:
 			return true
 		}
 	case SepRpar:
 		switch t1 {
-		case Identifier, IdentifierAll, IdentifierWithWildcard, SepLpar:
+		case Identifier, IdentifierAll, IdentifierWithWildcard, SepLpar, SepRpar:
 			return true
 		}
 	case LitEof:
@@ -200,7 +202,88 @@ func validTokenSequence(t1, t2 Token) bool {
 	return false
 }
 
+type tokensHandler struct {
+	tokens
+	hasSubGroup bool
+	subGroups   []offsets
+	err         error
+}
+
+func (t *tokensHandler) discoverSubGroups() *tokensHandler {
+	groups, ok, err := newGroupOffsetInTokens(t.tokens)
+	if err != nil {
+		t.err = err
+	}
+	if ok {
+		t.hasSubGroup = true
+		t.subGroups = groups
+	} else {
+		t.hasSubGroup = false
+		t.subGroups = make([]offsets, 0)
+	}
+	return t
+}
+
+func (t tokensHandler) isSimpleIdent() bool {
+	l := len(t.tokens)
+	return l == 1 || (l == 2 && t.isNegated())
+}
+
 type tokens []Item
+
+func (t tokens) splitByToken(tok Token) []*tokensHandler {
+
+	if !t.contains(KeywordOr) {
+		return []*tokensHandler{&tokensHandler{tokens: t}}
+	}
+
+	var start, groupBalance int
+
+	//rules := &tokensHandler{ tokens: make(tokens, 0), }
+	rules := make([]*tokensHandler, 0)
+	last := len(t) - 1
+
+	for pos, item := range t {
+
+		var hasSubGroup bool
+		switch v := item.T; {
+		case v == SepLpar:
+			groupBalance++
+		case v == SepRpar:
+			groupBalance--
+			if groupBalance == 0 {
+				hasSubGroup = true
+			}
+		}
+
+		if (item.T == tok && groupBalance == 0) || pos == last {
+			switch pos {
+			case last:
+				rules = append(rules, func() *tokensHandler {
+					if last > 0 && t[pos-1].T == KeywordNot {
+						return &tokensHandler{
+							tokens:      t[pos-1:],
+							hasSubGroup: hasSubGroup,
+						}
+					}
+					return &tokensHandler{
+						tokens:      t[start:],
+						hasSubGroup: hasSubGroup,
+					}
+				}().discoverSubGroups())
+			default:
+				g := &tokensHandler{
+					tokens:      t[start:pos],
+					hasSubGroup: hasSubGroup,
+				}
+				rules = append(rules, g.discoverSubGroups())
+				start = pos + 1
+			}
+		}
+
+	}
+	return rules
+}
 
 func (t tokens) len() int { return len(t) }
 func (t tokens) lastIdx() int {
@@ -309,26 +392,35 @@ type offsets struct {
 	From, To int
 }
 
-func newGroupOffsetInTokens(t tokens) ([]*offsets, bool, error) {
+func (o *offsets) SetFrom(i int) *offsets {
+	o.From = i
+	return o
+}
+func (o *offsets) SetTo(i int) *offsets {
+	o.To = i
+	return o
+}
+
+func newGroupOffsetInTokens(t tokens) ([]offsets, bool, error) {
 	if t == nil || t.len() == 0 {
 		return nil, false, nil
 	}
 	if !t.contains(SepLpar) {
 		return nil, false, nil
 	}
-	groups := make([]*offsets, 0)
+	groups := make([]offsets, 0)
 	var balance, found int
 	for i, item := range t {
 		switch item.T {
 		case SepLpar:
 			if balance == 0 {
-				groups = append(groups, &offsets{From: i, To: -1})
+				groups = append(groups, offsets{From: i, To: -1})
 			}
 			balance++
 		case SepRpar:
 			balance--
 			if balance == 0 {
-				groups[found].To = i
+				groups[found].SetTo(i + 1)
 				found++
 			}
 		}
