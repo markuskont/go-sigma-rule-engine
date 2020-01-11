@@ -19,14 +19,6 @@ func parseSearch(t tokens, detect types.Detection, c rule.Config, entry bool) (m
 		return nil, types.ErrUnsupportedToken{Msg: fmt.Sprintf("%s / %s", StAll.Literal(), StOne.Literal())}
 	}
 
-	_, ok, err := newGroupOffsetInTokens(t)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return parseSimpleSearch(t, detect, c)
-	}
-
 	rules := t.splitByToken(KeywordOr)
 
 	branch := make([]match.Branch, 0)
