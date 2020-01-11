@@ -329,6 +329,23 @@ var detection6_positive = []map[string]string{
 	},
 }
 
+var detection6_negative = []map[string]string{
+	map[string]string{
+		"Field1": `this is BAaad`,
+		"Field2": `this is bbbad`,
+		"Field3": `this is cccad`,
+		"Field4": `this is baaad`,
+		"Field5": `this is deeed`,
+	},
+	map[string]string{
+		"Field1": `this is baaad`,
+		"Field2": `this is bbbad`,
+		"Field3": `this is BaadD`,
+		"Field4": `this is dDdad`,
+		"Field5": `this is deeed`,
+	},
+}
+
 type testCase struct {
 	Rule               map[string]interface{}
 	Positive, Negative []map[string]string
@@ -363,6 +380,7 @@ var testCases = []testCase{
 	testCase{
 		Rule:     detection6,
 		Positive: detection6_positive,
+		Negative: detection6_negative,
 	},
 }
 
