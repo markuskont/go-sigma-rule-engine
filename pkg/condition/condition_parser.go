@@ -29,43 +29,18 @@ func parseSearch(t tokens, detect types.Detection, c rule.Config, entry bool) (m
 
 	rules := t.splitByToken(KeywordOr)
 
-	if entry {
-		fmt.Println("---------------------------")
-		fmt.Println(">>>", t)
-		for _, r := range rules {
-			fmt.Print(" >|< ", r.tokens)
-		}
-		fmt.Printf("\n")
-		fmt.Println("---------------------------")
-
-		for _, group := range rules {
-			fmt.Println(group.tokens)
-		}
-		fmt.Println("***************************")
-	}
-
 	branch := make([]match.Branch, 0)
-	for i, group := range rules {
-		fmt.Println("---------------------------")
+	for _, group := range rules {
 		group.discoverSubGroups()
-		fmt.Println("-->", "OR LOOP", i, group.tokens, group.subGroups)
 		b, err := newBranchFromGroup(*group, detect, c)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("-->", "OR APPENDING", b)
 		branch = append(branch, b)
 	}
 
 	if len(branch) == 1 {
 		return branch[0], nil
-	}
-
-	if entry {
-		fmt.Println("ccccccccccccccccccccccccccc")
-		for _, r := range branch {
-			fmt.Println("RES ->", r)
-		}
 	}
 
 	return match.NodeSimpleOr(branch), nil
@@ -75,16 +50,10 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 
 	// recursion here
 	if group.hasSubGroup {
-		fmt.Println("***", "RECURSE", group.tokens)
-
 		branch := make([]match.Branch, 0)
 		var offset int
 
-		fmt.Println("xxx", "SUB", group.tokens, "->", group.subGroups)
-
 		for i, pos := range group.subGroups {
-
-			fmt.Println("***", "SUB", group.tokens, "->", pos)
 
 			// Grab statement before the group
 			sub := group.tokens[pos.From+1 : pos.To-1]
@@ -109,7 +78,6 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 				offset = pos.To
 			}
 
-			fmt.Println("***", "SUB PARSING", sub)
 			b, err := parseSearch(sub, detect, c, false)
 			if err != nil {
 				return nil, err
@@ -145,7 +113,6 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 	}
 
 	if group.isSimpleIdent() {
-		fmt.Println("***", "SHORT", group.tokens)
 		var ident Item
 		switch len(group.tokens) {
 		case 1:
@@ -162,8 +129,6 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 		}(), err
 	}
 
-	fmt.Println("***", "SIMPLE", group.tokens)
-	// TODO - full of redundant code used as reference for writing this one
 	// TODO - handle everything in this function
 	return parseSimpleSearch(group.tokens, detect, c)
 }
