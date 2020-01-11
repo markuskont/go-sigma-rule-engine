@@ -243,8 +243,7 @@ var detection4_negative = []map[string]string{
 
 var detection5 = map[string]interface{}{
 	//"condition": "selection1 or not selection2 and (selection3 or (selection4 and selection5)) and (selection3 and selection2) and selection3 or selection1",
-	"condition": "selection1 and selection2 or ((selection2 or selection3) and selection5)", // THIS IS NOT FINE
-	//"condition": "selection1 and selection2 or selection4 and (selection2 or selection3) ", // THIS IS FINE
+	"condition": "selection1 and selection2 and (selection3 or selection4)", // THIS IS NOT FINE
 	"selection1": map[string]interface{}{
 		"Field1": `aaa`,
 	},
@@ -259,6 +258,21 @@ var detection5 = map[string]interface{}{
 	},
 	"selection5": map[string]interface{}{
 		"Field5": `eee`,
+	},
+}
+
+var detection5_positive = []map[string]string{
+	map[string]string{
+		"Field1": `this is baaad`,
+		"Field2": `this is bbbad`,
+		"Field3": `this is cccad`,
+		"Field4": `this is baaad`,
+	},
+	map[string]string{
+		"Field1": `this is baaad`,
+		"Field2": `this is bbbad`,
+		"Field3": `this is BaadD`,
+		"Field4": `this is dddad`,
 	},
 }
 
@@ -288,7 +302,10 @@ var testCases = []testCase{
 		Positive: detection4_positive,
 		Negative: detection4_negative,
 	},
-	testCase{Rule: detection5},
+	testCase{
+		Rule:     detection5,
+		Positive: detection5_positive,
+	},
 }
 
 func TestParse(t *testing.T) {
