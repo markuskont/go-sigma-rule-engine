@@ -1,13 +1,13 @@
-package condition
+package sigma
 
 import (
 	"testing"
 )
 
-type dummyObject map[string]string
+type dummyObject2 map[string]string
 
 // GetMessage implements MessageGetter
-func (d dummyObject) GetMessage() []string {
+func (d dummyObject2) GetMessage() []string {
 	keys := []string{
 		"Image",
 		"CommandLine",
@@ -23,7 +23,7 @@ func (d dummyObject) GetMessage() []string {
 }
 
 // GetField returns a success status and arbitrary field content if requested map key is present
-func (d dummyObject) GetField(key string) (interface{}, bool) {
+func (d dummyObject2) GetField(key string) (interface{}, bool) {
 	if val, ok := d[key]; ok {
 		return val, ok
 	}
@@ -387,20 +387,20 @@ var testCases = []testCase{
 func TestParse(t *testing.T) {
 
 	for j, c := range testCases {
-		parser, err := Parse(c.Rule)
+		parser, err := ParseDetection(c.Rule)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if c.Positive != nil {
 			for i, positive := range c.Positive {
-				if !parser.Match(dummyObject(positive)) {
+				if !parser.Match(dummyObject2(positive)) {
 					t.Fatalf("%d positive case %d failed to match", j, i)
 				}
 			}
 		}
 		if c.Negative != nil {
 			for i, negative := range c.Negative {
-				if parser.Match(dummyObject(negative)) {
+				if parser.Match(dummyObject2(negative)) {
 					t.Fatalf("%d negative case %d matched but should not have", j, i)
 				}
 			}
