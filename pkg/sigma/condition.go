@@ -16,7 +16,7 @@ type Item struct {
 func (i Item) String() string { return i.Val }
 
 // TODO - perhaps we should invoke parse only if we actually need to parse the query statement and simply instantiate a single-branch rule otherwise
-func Parse(s Detection) (*Tree, error) {
+func ParseDetection(s Detection) (*Tree, error) {
 	if s == nil {
 		return nil, ErrMissingDetection{}
 	}
@@ -79,6 +79,7 @@ func parseComplexScenario(s Detection) (*Tree, error) {
 	}
 	return &Tree{Root: p.result}, nil
 }
+
 func newRuleMatcherFromIdent(v *SearchExpr, toLower bool) (Branch, error) {
 	if v == nil {
 		return nil, fmt.Errorf("Missing rule search expression")

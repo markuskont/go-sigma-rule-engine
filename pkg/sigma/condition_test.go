@@ -387,7 +387,7 @@ var testCases = []testCase{
 func TestParse(t *testing.T) {
 
 	for j, c := range testCases {
-		parser, err := Parse(c.Rule)
+		parser, err := ParseDetection(c.Rule)
 		if err != nil {
 			t.Fatal(err)
 		}
