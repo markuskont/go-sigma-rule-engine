@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/ccdcoe/go-peek v0.0.0-20200115104533-5d1f750a38fd
 	github.com/cosmos72/gomacro v0.0.0-20191211223858-da8c6a17f4e7 // indirect
+	github.com/gobwas/glob v0.2.3
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pebbe/zmq4 v1.0.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0
