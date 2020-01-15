@@ -20,7 +20,7 @@ func entrypoint(cmd *cobra.Command, args []string) {
 	var err error
 	r, err := sigma.NewRuleset(
 		&sigma.Config{
-			Direcotries: viper.GetStringSlice("sigma.rules.dir"),
+			Directories: viper.GetStringSlice("sigma.rules.dir"),
 		},
 	)
 	if err != nil {

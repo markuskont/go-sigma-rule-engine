@@ -18,19 +18,19 @@ import (
 */
 
 type Config struct {
-	Direcotries []string
+	Directories []string
 }
 
 func (c *Config) Validate() error {
 	var err error
-	if c.Direcotries == nil || len(c.Direcotries) == 0 {
+	if c.Directories == nil || len(c.Directories) == 0 {
 		return fmt.Errorf("Missing sigma rule directory")
 	}
-	for i, dir := range c.Direcotries {
+	for i, dir := range c.Directories {
 		if dir, err = utils.ExpandHome(dir); err != nil {
 			return err
 		} else {
-			c.Direcotries[i] = dir
+			c.Directories[i] = dir
 		}
 	}
 	return nil
@@ -77,7 +77,7 @@ func NewRuleset(c *Config) (*Ruleset, error) {
 		return nil, err
 	}
 	r := &Ruleset{
-		dirs:        c.Direcotries,
+		dirs:        c.Directories,
 		Rules:       make(map[string]RuleGroup),
 		Unsupported: make([]UnsupportedRawRule, 0),
 		Broken:      make([]UnsupportedRawRule, 0),
