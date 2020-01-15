@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/ccdcoe/go-peek/pkg/utils"
 	"gopkg.in/yaml.v2"
@@ -57,15 +56,51 @@ type Rule struct {
 	Path string
 }
 
-// SafeRuleMap is thread safe storage for RuleGroups
-type SafeRuleMap sync.Map
-
 type RuleGroup []Rule
+
+func (r RuleGroup) Check(obj EventChecker, firstmatch bool) (Results, bool) {
+	res := make(Results, 0)
+	for _, rule := range r {
+		if rule.tree.Match(obj) {
+			res = append(res, Result{
+				Tags:  rule.Tags,
+				ID:    rule.ID,
+				Title: rule.Title,
+			})
+			if len(res) == 1 && firstmatch {
+				return res, true
+			}
+		}
+	}
+	if len(res) > 0 {
+		return res, true
+	}
+	return nil, false
+}
+
+type RuleMap map[string]RuleGroup
+
+func (r RuleMap) Clone() RuleMap {
+	newmap := make(RuleMap)
+	for k, v := range r {
+		newgroup := make(RuleGroup, len(v))
+		copy(v, newgroup)
+		newmap[k] = newgroup
+	}
+	return newmap
+}
+
+func (r RuleMap) Check(obj EventChecker, rulegroup string, firstmatch bool) (Results, bool) {
+	if group, ok := r[rulegroup]; ok {
+		return group.Check(obj, firstmatch)
+	}
+	return nil, false
+}
 
 type Ruleset struct {
 	dirs []string
 
-	Rules map[string]RuleGroup
+	Rules RuleMap
 
 	Total       int
 	Unsupported []UnsupportedRawRule

@@ -50,20 +50,15 @@ type RawRule struct {
 	Description string `yaml:"description" json:"description"`
 	Author      string `yaml:"author" json:"author"`
 	// A list of URL-s to external sources
-	References []string `yaml:"references" json:"references"`
-	Logsource  struct {
-		Product    string `yaml:"product" json:"product"`
-		Category   string `yaml:"category" json:"category"`
-		Service    string `yaml:"service" json:"service"`
-		Definition string `yaml:"definition" json:"definition"`
-	} `yaml:"logsource" json:"logsource"`
+	References []string  `yaml:"references" json:"references"`
+	Logsource  Logsource `yaml:"logsource" json:"logsource"`
 
 	Detection Detection `yaml:"detection" json:"detection"`
 
 	Fields         interface{} `yaml:"fields" json:"fields"`
 	Falsepositives interface{} `yaml:"falsepositives" json:"falsepositives"`
 	Level          interface{} `yaml:"level" json:"level"`
-	Tags           []string    `yaml:"tags" json:"tags"`
+	Tags           Tags        `yaml:"tags" json:"tags"`
 }
 
 func (r RawRule) Condition() (string, error) {
@@ -82,6 +77,23 @@ func (r RawRule) GetCondition() string {
 	}
 	return ""
 }
+
+type Logsource struct {
+	Product    string `yaml:"product" json:"product"`
+	Category   string `yaml:"category" json:"category"`
+	Service    string `yaml:"service" json:"service"`
+	Definition string `yaml:"definition" json:"definition"`
+}
+
+type Tags []string
+
+type Result struct {
+	Tags Tags
+
+	ID, Title string
+}
+
+type Results []Result
 
 type SearchExprType int
 
