@@ -6,17 +6,17 @@ import (
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
 	"github.com/markuskont/go-sigma-rule-engine/pkg/rule"
-	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma"
 )
 
-func newRuleMatcherFromIdent(v *types.SearchExpr, toLower bool) (match.Branch, error) {
+func newRuleMatcherFromIdent(v *sigma.SearchExpr, toLower bool) (match.Branch, error) {
 	if v == nil {
 		return nil, fmt.Errorf("Missing rule search expression")
 	}
 	switch v.Type {
-	case types.ExprKeywords:
+	case sigma.ExprKeywords:
 		return rule.NewKeywordFromInterface(toLower, v.Content)
-	case types.ExprSelection:
+	case sigma.ExprSelection:
 		switch m := v.Content.(type) {
 		case map[string]interface{}:
 			return rule.NewFields(m, toLower, false)

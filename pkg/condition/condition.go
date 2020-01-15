@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
-	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma"
 )
 
 type Item struct {
@@ -16,9 +16,9 @@ type Item struct {
 func (i Item) String() string { return i.Val }
 
 // TODO - perhaps we should invoke parse only if we actually need to parse the query statement and simply instantiate a single-branch rule otherwise
-func Parse(s types.Detection) (*match.Tree, error) {
+func Parse(s sigma.Detection) (*match.Tree, error) {
 	if s == nil {
-		return nil, types.ErrMissingDetection{}
+		return nil, sigma.ErrMissingDetection{}
 	}
 	if len(s) < 3 {
 		return parseSimpleScenario(s)
@@ -26,20 +26,20 @@ func Parse(s types.Detection) (*match.Tree, error) {
 	return parseComplexScenario(s)
 }
 
-func parseSimpleScenario(s types.Detection) (*match.Tree, error) {
+func parseSimpleScenario(s sigma.Detection) (*match.Tree, error) {
 	switch len(s) {
 	case 1:
 		// Simple case - should have only one search field, but should not have a condition field
 		if c, ok := s["condition"].(string); ok {
-			return nil, types.ErrIncompleteDetection{Condition: c}
+			return nil, sigma.ErrIncompleteDetection{Condition: c}
 		}
 	case 2:
 		// Simple case - one condition statement comprised of single IDENT that matches the second field name
 		if c, ok := s["condition"].(string); !ok {
-			return nil, types.ErrIncompleteDetection{Condition: "MISSING"}
+			return nil, sigma.ErrIncompleteDetection{Condition: "MISSING"}
 		} else {
 			if _, ok := s[c]; !ok {
-				return nil, types.ErrIncompleteDetection{
+				return nil, sigma.ErrIncompleteDetection{
 					Condition: c,
 					Msg:       fmt.Sprintf("Field %s defined in condition missing from map.", c),
 					Keys:      s.FieldSlice(),
@@ -48,7 +48,7 @@ func parseSimpleScenario(s types.Detection) (*match.Tree, error) {
 		}
 		delete(s, "condition")
 	default:
-		return nil, types.ErrMissingDetection{}
+		return nil, sigma.ErrMissingDetection{}
 	}
 	rx := s.Fields()
 	ast := &match.Tree{}
@@ -61,11 +61,11 @@ func parseSimpleScenario(s types.Detection) (*match.Tree, error) {
 	return ast, nil
 }
 
-func parseComplexScenario(s types.Detection) (*match.Tree, error) {
+func parseComplexScenario(s sigma.Detection) (*match.Tree, error) {
 	// Complex case, time to build syntax tree out of condition statement
 	raw, ok := s["condition"].(string)
 	if !ok {
-		return nil, types.ErrMissingCondition{}
+		return nil, sigma.ErrMissingCondition{}
 	}
 	p := &parser{
 		lex:       lex(raw),

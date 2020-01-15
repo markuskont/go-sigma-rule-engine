@@ -1,13 +1,13 @@
 package match
 
 import (
-	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma"
 )
 
 type NodeSimpleAnd []Branch
 
 // Match implements sigma Matcher
-func (n NodeSimpleAnd) Match(obj types.EventChecker) bool {
+func (n NodeSimpleAnd) Match(obj sigma.EventChecker) bool {
 	for _, elem := range n {
 		if !elem.Match(obj) {
 			return false
@@ -23,7 +23,7 @@ func (n NodeSimpleAnd) Self() interface{} { return n }
 type NodeSimpleOr []Branch
 
 // Match implements sigma Matcher
-func (n NodeSimpleOr) Match(obj types.EventChecker) bool {
+func (n NodeSimpleOr) Match(obj sigma.EventChecker) bool {
 	for _, elem := range n {
 		if elem.Match(obj) {
 			return true
@@ -43,7 +43,7 @@ type NodeOr struct {
 }
 
 // Match implements sigma Matcher
-func (n NodeOr) Match(obj types.EventChecker) bool {
+func (n NodeOr) Match(obj sigma.EventChecker) bool {
 	return n.L.Match(obj) || n.R.Match(obj)
 }
 
@@ -57,7 +57,7 @@ type NodeAnd struct {
 }
 
 // Match implements sigma Matcher
-func (n NodeAnd) Match(obj types.EventChecker) bool {
+func (n NodeAnd) Match(obj sigma.EventChecker) bool {
 	return n.L.Match(obj) && n.R.Match(obj)
 }
 
@@ -70,7 +70,7 @@ type NodeNot struct {
 }
 
 // Match implements sigma Matcher
-func (n NodeNot) Match(obj types.EventChecker) bool {
+func (n NodeNot) Match(obj sigma.EventChecker) bool {
 	return !n.Branch.Match(obj)
 }
 

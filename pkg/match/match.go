@@ -1,12 +1,14 @@
 package match
 
-import "github.com/markuskont/go-sigma-rule-engine/pkg/types"
+import (
+	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma"
+)
 
 type Condition int
 
 // Branch implements types.Matcher with additional methods for walking and debugging the tree
 type Branch interface {
-	types.Matcher
+	sigma.Matcher
 	// Self returns Node or final rule object for debugging and/or walking the tree
 	// Must be type switched externally
 	Self() interface{}
@@ -26,5 +28,5 @@ type Tree struct {
 	Root Branch
 }
 
-func (t Tree) Match(obj types.EventChecker) bool { return t.Root.Match(obj) }
+func (t Tree) Match(obj sigma.EventChecker) bool { return t.Root.Match(obj) }
 func (t Tree) Self() interface{}                 { return t.Root }

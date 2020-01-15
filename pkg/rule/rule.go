@@ -1,6 +1,6 @@
 package rule
 
-import "github.com/markuskont/go-sigma-rule-engine/pkg/types"
+import "github.com/markuskont/go-sigma-rule-engine/pkg/sigma"
 
 type Config struct {
 	LowerCase   bool
@@ -10,7 +10,7 @@ type Config struct {
 type FieldsList []*Fields
 
 // Match implements sigma Matcher
-func (f FieldsList) Match(obj types.EventChecker) bool {
+func (f FieldsList) Match(obj sigma.EventChecker) bool {
 	for _, rule := range f {
 		if rule.Match(obj) {
 			return true

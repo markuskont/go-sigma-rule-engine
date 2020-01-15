@@ -5,18 +5,18 @@ import (
 
 	"github.com/markuskont/go-sigma-rule-engine/pkg/match"
 	"github.com/markuskont/go-sigma-rule-engine/pkg/rule"
-	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma"
 )
 
-func parseSearch(t tokens, detect types.Detection, c rule.Config, entry bool) (match.Branch, error) {
+func parseSearch(t tokens, detect sigma.Detection, c rule.Config, entry bool) (match.Branch, error) {
 	if t.contains(IdentifierAll) {
-		return nil, types.ErrUnsupportedToken{Msg: IdentifierAll.Literal()}
+		return nil, sigma.ErrUnsupportedToken{Msg: IdentifierAll.Literal()}
 	}
 	if t.contains(IdentifierWithWildcard) {
-		return nil, types.ErrUnsupportedToken{Msg: IdentifierWithWildcard.Literal()}
+		return nil, sigma.ErrUnsupportedToken{Msg: IdentifierWithWildcard.Literal()}
 	}
 	if t.contains(StOne) || t.contains(StAll) {
-		return nil, types.ErrUnsupportedToken{Msg: fmt.Sprintf("%s / %s", StAll.Literal(), StOne.Literal())}
+		return nil, sigma.ErrUnsupportedToken{Msg: fmt.Sprintf("%s / %s", StAll.Literal(), StOne.Literal())}
 	}
 
 	rules := t.splitByToken(KeywordOr)
@@ -38,7 +38,7 @@ func parseSearch(t tokens, detect types.Detection, c rule.Config, entry bool) (m
 	return match.NodeSimpleOr(branch), nil
 }
 
-func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Config) (match.Branch, error) {
+func newBranchFromGroup(group tokensHandler, detect sigma.Detection, c rule.Config) (match.Branch, error) {
 
 	// recursion here
 	if group.hasSubGroup {
@@ -126,7 +126,7 @@ func newBranchFromGroup(group tokensHandler, detect types.Detection, c rule.Conf
 }
 
 // simple search == just a valid group sequence with no sub-groups
-func parseSimpleSearch(t tokens, detect types.Detection, c rule.Config) (match.Branch, error) {
+func parseSimpleSearch(t tokens, detect sigma.Detection, c rule.Config) (match.Branch, error) {
 	rules := t.splitByToken(KeywordOr)
 
 	branch := make([]match.Branch, 0)
@@ -188,7 +188,7 @@ type parser struct {
 	previous Token
 
 	// sigma detection map that contains condition query and relevant fields
-	sigma types.Detection
+	sigma sigma.Detection
 
 	// for debug
 	condition string
@@ -218,7 +218,7 @@ func (p *parser) collectAndValidateTokenSequences() error {
 	for item := range p.lex.items {
 
 		if item.T == TokUnsupp {
-			return types.ErrUnsupportedToken{Msg: item.Val}
+			return sigma.ErrUnsupportedToken{Msg: item.Val}
 		}
 		if !validTokenSequence(p.previous, item.T) {
 			return fmt.Errorf(

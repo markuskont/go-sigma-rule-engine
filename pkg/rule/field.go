@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma"
 )
 
 // JSON numbers are by spec all float64 values
@@ -206,7 +206,7 @@ func NewFields(raw map[string]interface{}, lowercase, stringnum bool) (*Fields, 
 	return f, nil
 }
 
-func (f *Fields) Match(obj types.EventChecker) bool {
+func (f *Fields) Match(obj sigma.EventChecker) bool {
 	f.Total++
 	if f.sPatterns != nil && len(f.sPatterns) > 0 {
 	and1:

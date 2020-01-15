@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/markuskont/go-sigma-rule-engine/pkg/types"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma"
 	"github.com/ryanuber/go-glob"
 )
 
@@ -29,7 +29,7 @@ func newStringPatterns(patterns ...string) (*stringPatterns, error) {
 			p = strings.TrimRight(p, "/")
 			re, err := regexp.Compile(p)
 			if err != nil {
-				return k, types.ErrInvalidRegex{
+				return k, sigma.ErrInvalidRegex{
 					Pattern: p,
 					Err:     err,
 				}
@@ -122,7 +122,7 @@ func NewKeyword(lowercase bool, patterns ...string) (*Keyword, error) {
 	return k, nil
 }
 
-func (k *Keyword) Match(obj types.EventChecker) bool {
+func (k *Keyword) Match(obj sigma.EventChecker) bool {
 	k.Total++
 	return matchKeywords(k.stringPatterns, k.toLower, obj.GetMessage()...)
 }
