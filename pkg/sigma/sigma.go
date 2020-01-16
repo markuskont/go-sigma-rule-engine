@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 
-	"github.com/ccdcoe/go-peek/pkg/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -26,7 +26,7 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("Missing sigma rule directory")
 	}
 	for i, dir := range c.Directories {
-		if dir, err = utils.ExpandHome(dir); err != nil {
+		if dir, err = ExpandHome(dir); err != nil {
 			return err
 		} else {
 			c.Directories[i] = dir
@@ -219,4 +219,16 @@ func discoverRuleFilesInDir(dirs []string) ([]string, error) {
 		}
 	}
 	return out, nil
+}
+
+func ExpandHome(path string) (string, error) {
+	if len(path) == 0 || path[0] != '~' {
+		return path, nil
+	}
+
+	usr, err := user.Current()
+	if err != nil {
+		return path, err
+	}
+	return filepath.Join(usr.HomeDir, path[1:]), nil
 }
