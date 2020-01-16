@@ -84,7 +84,9 @@ func (r RuleMap) Clone() RuleMap {
 	newmap := make(RuleMap)
 	for k, v := range r {
 		newgroup := make(RuleGroup, len(v))
-		copy(v, newgroup)
+		for i, rule := range v {
+			newgroup[i] = rule
+		}
 		newmap[k] = newgroup
 	}
 	return newmap
