@@ -41,24 +41,19 @@ func (e ErrInvalidRegex) Error() string {
 }
 
 type RawRule struct {
-	File string `yaml:"file" json:"file"`
+	Author         string   `yaml:"author" json:"author"`
+	Description    string   `yaml:"description" json:"description"`
+	Falsepositives []string `yaml:"falsepositives" json:"falsepositives"`
+	Fields         []string `yaml:"fields" json:"fields"`
+	ID             string   `yaml:"id" json:"id"`
+	Level          string   `yaml:"level" json:"level"`
+	Title          string   `yaml:"title" json:"title"`
+	Status         string   `yaml:"status" json:"status"`
+	References     []string `yaml:"references" json:"references"`
 
-	// https://github.com/Neo23x0/sigma/wiki/Specification
-	ID          string `yaml:"id" json:"id"`
-	Title       string `yaml:"title" json:"title"`
-	Status      string `yaml:"status" json:"status"`
-	Description string `yaml:"description" json:"description"`
-	Author      string `yaml:"author" json:"author"`
-	// A list of URL-s to external sources
-	References []string  `yaml:"references" json:"references"`
-	Logsource  Logsource `yaml:"logsource" json:"logsource"`
-
+	Logsource Logsource `yaml:"logsource" json:"logsource"`
 	Detection Detection `yaml:"detection" json:"detection"`
-
-	Fields         interface{} `yaml:"fields" json:"fields"`
-	Falsepositives interface{} `yaml:"falsepositives" json:"falsepositives"`
-	Level          interface{} `yaml:"level" json:"level"`
-	Tags           Tags        `yaml:"tags" json:"tags"`
+	Tags      Tags      `yaml:"tags" json:"tags"`
 }
 
 func (r RawRule) Condition() (string, error) {
@@ -119,6 +114,8 @@ func (s *SearchExpr) Guess() *SearchExpr {
 }
 
 type Detection map[string]interface{}
+
+func (d Detection) Length() int { return len(d) }
 
 func (d Detection) Fields() <-chan SearchExpr {
 	tx := make(chan SearchExpr, 0)
