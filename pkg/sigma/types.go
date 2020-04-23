@@ -25,7 +25,7 @@ type EventChecker interface {
 	SelectionGetter
 }
 
-// Matcher represents either left or right branch of AST matching tree
+// Matcher represents a branch in AST tree
 type Matcher interface {
 	// Match implements sigma Matcher
 	Match(EventChecker) bool
@@ -83,7 +83,7 @@ type Logsource struct {
 type Tags []string
 
 type Result struct {
-	Tags Tags
+	Tags
 
 	ID, Title string
 }
