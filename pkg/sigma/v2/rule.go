@@ -28,6 +28,41 @@ type Rule struct {
 	Tags      `yaml:"tags" json:"tags"`
 }
 
+// NewRuleList reads a list of sigma rule paths and parses them to rule objects
+func NewRuleList(files []string, skip bool) ([]Rule, error) {
+	if files == nil || len(files) == 0 {
+		return nil, fmt.Errorf("missing rule file list")
+	}
+	errs := make([]ErrParseYaml, 0)
+	rules := make([]Rule, 0)
+loop:
+	for i, path := range files {
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		var r Rule
+		if err := yaml.Unmarshal(data, &r); err != nil {
+			if skip {
+				errs = append(errs, ErrParseYaml{
+					Path:  path,
+					Count: i,
+					Err:   err,
+				})
+				continue loop
+			}
+			return nil, &ErrParseYaml{Err: err, Path: path}
+		}
+		rules = append(rules, r)
+	}
+	return rules, func() error {
+		if len(errs) > 0 {
+			return ErrBulkParseYaml{Errs: errs}
+		}
+		return nil
+	}()
+}
+
 // Logsource represents the logsource field in sigma rule
 // It defines relevant event streams and is used for pre-filtering
 type Logsource struct {
@@ -65,39 +100,4 @@ func NewRuleFileList(dirs []string) ([]string, error) {
 		}
 	}
 	return out, nil
-}
-
-// NewRuleList reads a list of sigma rule paths and parses them to rule objects
-func NewRuleList(files []string, skip bool) ([]Rule, error) {
-	if files == nil || len(files) == 0 {
-		return nil, fmt.Errorf("missing rule file list")
-	}
-	errs := make([]ErrParseYaml, 0)
-	rules := make([]Rule, 0)
-loop:
-	for i, path := range files {
-		data, err := ioutil.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
-		var r Rule
-		if err := yaml.Unmarshal(data, &r); err != nil {
-			if skip {
-				errs = append(errs, ErrParseYaml{
-					Path:  path,
-					Count: i,
-					Err:   err,
-				})
-				continue loop
-			}
-			return nil, &ErrParseYaml{Err: err, Path: path}
-		}
-		rules = append(rules, r)
-	}
-	return rules, func() error {
-		if len(errs) > 0 {
-			return ErrBulkParseYaml{Errs: errs}
-		}
-		return nil
-	}()
 }
