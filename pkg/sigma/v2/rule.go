@@ -1,5 +1,11 @@
 package sigma
 
+import (
+	"os"
+	"path/filepath"
+	"strings"
+)
+
 // Rule defines raw rule conforming to sigma rule specification
 // https://github.com/Neo23x0/sigma/wiki/Specification
 type Rule struct {
@@ -34,3 +40,22 @@ type Detection map[string]interface{}
 // Tags contains a metadata list for tying positive matches together with other threat intel sources
 // For example, for attaching MITRE ATT&CK tactics or techniques to the event
 type Tags []string
+
+func newRuleFileList(dirs []string) ([]string, error) {
+	out := make([]string, 0)
+	for _, dir := range dirs {
+		if err := filepath.Walk(dir, func(
+			path string,
+			info os.FileInfo,
+			err error,
+		) error {
+			if !info.IsDir() && strings.HasSuffix(path, "yml") {
+				out = append(out, path)
+			}
+			return err
+		}); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
