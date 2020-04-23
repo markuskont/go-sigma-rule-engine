@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	sigma "github.com/markuskont/go-sigma-rule-engine/pkg/sigma/v1"
-	log "github.com/sirupsen/logrus"
-
+	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,32 +16,50 @@ var sigmaCmd = &cobra.Command{
 }
 
 func entrypoint(cmd *cobra.Command, args []string) {
-	var err error
-	r, err := sigma.NewRuleset(
-		&sigma.Config{
-			Directories: viper.GetStringSlice("sigma.rules.dir"),
-		},
-	)
+	files, err := sigma.NewRuleFileList(viper.GetStringSlice("sigma.rules.dir"))
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
-	if len(r.Unsupported) > 0 {
-		for _, rule := range r.Unsupported {
-			log.Warn(rule)
+	for _, f := range files {
+		logrus.Info(f)
+	}
+	rules, err := sigma.NewRuleList(files, true)
+	if err != nil {
+		switch err.(type) {
+		case sigma.ErrBulkParseYaml:
+			logrus.Error(err)
+		default:
+			logrus.Fatal(err)
 		}
 	}
-	if len(r.Broken) > 0 {
-		for _, rule := range r.Broken {
-			log.Error(rule)
+	logrus.Infof("Got %d rules", len(rules))
+	/*
+		r, err := sigma.NewRuleset(
+			&sigma.Config{
+				Directories: viper.GetStringSlice("sigma.rules.dir"),
+			},
+		)
+		if err != nil {
+			log.Fatal(err)
 		}
-	}
+		if len(r.Unsupported) > 0 {
+			for _, rule := range r.Unsupported {
+				log.Warn(rule)
+			}
+		}
+		if len(r.Broken) > 0 {
+			for _, rule := range r.Broken {
+				log.Error(rule)
+			}
+		}
 
-	contextLogger := log.WithFields(log.Fields{
-		"ok":          r.Total,
-		"errors":      len(r.Broken),
-		"unsupported": len(r.Unsupported),
-	})
-	contextLogger.Info("Done")
+		contextLogger := log.WithFields(log.Fields{
+			"ok":          r.Total,
+			"errors":      len(r.Broken),
+			"unsupported": len(r.Unsupported),
+		})
+		contextLogger.Info("Done")
+	*/
 }
 
 func init() {

@@ -25,3 +25,17 @@ type Matcher interface {
 	// Match implements Matcher
 	Match() bool
 }
+
+// Branch implements Matcher with additional methods for walking and debugging the tree
+type Branch interface {
+	Matcher
+
+	// Self returns Node or final rule object for debugging and/or walking the tree
+	// Must be type switched externally
+	// Self() interface{}
+}
+
+// Tree represents the full AST for a sigma rule
+type Tree struct {
+	Root Branch
+}
