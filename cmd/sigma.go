@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma/v1"
+	sigma "github.com/markuskont/go-sigma-rule-engine/pkg/sigma/v1"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
