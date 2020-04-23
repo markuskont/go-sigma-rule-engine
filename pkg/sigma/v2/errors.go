@@ -67,3 +67,26 @@ type ErrWip struct{}
 
 // Error implements error
 func (e ErrWip) Error() string { return fmt.Sprintf("Work in progress") }
+
+// ErrParseYaml indicates YAML parsing error
+type ErrParseYaml struct {
+	Path  string
+	Err   error
+	Count int
+}
+
+func (e ErrParseYaml) Error() string {
+	return fmt.Sprintf("%d - File: %s; Err: %s", e.Count, e.Path, e.Err)
+}
+
+// ErrGotBrokenYamlFiles is a bulk error handler for dealing with broken sigma rules
+// Some rules are bound to fail, no reason to exit entire application
+// Individual errors can be collected and returned at the end
+// Called decides if they should be only reported or it warrants full exit
+type ErrBulkParseYaml struct {
+	Errs []ErrParseYaml
+}
+
+func (e ErrBulkParseYaml) Error() string {
+	return fmt.Sprintf("Got %d broken yaml files", len(e.Errs))
+}
