@@ -10,16 +10,27 @@ type LexTestCase struct {
 var LexPosCases = []LexTestCase{
 	{
 		Expr:   "selection",
-		Tokens: []Token{Identifier, LitEof},
+		Tokens: []Token{TokIdentifier, TokLitEof},
 	},
 	{
-		Expr: "selection_1 AND NOT filter_0",
+		Expr: "selection_1 and not filter_0",
 		Tokens: []Token{
-			Identifier,
-			KeywordAnd,
-			KeywordNot,
-			Identifier,
-			LitEof,
+			TokIdentifier, TokKeywordAnd, TokKeywordNot, TokIdentifier, TokLitEof,
+		},
+	},
+	{
+		Expr: "((selection_1 and not filter_0) OR (keyword_0 and not filter1)) or idontcare",
+		Tokens: []Token{
+			TokSepLpar, TokSepLpar, TokIdentifier, TokKeywordAnd, TokKeywordNot, TokIdentifier,
+			TokSepRpar, TokKeywordOr, TokSepLpar, TokIdentifier, TokKeywordAnd, TokKeywordNot,
+			TokIdentifier, TokSepRpar, TokSepRpar, TokKeywordOr, TokIdentifier, TokLitEof,
+		},
+	},
+	{
+		Expr: "all of selection* and not 1 of filter* | count() > 10",
+		Tokens: []Token{
+			TokStAll, TokIdentifierWithWildcard, TokKeywordAnd, TokKeywordNot, TokStOne,
+			TokIdentifierWithWildcard, TokSepPipe, TokUnsupp, TokIdentifier, TokLitEof,
 		},
 	},
 }

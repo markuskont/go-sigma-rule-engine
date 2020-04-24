@@ -59,8 +59,10 @@ const (
 // For visual debugging, so symbols will be written out and everything is uppercased
 func (t Token) String() string {
 	switch t {
-	case TokIdentifier, TokIdentifierWithWildcard:
+	case TokIdentifier:
 		return "IDENT"
+	case TokIdentifierWithWildcard:
+		return "WILDCARDIDENT"
 	case TokIdentifierAll:
 		return "THEM"
 	case TokSepLpar:
