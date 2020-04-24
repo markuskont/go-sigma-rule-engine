@@ -21,77 +21,77 @@ const (
 	TokNil
 
 	// user-defined word
-	Identifier
-	IdentifierWithWildcard
-	IdentifierAll
+	TokIdentifier
+	TokIdentifierWithWildcard
+	TokIdentifierAll
 
 	// Literals
-	LitEof
+	TokLitEof
 
 	// Separators
-	SepLpar
-	SepRpar
-	SepPipe
+	TokSepLpar
+	TokSepRpar
+	TokSepPipe
 
 	// Operators
-	OpEq
-	OpGt
-	OpGte
-	OpLt
-	OpLte
+	TokOpEq
+	TokOpGt
+	TokOpGte
+	TokOpLt
+	TokOpLte
 
 	// Keywords
-	KeywordAnd
-	KeywordOr
-	KeywordNot
-	KeywordAgg
+	TokKeywordAnd
+	TokKeywordOr
+	TokKeywordNot
+	TokKeywordAgg
 
 	// TODO
-	KeywordNear
-	KeywordBy
+	TokKeywordNear
+	TokKeywordBy
 
 	// Statements
-	StOne
-	StAll
+	TokStOne
+	TokStAll
 )
 
 // String documents human readable textual value of token
 // For visual debugging, so symbols will be written out and everything is uppercased
 func (t Token) String() string {
 	switch t {
-	case Identifier, IdentifierWithWildcard:
+	case TokIdentifier, TokIdentifierWithWildcard:
 		return "IDENT"
-	case IdentifierAll:
+	case TokIdentifierAll:
 		return "THEM"
-	case SepLpar:
+	case TokSepLpar:
 		return "LPAR"
-	case SepRpar:
+	case TokSepRpar:
 		return "RPAR"
-	case SepPipe:
+	case TokSepPipe:
 		return "PIPE"
-	case OpEq:
+	case TokOpEq:
 		return "EQ"
-	case OpGt:
+	case TokOpGt:
 		return "GT"
-	case OpGte:
+	case TokOpGte:
 		return "GTE"
-	case OpLt:
+	case TokOpLt:
 		return "LT"
-	case OpLte:
+	case TokOpLte:
 		return "LTE"
-	case KeywordAnd:
+	case TokKeywordAnd:
 		return "AND"
-	case KeywordOr:
+	case TokKeywordOr:
 		return "OR"
-	case KeywordNot:
+	case TokKeywordNot:
 		return "NOT"
-	case StAll:
+	case TokStAll:
 		return "ALL"
-	case StOne:
+	case TokStOne:
 		return "ONE"
-	case KeywordAgg:
+	case TokKeywordAgg:
 		return "AGG"
-	case LitEof:
+	case TokLitEof:
 		return "EOF"
 	case TokErr:
 		return "ERR"
@@ -110,37 +110,37 @@ func (t Token) String() string {
 // Uses special symbols and expressions, as used in a rule
 func (t Token) Literal() string {
 	switch t {
-	case Identifier, IdentifierWithWildcard:
+	case TokIdentifier, TokIdentifierWithWildcard:
 		return "keywords"
-	case IdentifierAll:
+	case TokIdentifierAll:
 		return "them"
-	case SepLpar:
+	case TokSepLpar:
 		return "("
-	case SepRpar:
+	case TokSepRpar:
 		return ")"
-	case SepPipe:
+	case TokSepPipe:
 		return "|"
-	case OpEq:
+	case TokOpEq:
 		return "="
-	case OpGt:
+	case TokOpGt:
 		return ">"
-	case OpGte:
+	case TokOpGte:
 		return ">="
-	case OpLt:
+	case TokOpLt:
 		return "<"
-	case OpLte:
+	case TokOpLte:
 		return "<="
-	case KeywordAnd:
+	case TokKeywordAnd:
 		return "and"
-	case KeywordOr:
+	case TokKeywordOr:
 		return "or"
-	case KeywordNot:
+	case TokKeywordNot:
 		return "not"
-	case StAll:
+	case TokStAll:
 		return "all of"
-	case StOne:
+	case TokStOne:
 		return "1 of"
-	case LitEof, TokNil:
+	case TokLitEof, TokNil:
 		return ""
 	default:
 		return "Err"
@@ -150,11 +150,11 @@ func (t Token) Literal() string {
 // Rune returns UTF-8 numeric value of symbol
 func (t Token) Rune() rune {
 	switch t {
-	case SepLpar:
+	case TokSepLpar:
 		return '('
-	case SepRpar:
+	case TokSepRpar:
 		return ')'
-	case SepPipe:
+	case TokSepPipe:
 		return '|'
 	default:
 		return eof
@@ -165,49 +165,49 @@ func (t Token) Rune() rune {
 // not meant to be a perfect validator, simply a quick check before parsing
 func validTokenSequence(t1, t2 Token) bool {
 	switch t2 {
-	case StAll, StOne:
+	case TokStAll, TokStOne:
 		switch t1 {
-		case TokBegin, SepLpar, KeywordAnd, KeywordOr, KeywordNot:
+		case TokBegin, TokSepLpar, TokKeywordAnd, TokKeywordOr, TokKeywordNot:
 			return true
 		}
-	case IdentifierAll:
+	case TokIdentifierAll:
 		switch t1 {
-		case StAll, StOne:
+		case TokStAll, TokStOne:
 			return true
 		}
-	case Identifier, IdentifierWithWildcard:
+	case TokIdentifier, TokIdentifierWithWildcard:
 		switch t1 {
-		case SepLpar, TokBegin, KeywordAnd, KeywordOr, KeywordNot, StOne, StAll:
+		case TokSepLpar, TokBegin, TokKeywordAnd, TokKeywordOr, TokKeywordNot, TokStOne, TokStAll:
 			return true
 		}
-	case KeywordAnd, KeywordOr:
+	case TokKeywordAnd, TokKeywordOr:
 		switch t1 {
-		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+		case TokIdentifier, TokIdentifierAll, TokIdentifierWithWildcard, TokSepRpar:
 			return true
 		}
-	case KeywordNot:
+	case TokKeywordNot:
 		switch t1 {
-		case KeywordAnd, KeywordOr, SepLpar, TokBegin:
+		case TokKeywordAnd, TokKeywordOr, TokSepLpar, TokBegin:
 			return true
 		}
-	case SepLpar:
+	case TokSepLpar:
 		switch t1 {
-		case KeywordAnd, KeywordOr, KeywordNot, TokBegin, SepLpar:
+		case TokKeywordAnd, TokKeywordOr, TokKeywordNot, TokBegin, TokSepLpar:
 			return true
 		}
-	case SepRpar:
+	case TokSepRpar:
 		switch t1 {
-		case Identifier, IdentifierAll, IdentifierWithWildcard, SepLpar, SepRpar:
+		case TokIdentifier, TokIdentifierAll, TokIdentifierWithWildcard, TokSepLpar, TokSepRpar:
 			return true
 		}
-	case LitEof:
+	case TokLitEof:
 		switch t1 {
-		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+		case TokIdentifier, TokIdentifierAll, TokIdentifierWithWildcard, TokSepRpar:
 			return true
 		}
-	case SepPipe:
+	case TokSepPipe:
 		switch t1 {
-		case Identifier, IdentifierAll, IdentifierWithWildcard, SepRpar:
+		case TokIdentifier, TokIdentifierAll, TokIdentifierWithWildcard, TokSepRpar:
 			return true
 		}
 	}
