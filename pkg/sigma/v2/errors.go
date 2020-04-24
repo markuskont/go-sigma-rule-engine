@@ -16,19 +16,16 @@ func (e ErrInvalidRegex) Error() string {
 // ErrMissingDetection indicates missing detection field
 type ErrMissingDetection struct{}
 
-// Error implements error
 func (e ErrMissingDetection) Error() string { return "sigma rule is missing detection field" }
 
 // ErrEmptyDetection indicates detection field present but empty
 type ErrEmptyDetection struct{}
 
-// Error implements error
 func (e ErrEmptyDetection) Error() string { return "sigma rule has detection but is empty" }
 
 // ErrMissingCondition indicates missing condition field
 type ErrMissingCondition struct{}
 
-// Error implements error
 func (e ErrMissingCondition) Error() string { return "complex sigma rule is missing condition" }
 
 // ErrIncompleteDetection indicates a rule has defined identifiers that are missing in detection map
@@ -38,7 +35,6 @@ type ErrIncompleteDetection struct {
 	Msg       string
 }
 
-// Error implements error
 func (e ErrIncompleteDetection) Error() string {
 	return fmt.Sprintf(
 		"incomplete rule, missing fields from condition. [%s]. Has %+v. %s",
@@ -57,7 +53,6 @@ func (e ErrIncompleteDetection) Error() string {
 // Meant to be used as informational warning, rather than application breaking error
 type ErrUnsupportedToken struct{ Msg string }
 
-// Error implements error
 func (e ErrUnsupportedToken) Error() string { return fmt.Sprintf("UNSUPPORTED TOKEN: %s", e.Msg) }
 
 // ErrWip indicates a rule expression that is currently Work In Progress
@@ -65,7 +60,6 @@ func (e ErrUnsupportedToken) Error() string { return fmt.Sprintf("UNSUPPORTED TO
 // Non-critical escape hatch while debugging
 type ErrWip struct{}
 
-// Error implements error
 func (e ErrWip) Error() string { return fmt.Sprintf("Work in progress") }
 
 // ErrParseYaml indicates YAML parsing error
@@ -89,4 +83,31 @@ type ErrBulkParseYaml struct {
 
 func (e ErrBulkParseYaml) Error() string {
 	return fmt.Sprintf("Got %d broken yaml files", len(e.Errs))
+}
+
+// ErrInvalidTokenSeq indicates expression syntax error from rule writer
+// For example, two indents should be separated by a logical AND / OR operator
+type ErrInvalidTokenSeq struct {
+	Prev, Next Item
+	Collected  []Item
+}
+
+func (e ErrInvalidTokenSeq) Error() string {
+	return fmt.Sprintf("Seq error after collecting %d elements. Invalid token sequence %s -> %s. Values: %s -> %s.",
+		len(e.Collected), e.Prev.T, e.Next.T, e.Prev.Val, e.Next.Val)
+}
+
+// ErrIncompleteTokenSeq is invoked when lex channel drain does not end with EOF
+// thus indicating incomplete lexing sequence
+type ErrIncompleteTokenSeq struct {
+	Expression string
+	Items      []Item
+	Last       Item
+}
+
+func (e ErrIncompleteTokenSeq) Error() string {
+	return fmt.Sprintf(
+		"last element should be EOF, got token %s with value %s",
+		e.Last.T.String(), e.Last.Val,
+	)
 }

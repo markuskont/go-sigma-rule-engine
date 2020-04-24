@@ -13,11 +13,11 @@ type Item struct {
 type Token int
 
 const (
-	TokErr Token = iota
+	TokBegin Token = iota
 
 	// Helpers for internal stuff
+	TokErr
 	TokUnsupp
-	TokBegin
 	TokNil
 
 	// user-defined word
