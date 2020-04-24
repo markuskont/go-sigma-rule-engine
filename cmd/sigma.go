@@ -33,6 +33,15 @@ func entrypoint(cmd *cobra.Command, args []string) {
 		}
 	}
 	logrus.Infof("Got %d rules", len(rules))
+	for _, rule := range rules {
+		if val, ok := rule.Detection["condition"].(string); ok {
+			logrus.Info(val)
+		} else if rule.Multipart {
+			logrus.Warnf("%s is multipart", rule.Path)
+		} else {
+			logrus.Errorf("%s missing condition or not string", rule.Path)
+		}
+	}
 	/*
 		r, err := sigma.NewRuleset(
 			&sigma.Config{
