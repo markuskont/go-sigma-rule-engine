@@ -1,6 +1,7 @@
 package sigma
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,8 +11,18 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// RuleHandle is a meta object containing all fields from raw yaml, but is enhanced to also
+// hold debugging info from the tool, such as source file path, etc
+type RuleHandle struct {
+	Rule
+
+	Path      string `json:"path"`
+	Multipart bool   `json:"multipart"`
+}
+
 // Rule defines raw rule conforming to sigma rule specification
 // https://github.com/Neo23x0/sigma/wiki/Specification
+// only meant to be used for parsing yaml that matches Sigma rule definition
 type Rule struct {
 	Author         string   `yaml:"author" json:"author"`
 	Description    string   `yaml:"description" json:"description"`
@@ -29,12 +40,12 @@ type Rule struct {
 }
 
 // NewRuleList reads a list of sigma rule paths and parses them to rule objects
-func NewRuleList(files []string, skip bool) ([]Rule, error) {
+func NewRuleList(files []string, skip bool) ([]RuleHandle, error) {
 	if files == nil || len(files) == 0 {
 		return nil, fmt.Errorf("missing rule file list")
 	}
 	errs := make([]ErrParseYaml, 0)
-	rules := make([]Rule, 0)
+	rules := make([]RuleHandle, 0)
 loop:
 	for i, path := range files {
 		data, err := ioutil.ReadFile(path)
@@ -53,7 +64,13 @@ loop:
 			}
 			return nil, &ErrParseYaml{Err: err, Path: path}
 		}
-		rules = append(rules, r)
+		rules = append(rules, RuleHandle{
+			Path: path,
+			Rule: r,
+			Multipart: func() bool {
+				return !bytes.HasPrefix(data, []byte("---")) && bytes.Contains(data, []byte("---"))
+			}(),
+		})
 	}
 	return rules, func() error {
 		if len(errs) > 0 {
