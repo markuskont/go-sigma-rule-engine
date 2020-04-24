@@ -93,20 +93,20 @@ type stateFn func(*lexer) stateFn
 func lexCondition(l *lexer) stateFn {
 	for {
 		// TODO - run these cheks only if we have accumulated a word, not on every char
-		if strings.HasPrefix(l.todo(), StOne.Literal()) {
+		if strings.HasPrefix(l.todo(), TokStOne.Literal()) {
 			return lexOneOf
 		}
-		if strings.HasPrefix(l.todo(), StAll.Literal()) {
+		if strings.HasPrefix(l.todo(), TokStAll.Literal()) {
 			return lexAllOf
 		}
 		switch r := l.next(); {
 		case r == eof:
 			return lexEOF
-		case r == SepRpar.Rune():
+		case r == TokSepRpar.Rune():
 			return lexRparWithTokens
-		case r == SepLpar.Rune():
+		case r == TokSepLpar.Rune():
 			return lexLpar
-		case r == SepPipe.Rune():
+		case r == TokSepPipe.Rune():
 			return lexPipe
 		case unicode.IsSpace(r):
 			return lexAccumulateBeforeWhitespace
@@ -119,14 +119,14 @@ func lexStatement(l *lexer) stateFn {
 }
 
 func lexOneOf(l *lexer) stateFn {
-	l.position += len(StOne.Literal())
-	l.emit(StOne)
+	l.position += len(TokStOne.Literal())
+	l.emit(TokStOne)
 	return lexCondition
 }
 
 func lexAllOf(l *lexer) stateFn {
-	l.position += len(StAll.Literal())
-	l.emit(StAll)
+	l.position += len(TokStAll.Literal())
+	l.emit(TokStAll)
 	return lexCondition
 }
 
@@ -138,17 +138,17 @@ func lexEOF(l *lexer) stateFn {
 	if l.position > l.start {
 		l.emit(checkKeyWord(l.collected()))
 	}
-	l.emit(LitEof)
+	l.emit(TokLitEof)
 	return nil
 }
 
 func lexPipe(l *lexer) stateFn {
-	l.emit(SepPipe)
+	l.emit(TokSepPipe)
 	return lexAggs
 }
 
 func lexLpar(l *lexer) stateFn {
-	l.emit(SepLpar)
+	l.emit(TokSepLpar)
 	return lexCondition
 }
 
@@ -178,7 +178,7 @@ func lexRparWithTokens(l *lexer) stateFn {
 }
 
 func lexRpar(l *lexer) stateFn {
-	l.emit(SepRpar)
+	l.emit(TokSepRpar)
 	return lexCondition
 }
 
@@ -211,20 +211,20 @@ func checkKeyWord(in string) Token {
 		return TokNil
 	}
 	switch strings.ToLower(in) {
-	case KeywordAnd.Literal():
-		return KeywordAnd
-	case KeywordOr.Literal():
-		return KeywordOr
-	case KeywordNot.Literal():
-		return KeywordNot
+	case TokKeywordAnd.Literal():
+		return TokKeywordAnd
+	case TokKeywordOr.Literal():
+		return TokKeywordOr
+	case TokKeywordNot.Literal():
+		return TokKeywordNot
 	case "sum", "min", "max", "count", "avg":
-		return KeywordAgg
-	case IdentifierAll.Literal():
-		return IdentifierAll
+		return TokKeywordAgg
+	case TokIdentifierAll.Literal():
+		return TokIdentifierAll
 	default:
 		if strings.Contains(in, "*") {
-			return IdentifierWithWildcard
+			return TokIdentifierWithWildcard
 		}
-		return Identifier
+		return TokIdentifier
 	}
 }
