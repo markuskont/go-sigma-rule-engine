@@ -85,12 +85,12 @@ var detection1 = map[string]interface{}{
 }
 
 var detection1_positive = []map[string]string{
-	map[string]string{
+	{
 		"Image":       `C:\test\bitsadmin.exe`,
 		"CommandLine": `+R +H +A asd.cui`,
 		"ParentImage": `C:\test\wmiprvse.exe`,
 	},
-	map[string]string{
+	{
 		"Image":       `C:\test\bitsadmin.exe`,
 		"CommandLine": `aaa`,
 		"ParentImage": `C:\test\wmiprvse.exe`,
@@ -98,7 +98,7 @@ var detection1_positive = []map[string]string{
 }
 
 var detection1_negative = []map[string]string{
-	map[string]string{
+	{
 		"Image":       `C:\test\bitsadmin.exe`,
 		"CommandLine": `+R +H +S +A lll.cui`,
 		"ParentImage": `C:\test\mshta.exe`,
@@ -313,14 +313,14 @@ var detection6 = map[string]interface{}{
 }
 
 var detection6_positive = []map[string]string{
-	map[string]string{
+	{
 		"Field1": `this is baaad`,
 		"Field2": `this is zzzad`,
 		"Field3": `this is CCCad`,
 		"Field4": `this is baaad`,
 		"Field5": `this is beeed`,
 	},
-	map[string]string{
+	{
 		"Field1": `this is xxxxx`,
 		"Field2": `this is zzzzz`,
 		"Field3": `this is CCCad`,
@@ -330,14 +330,14 @@ var detection6_positive = []map[string]string{
 }
 
 var detection6_negative = []map[string]string{
-	map[string]string{
+	{
 		"Field1": `this is BAaad`,
 		"Field2": `this is bbbad`,
 		"Field3": `this is cccad`,
 		"Field4": `this is baaad`,
 		"Field5": `this is deeed`,
 	},
-	map[string]string{
+	{
 		"Field1": `this is baaad`,
 		"Field2": `this is bbbad`,
 		"Field3": `this is BaadD`,
@@ -352,32 +352,32 @@ type testCase struct {
 }
 
 var testCases = []testCase{
-	testCase{
+	{
 		Rule:     detection1,
 		Positive: detection1_positive,
 		Negative: detection1_negative,
 	},
-	testCase{
+	{
 		Rule:     detection2,
 		Positive: detection2_positive,
 		Negative: detection2_negative,
 	},
-	testCase{
+	{
 		Rule:     detection3,
 		Positive: detection3_positive,
 		Negative: detection3_negative,
 	},
-	testCase{
+	{
 		Rule:     detection4,
 		Positive: detection4_positive,
 		Negative: detection4_negative,
 	},
-	testCase{
+	{
 		Rule:     detection5,
 		Positive: detection5_positive,
 		Negative: detection5_negative,
 	},
-	testCase{
+	{
 		Rule:     detection6,
 		Positive: detection6_positive,
 		Negative: detection6_negative,
