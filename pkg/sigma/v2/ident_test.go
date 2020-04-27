@@ -6,6 +6,20 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type simpleKeywordAuditEventExample struct {
+	Command string `json:"cmd"`
+}
+
+// Keywords implements Keyworder
+func (s simpleKeywordAuditEventExample) Keywords() ([]string, bool) {
+	return []string{s.Command}, true
+}
+
+// Select implements Selector
+func (s simpleKeywordAuditEventExample) Select(_ string) (interface{}, bool) {
+	return nil, false
+}
+
 var identSelection1 = `
 ---
 detection:
@@ -56,20 +70,47 @@ detection:
   - 'python -m SimpleHTTPServer'
 `
 
+var identKeyword1pos1 = `
+{ "cmd": "/usr/bin/python -m SimpleHTTPServer" }
+`
+var identKeyword1neg1 = `
+{ "cmd": "/usr/bin/python -m pip install --user pip" }
+`
+
+var identKeyword2 = `
+---
+detection:
+  condition: keywords
+  keywords: "python* -m SimpleHTTPServer"
+`
+
 type identTestCase struct {
 	IdentCount int
 	IdentTypes []identType
 	Rule       string
 	Pos, Neg   string
+
+	Event
 }
 
-var identCases = []identTestCase{
+var selectionCases = []*identTestCase{
 	{IdentCount: 1, Rule: identSelection1, IdentTypes: []identType{identSelection}},
 	{IdentCount: 2, Rule: identSelection2, IdentTypes: []identType{identSelection, identSelection}},
 	{IdentCount: 1, Rule: identSelection3, IdentTypes: []identType{identSelection}},
 	{IdentCount: 1, Rule: identSelection4, IdentTypes: []identType{identSelection}},
-	{IdentCount: 1, Rule: identKeyword1, IdentTypes: []identType{identKeyword}},
 }
+
+var keywordCases = []identTestCase{
+	{
+		IdentCount: 1,
+		Rule:       identKeyword1,
+		IdentTypes: []identType{identKeyword},
+		Pos:        identKeyword1pos1,
+		Event:      simpleKeywordAuditEventExample{},
+	},
+}
+
+var identCases = keywordCases
 
 func TestParseIdent(t *testing.T) {
 	for i, c := range identCases {
