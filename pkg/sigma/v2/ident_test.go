@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var identCase1 = `
+var identSelection1 = `
 ---
 detection:
   condition: selection
@@ -15,7 +15,7 @@ detection:
     - ' -FromBase64String'
 `
 
-var identCase2 = `
+var identSelection2 = `
 ---
 detection:
   condition: selection1 AND selection2
@@ -26,7 +26,7 @@ detection:
     task: "Execute a Remote Command"
 `
 
-var identCase3 = `
+var identSelection3 = `
 ---
 detection:
   condition: selection1
@@ -36,7 +36,16 @@ detection:
     task: "Execute a Remote Command"
 `
 
-var identCase4 = `
+var identSelection4 = `
+---
+detection:
+  condition: selection
+  selection:
+    CommandLine|endswith: '.exe -S'
+    ParentImage|endswith: '\services.exe'
+`
+
+var identKeyword1 = `
 ---
 detection:
   condition: keywords
@@ -45,14 +54,6 @@ detection:
   - 'wget * - http* | sh'
   - 'wget * - http* | bash'
   - 'python -m SimpleHTTPServer'
-`
-var identCase5 = `
----
-detection:
-  condition: selection
-  selection:
-    CommandLine|endswith: '.exe -S'
-    ParentImage|endswith: '\services.exe'
 `
 
 type identTestCase struct {
@@ -63,11 +64,11 @@ type identTestCase struct {
 }
 
 var identCases = []identTestCase{
-	{IdentCount: 1, Rule: identCase1, IdentTypes: []identType{identSelection}},
-	{IdentCount: 2, Rule: identCase2, IdentTypes: []identType{identSelection, identSelection}},
-	{IdentCount: 1, Rule: identCase3, IdentTypes: []identType{identSelection}},
-	{IdentCount: 1, Rule: identCase4, IdentTypes: []identType{identKeyword}},
-	{IdentCount: 1, Rule: identCase5, IdentTypes: []identType{identSelection}},
+	{IdentCount: 1, Rule: identSelection1, IdentTypes: []identType{identSelection}},
+	{IdentCount: 2, Rule: identSelection2, IdentTypes: []identType{identSelection, identSelection}},
+	{IdentCount: 1, Rule: identSelection3, IdentTypes: []identType{identSelection}},
+	{IdentCount: 1, Rule: identSelection4, IdentTypes: []identType{identSelection}},
+	{IdentCount: 1, Rule: identKeyword1, IdentTypes: []identType{identKeyword}},
 }
 
 func TestParseIdent(t *testing.T) {
