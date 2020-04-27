@@ -1,6 +1,9 @@
 package sigma
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type identType int
 
@@ -41,4 +44,26 @@ func reflectIdentKind(data interface{}) identType {
 	default:
 		return identKeyword
 	}
+}
+
+func newRuleFromIdent(rule interface{}, kind identType) (Branch, error) {
+	switch kind {
+	case identKeyword:
+
+	case identSelection:
+
+	}
+	return nil, fmt.Errorf("Unknown rule kind, should be keyword or selection")
+}
+
+type keyword struct{}
+
+func newKeyword(expr interface{}) (*keyword, error) {
+	return nil, ErrInvalidKeywordConstruct{Expr: expr}
+}
+
+type selection struct{}
+
+func newSelection(expr interface{}) (*selection, error) {
+	return nil, ErrInvalidSelectionConstruct{Expr: expr}
 }

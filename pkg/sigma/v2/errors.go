@@ -1,6 +1,9 @@
 package sigma
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 // ErrInvalidRegex contextualizes broken regular expressions presented by the user
 type ErrInvalidRegex struct {
@@ -93,7 +96,8 @@ type ErrInvalidTokenSeq struct {
 }
 
 func (e ErrInvalidTokenSeq) Error() string {
-	return fmt.Sprintf("Seq error after collecting %d elements. Invalid token sequence %s -> %s. Values: %s -> %s.",
+	return fmt.Sprintf(`Seq error after collecting %d elements.`+
+		` Invalid token sequence %s -> %s. Values: %s -> %s.`,
 		len(e.Collected), e.Prev.T, e.Next.T, e.Prev.Val, e.Next.Val)
 }
 
@@ -106,8 +110,34 @@ type ErrIncompleteTokenSeq struct {
 }
 
 func (e ErrIncompleteTokenSeq) Error() string {
-	return fmt.Sprintf(
-		"last element should be EOF, got token %s with value %s",
-		e.Last.T.String(), e.Last.Val,
-	)
+	return fmt.Sprintf("last element should be EOF, got token %s with value %s",
+		e.Last.T.String(), e.Last.Val)
+}
+
+// ErrInvalidKeywordConstruct indicates that parser found a keyword expression
+// that did not match any known keyword rule structure
+// could be unmarshal issue
+type ErrInvalidKeywordConstruct struct {
+	Msg  string
+	Expr interface{}
+}
+
+func (e ErrInvalidKeywordConstruct) Error() string {
+	return fmt.Sprintf(`Invalid type for parsing keyword expression. `+
+		`Should be slice of strings or a funky one element map where value is slice of strings. `+
+		`Or other stuff. Got |%+v| with type |%s|`,
+		e.Expr, reflect.TypeOf(e.Expr).String())
+}
+
+// ErrInvalidSelectionConstruct indicates that parser found a selection expression
+// that did not match any known selection rule structure
+// could be unmarshal issue
+type ErrInvalidSelectionConstruct struct {
+	Msg  string
+	Expr interface{}
+}
+
+func (e ErrInvalidSelectionConstruct) Error() string {
+	return fmt.Sprintf("Invalid type for parsing selection expression. Got |%+v| with type |%s|",
+		e.Expr, reflect.TypeOf(e.Expr).String())
 }
