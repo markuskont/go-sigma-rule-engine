@@ -1,6 +1,7 @@
 package sigma
 
 import (
+	"fmt"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -55,13 +56,40 @@ detection:
     ParentImage|endswith: '\services.exe'
 `
 
-var identCases = []string{identCase1, identCase2, identCase3, identCase4, identCase5}
+type identTestCase struct {
+	IdentCount int
+	Rule       string
+	Pos, Neg   string
+}
+
+var identCases = []identTestCase{
+	{IdentCount: 1, Rule: identCase1},
+	{IdentCount: 2, Rule: identCase2},
+	{IdentCount: 1, Rule: identCase3},
+	{IdentCount: 1, Rule: identCase4},
+	{IdentCount: 1, Rule: identCase5},
+}
 
 func TestParseIdent(t *testing.T) {
 	for i, c := range identCases {
-		var r RuleHandle
-		if err := yaml.Unmarshal([]byte(c), &r); err != nil {
+		var r Rule
+		if err := yaml.Unmarshal([]byte(c.Rule), &r); err != nil {
 			t.Fatalf("ident case %d yaml parse fail: %s", i+1, err)
+		}
+		condition, ok := r.Detection["condition"].(string)
+		if !ok {
+			t.Fatalf("ident case %d missing condition", i+1)
+		}
+		l := lex(condition)
+		for item := range l.items {
+			switch item.T {
+			case TokIdentifier:
+				val, ok := r.Detection[item.Val]
+				if !ok {
+					t.Fatalf("ident case %d missing ident %s or unable to extract", i+0, item.Val)
+				}
+				fmt.Println(val)
+			}
 		}
 	}
 }
