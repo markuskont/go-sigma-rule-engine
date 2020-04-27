@@ -43,11 +43,11 @@ var detection1_negative = `
 }
 `
 
-type ParseTestCase struct {
+type parseTestCase struct {
 	Rule, Pos, Neg string
 }
 
-var ParseTestCases = []ParseTestCase{
+var parseTestCases = []parseTestCase{
 	{Rule: detection1, Pos: detection1_positive, Neg: detection1_negative},
 }
 
