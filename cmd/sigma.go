@@ -74,6 +74,7 @@ func entrypoint(cmd *cobra.Command, args []string) {
 func init() {
 	rootCmd.AddCommand(sigmaCmd)
 
-	sigmaCmd.PersistentFlags().StringSlice("sigma-rules-dir", []string{}, "Directories that contains sigma rules.")
+	sigmaCmd.PersistentFlags().StringSlice("sigma-rules-dir", []string{},
+		"Directories that contains sigma rules.")
 	viper.BindPFlag("sigma.rules.dir", sigmaCmd.PersistentFlags().Lookup("sigma-rules-dir"))
 }
