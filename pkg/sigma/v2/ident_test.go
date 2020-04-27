@@ -51,8 +51,8 @@ var identCase5 = `
 detection:
   condition: selection
   selection:
-  CommandLine|endswith: '.exe -S'
-  ParentImage|endswith: '\services.exe'
+    CommandLine|endswith: '.exe -S'
+    ParentImage|endswith: '\services.exe'
 `
 
 var identCases = []string{identCase1, identCase2, identCase3, identCase4, identCase5}
