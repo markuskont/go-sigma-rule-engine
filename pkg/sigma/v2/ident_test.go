@@ -1,22 +1,31 @@
 package sigma
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"gopkg.in/yaml.v2"
 )
 
-type simpleKeywordAuditEventExample struct {
+type identExampleType int
+
+const (
+	identNA identExampleType = iota
+	ident1
+)
+
+type simpleKeywordAuditEventExample1 struct {
 	Command string `json:"cmd"`
 }
 
 // Keywords implements Keyworder
-func (s simpleKeywordAuditEventExample) Keywords() ([]string, bool) {
+func (s simpleKeywordAuditEventExample1) Keywords() ([]string, bool) {
 	return []string{s.Command}, true
 }
 
 // Select implements Selector
-func (s simpleKeywordAuditEventExample) Select(_ string) (interface{}, bool) {
+func (s simpleKeywordAuditEventExample1) Select(_ string) (interface{}, bool) {
 	return nil, false
 }
 
@@ -84,13 +93,32 @@ detection:
   keywords: "python* -m SimpleHTTPServer"
 `
 
+type identPosNegCase struct {
+	Pos, Neg Event
+}
+
 type identTestCase struct {
 	IdentCount int
 	IdentTypes []identType
 	Rule       string
 	Pos, Neg   string
 
-	Event
+	Example identExampleType
+}
+
+func (i identTestCase) sigma() (*identPosNegCase, error) {
+	switch i.Example {
+	case ident1:
+		var pos, neg simpleKeywordAuditEventExample1
+		if err := json.Unmarshal([]byte(i.Pos), &pos); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(i.Pos), &neg); err != nil {
+			return nil, err
+		}
+		return &identPosNegCase{Pos: pos, Neg: neg}, nil
+	}
+	return nil, fmt.Errorf("Unknown identifier test case")
 }
 
 var selectionCases = []*identTestCase{
@@ -106,7 +134,7 @@ var keywordCases = []identTestCase{
 		Rule:       identKeyword1,
 		IdentTypes: []identType{identKeyword},
 		Pos:        identKeyword1pos1,
-		Event:      simpleKeywordAuditEventExample{},
+		Example:    ident1,
 	},
 }
 
@@ -143,5 +171,11 @@ func TestParseIdent(t *testing.T) {
 			t.Fatalf("ident case %d defined element count %d does not match processd %d",
 				i+1, c.IdentCount, items)
 		}
+		cases, err := c.sigma()
+		if err != nil {
+			t.Fatalf("ident case %d unable to cast positive case to sigma event, err: %s",
+				i+1, err)
+		}
+		fmt.Print(cases)
 	}
 }
