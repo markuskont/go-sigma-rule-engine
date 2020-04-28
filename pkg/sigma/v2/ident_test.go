@@ -164,6 +164,16 @@ func TestParseIdent(t *testing.T) {
 					t.Fatalf("ident case %d ident %d kind mismatch expected %s got %s",
 						i+1, j+1, c.IdentTypes[j], k)
 				}
+				switch c.IdentTypes[j] {
+				case identKeyword:
+					_, err := newKeyword(val)
+					if err != nil {
+						t.Fatalf("ident case %d token %d failed to parse as keyword: %s",
+							i+1, j+1, err)
+					}
+				case identSelection:
+
+				}
 				j++
 			}
 		}
