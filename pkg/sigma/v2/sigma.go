@@ -23,7 +23,7 @@ type Event interface {
 // Matcher is used for implementing Abstract Syntax Tree for Sigma engine
 type Matcher interface {
 	// Match implements Matcher
-	Match() bool
+	Match(Event) bool
 }
 
 // Branch implements Matcher with additional methods for walking and debugging the tree
