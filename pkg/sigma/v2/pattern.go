@@ -2,7 +2,13 @@ package sigma
 
 import "strings"
 
-type TextPatternType int
+type TextPatternModifier int
+
+const (
+	TextPatternContains TextPatternModifier = iota
+	TextPatternPrefix
+	TextPatternSuffix
+)
 
 // StringMatcher is an atomic pattern that could implement glob, literal or regex matchers
 type StringMatcher interface {

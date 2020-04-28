@@ -56,14 +56,58 @@ func newRuleFromIdent(rule interface{}, kind identType) (Branch, error) {
 	return nil, fmt.Errorf("Unknown rule kind, should be keyword or selection")
 }
 
-type keyword struct{}
+type Keyword struct {
+}
 
-func newKeyword(expr interface{}) (*keyword, error) {
-	return nil, ErrInvalidKeywordConstruct{Expr: expr}
+// Match implements Matcher
+func (k Keyword) Match(msg Event) bool {
+	panic("not implemented") // TODO: Implement
+}
+
+func newKeyword(expr interface{}) (*Keyword, error) {
+	switch val := expr.(type) {
+	case []string:
+		return newStringKeyword(TextPatternContains, false, val...)
+	case []interface{}:
+		panic("TODO - keyword interface slice")
+	default:
+		// TODO
+		return nil, ErrInvalidKeywordConstruct{Expr: expr}
+	}
+}
+
+func newStringKeyword(mod TextPatternModifier, lower bool, patterns ...string) (*Keyword, error) {
+	if patterns == nil || len(patterns) == 0 {
+		return nil, fmt.Errorf("no patterns defined for keyword match rule")
+	}
+	matcher := make(StringMatchers, 0)
+	for _, p := range patterns {
+		if strings.Contains(p, "*") {
+
+		} else if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
+
+		} else {
+			switch mod {
+			case TextPatternSuffix:
+				matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
+			case TextPatternPrefix:
+				matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower})
+			default:
+				matcher = append(matcher, ContentPattern{Token: p, Lowercase: lower})
+			}
+		}
+	}
+	return nil, nil
 }
 
 type selection struct{}
 
-func newSelection(expr interface{}) (*selection, error) {
-	return nil, ErrInvalidSelectionConstruct{Expr: expr}
+// Keywords implements Keyworder
+func (s selection) Keywords() ([]string, bool) {
+	panic("not implemented") // TODO: Implement
+}
+
+// Select implements Selector
+func (s selection) Select(_ string) (interface{}, bool) {
+	panic("not implemented") // TODO: Implement
 }
