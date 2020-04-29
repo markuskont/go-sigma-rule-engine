@@ -76,7 +76,7 @@ func (k Keyword) Match(msg Event) bool {
 	return false
 }
 
-func newKeyword(expr interface{}) (*Keyword, error) {
+func NewKeyword(expr interface{}) (*Keyword, error) {
 	switch val := expr.(type) {
 	case []string:
 		return newStringKeyword(TextPatternContains, false, val...)
@@ -124,6 +124,10 @@ type SelectionStringItem struct {
 
 type Selection struct {
 	S []SelectionStringItem
+}
+
+func NewSelection(expr interface{}) (*Selection, error) {
+	return nil, ErrWip{}
 }
 
 // Match implements Matcher
