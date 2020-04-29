@@ -117,16 +117,29 @@ func newStringKeyword(mod TextPatternModifier, lower bool, patterns ...string) (
 	return &Keyword{S: matcher}, nil
 }
 
-type selection struct{}
-
-// Keywords implements Keyworder
-func (s selection) Keywords() ([]string, bool) {
-	panic("not implemented") // TODO: Implement
+type SelectionStringItem struct {
+	Key     string
+	Pattern StringMatcher
 }
 
-// Select implements Selector
-func (s selection) Select(_ string) (interface{}, bool) {
-	panic("not implemented") // TODO: Implement
+type Selection struct {
+	S []SelectionStringItem
+}
+
+// Match implements Matcher
+func (s Selection) Match(msg Event) bool {
+	for _, v := range s.S {
+		val, ok := msg.Select(v.Key)
+		if !ok {
+			return false
+		}
+		if val, ok := val.(string); ok {
+			if !v.Pattern.StringMatch(val) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func isSameKind(data []interface{}) (reflect.Kind, bool) {

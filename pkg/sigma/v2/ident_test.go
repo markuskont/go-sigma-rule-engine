@@ -3,16 +3,37 @@ package sigma
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v2"
 )
+
+func getField(key string, data map[string]interface{}) (interface{}, bool) {
+	if data == nil {
+		return nil, false
+	}
+	bits := strings.SplitN(key, ".", 2)
+	if len(bits) == 0 {
+		return nil, false
+	}
+	if val, ok := data[bits[0]]; ok {
+		switch res := val.(type) {
+		case map[string]interface{}:
+			return getField(bits[1], res)
+		default:
+			return val, ok
+		}
+	}
+	return nil, false
+}
 
 type identExampleType int
 
 const (
 	identNA identExampleType = iota
 	ident1
+	ident2
 )
 
 type simpleKeywordAuditEventExample1 struct {
@@ -29,6 +50,18 @@ func (s simpleKeywordAuditEventExample1) Select(_ string) (interface{}, bool) {
 	return nil, false
 }
 
+type simpleDynamicMapEventExample1 map[string]interface{}
+
+// Keywords implements Keyworder
+func (s simpleDynamicMapEventExample1) Keywords() ([]string, bool) {
+	return nil, false
+}
+
+// Select implements Selector
+func (s simpleDynamicMapEventExample1) Select(key string) (interface{}, bool) {
+	return getField(key, s)
+}
+
 var identSelection1 = `
 ---
 detection:
@@ -36,36 +69,49 @@ detection:
   selection:
     winlog.event_data.ScriptBlockText:
     - ' -FromBase64String'
+    - '::FromBase64String'
+`
+
+var identSelection1pos1 = `
+{
+  "event_id": 4104,
+  "channel": "Microsoft-Windows-PowerShell/Operational",
+  "task": "Execute a Remote Command",
+  "opcode": "On create calls",
+  "version": 1,
+  "record_id": 1559,
+  "event_data": {
+    "MessageNumber": "1",
+    "MessageTotal": "1",
+		"ScriptBlockText": "$s=New-Object IO.MemoryStream(,[Convert]::FromBase64String(\"OMITTED BASE64 STRING\"));",
+    "ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+  }
+}
 `
 
 var identSelection2 = `
 ---
 detection:
-  condition: selection1 AND selection2
-  selection1:
+  condition: selection
+  selection:
     winlog.event_data.ScriptBlockText:
     - ' -FromBase64String'
-  selection2:
-    task: "Execute a Remote Command"
+    - '::FromBase64String'
+    task: 
+    - 'Remote Command'
 `
 
 var identSelection3 = `
 ---
 detection:
-  condition: selection1
-  selection1:
-    winlog.event_data.ScriptBlockText:
-    - " -FromBase64String"
-    task: "Execute a Remote Command"
-`
-
-var identSelection4 = `
----
-detection:
   condition: selection
   selection:
-    CommandLine|endswith: '.exe -S'
-    ParentImage|endswith: '\services.exe'
+    winlog.event_data.ScriptBlockText:
+    - ' -FromBase64String'
+    - '::FromBase64String'
+    task: 
+    - 'Remote Command'
+    channel|endswith: "PowerShell/Operational"
 `
 
 var identKeyword1 = `
@@ -132,15 +178,31 @@ func (i identTestCase) sigma() (*identPosNegCase, error) {
 			return nil, err
 		}
 		return &identPosNegCase{Pos: pos, Neg: neg}, nil
+	case ident2:
+		var pos, neg simpleDynamicMapEventExample1
+		if i.Pos != "" {
+			if err := json.Unmarshal([]byte(i.Pos), &pos); err != nil {
+				return nil, err
+			}
+		}
+		if i.Neg != "" {
+			if err := json.Unmarshal([]byte(i.Neg), &neg); err != nil {
+				return nil, err
+			}
+		}
+		return &identPosNegCase{Pos: pos, Neg: neg}, nil
 	}
 	return nil, fmt.Errorf("Unknown identifier test case")
 }
 
-var selectionCases = []*identTestCase{
-	{IdentCount: 1, Rule: identSelection1, IdentTypes: []identType{identSelection}},
-	{IdentCount: 2, Rule: identSelection2, IdentTypes: []identType{identSelection, identSelection}},
-	{IdentCount: 1, Rule: identSelection3, IdentTypes: []identType{identSelection}},
-	{IdentCount: 1, Rule: identSelection4, IdentTypes: []identType{identSelection}},
+var selectionCases = []identTestCase{
+	{
+		IdentCount: 1,
+		Rule:       identSelection1,
+		IdentTypes: []identType{identSelection},
+		Pos:        identSelection1pos1,
+		Example:    ident2,
+	},
 }
 
 var keywordCases = []identTestCase{
@@ -170,7 +232,7 @@ var keywordCases = []identTestCase{
 	},
 }
 
-var identCases = keywordCases
+var identCases = append(keywordCases, selectionCases...)
 
 func TestParseIdent(t *testing.T) {
 	for i, c := range identCases {
@@ -206,7 +268,7 @@ func TestParseIdent(t *testing.T) {
 					}
 					keywords = append(keywords, kw)
 				case identSelection:
-
+					panic("HERE")
 				}
 				j++
 			}
@@ -224,10 +286,10 @@ func TestParseIdent(t *testing.T) {
 			if rule == nil {
 				t.Fatalf("ident case %d nil rule pointer", i+1)
 			}
-			if !rule.Match(cases.Pos) {
+			if c.Pos != "" && !rule.Match(cases.Pos) {
 				t.Fatalf("ident case %d positive test case did not match %s", i+1, cases.Pos)
 			}
-			if rule.Match(cases.Neg) {
+			if c.Neg != "" && rule.Match(cases.Neg) {
 				t.Fatalf("ident case %d negative test case matched %s", i+1, cases.Neg)
 			}
 		}
