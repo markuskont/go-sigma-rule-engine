@@ -10,11 +10,28 @@ import (
 
 type TextPatternModifier int
 
+func (t TextPatternModifier) String() string {
+	switch t {
+	case TextPatternPrefix:
+		return "startswith"
+	case TextPatternSuffix:
+		return "endwith"
+	default:
+		return "contains"
+	}
+}
+
 const (
 	TextPatternContains TextPatternModifier = iota
 	TextPatternPrefix
 	TextPatternSuffix
 )
+
+func isValidSpecifier(in string) bool {
+	return in == TextPatternContains.String() ||
+		in == TextPatternPrefix.String() ||
+		in == TextPatternSuffix.String()
+}
 
 // StringMatcher is an atomic pattern that could implement glob, literal or regex matchers
 type StringMatcher interface {
@@ -22,7 +39,11 @@ type StringMatcher interface {
 	StringMatch(string) bool
 }
 
-func NewStringMatcher(mod TextPatternModifier, lower bool, patterns ...string) (StringMatcher, error) {
+func NewStringMatcher(
+	mod TextPatternModifier,
+	lower bool,
+	patterns ...string,
+) (StringMatcher, error) {
 	if patterns == nil || len(patterns) == 0 {
 		return nil, fmt.Errorf("no patterns defined for keyword match rule")
 	}

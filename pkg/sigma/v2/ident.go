@@ -127,6 +127,73 @@ type Selection struct {
 }
 
 func NewSelection(expr interface{}) (*Selection, error) {
+	sel := &Selection{S: make([]SelectionStringItem, 0)}
+	switch v := expr.(type) {
+	case map[interface{}]interface{}:
+		for key, pattern := range cleanUpInterfaceMap(v) {
+			var mod TextPatternModifier
+			if strings.Contains(key, "|") {
+				bits := strings.Split(key, "|")
+				if length := len(bits); length != 2 {
+					return nil, fmt.Errorf(
+						"selection key %s invalid. Specifier should result in 2 sections", key)
+				}
+				if !isValidSpecifier(bits[1]) {
+					return nil, fmt.Errorf("selection key %s specifier %s invalid",
+						key, bits[1])
+				}
+				switch bits[1] {
+				case TextPatternPrefix.String():
+					mod = TextPatternPrefix
+				case TextPatternSuffix.String():
+					mod = TextPatternSuffix
+				}
+			}
+			switch pat := pattern.(type) {
+			case []interface{}:
+				// TODO - move this part to separate function and reuse in NewKeyword
+				k, ok := isSameKind(pat)
+				if !ok {
+					return nil, ErrInvalidKind{
+						Kind:     reflect.Array,
+						T:        identKeyword,
+						Critical: false,
+						Msg:      "Mixed type slice",
+					}
+				}
+				switch k {
+				case reflect.String:
+					s, _ := castIfaceToString(pat)
+					m, err := NewStringMatcher(mod, false, s...)
+					if err != nil {
+						return nil, err
+					}
+					sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
+				default:
+					return nil, ErrInvalidKind{
+						Kind:     k,
+						T:        identKeyword,
+						Critical: false,
+						Msg:      "Unsupported data type",
+					}
+				}
+			default:
+				return nil, ErrInvalidKind{
+					Kind:     reflect.TypeOf(pattern).Kind(),
+					T:        identSelection,
+					Critical: true,
+					Msg:      "Unsupported selection value",
+				}
+			}
+		}
+	default:
+		return nil, ErrInvalidKind{
+			Kind:     reflect.TypeOf(expr).Kind(),
+			T:        identSelection,
+			Critical: true,
+			Msg:      "Unsupported selection root container",
+		}
+	}
 	return nil, ErrWip{}
 }
 
@@ -172,4 +239,14 @@ func castIfaceToString(items ...interface{}) ([]string, int) {
 		}
 	}
 	return tx, failed
+}
+
+// Yaml can have non-string keys, so go-yaml unmarshals to map[interface{}]interface{}
+// really annoying
+func cleanUpInterfaceMap(rx map[interface{}]interface{}) map[string]interface{} {
+	tx := make(map[string]interface{})
+	for k, v := range rx {
+		tx[fmt.Sprintf("%v", k)] = v
+	}
+	return tx
 }
