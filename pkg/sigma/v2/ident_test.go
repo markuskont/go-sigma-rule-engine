@@ -100,12 +100,12 @@ var identKeyword2pos1 = `
 var identKeyword2neg1 = `
 { "cmd": "/usr/bin/python -m pip install --user pip" }
 `
-
 var identKeyword3 = `
 ---
 detection:
   condition: keywords
-  keywords: "*python* -m SimpleHTTPServer"
+  keywords:
+  - '/\S+python.* -m Simple\w+Server.*/'
 `
 
 type identPosNegCase struct {
@@ -155,6 +155,14 @@ var keywordCases = []identTestCase{
 	{
 		IdentCount: 1,
 		Rule:       identKeyword2,
+		IdentTypes: []identType{identKeyword},
+		Pos:        identKeyword2pos1,
+		Neg:        identKeyword2neg1,
+		Example:    ident1,
+	},
+	{
+		IdentCount: 1,
+		Rule:       identKeyword3,
 		IdentTypes: []identType{identKeyword},
 		Pos:        identKeyword2pos1,
 		Neg:        identKeyword2neg1,

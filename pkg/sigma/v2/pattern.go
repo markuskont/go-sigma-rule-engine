@@ -28,15 +28,14 @@ func NewStringMatcher(mod TextPatternModifier, lower bool, patterns ...string) (
 	}
 	matcher := make(StringMatchers, 0)
 	for _, p := range patterns {
-		// TODO - check for escape sequences
-		if strings.Contains(p, "*") {
-			matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
-		} else if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
+		if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
 			re, err := regexp.Compile(strings.TrimLeft(strings.TrimRight(p, "/"), "/"))
 			if err != nil {
 				return nil, err
 			}
 			matcher = append(matcher, RegexPattern{Re: re})
+		} else if strings.Contains(p, "*") {
+			matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
 		} else {
 			switch mod {
 			case TextPatternSuffix:
