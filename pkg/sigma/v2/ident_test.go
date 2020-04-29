@@ -73,20 +73,35 @@ var identKeyword1 = `
 detection:
   condition: keywords
   keywords:
+  - 'bash -c'
+  - 'cat /etc/shadow'
+`
+
+var identKeyword1pos1 = `
+{ "cmd": "sudo bash -c \"cat /etc/shadow /etc/group /etc/passwd\"" }
+`
+var identKeyword1neg1 = `
+{ "cmd": "sh -c \"cat /etc/resolv.conf\"" }
+`
+var identKeyword2 = `
+---
+detection:
+  condition: keywords
+  keywords:
   - 'wget * - http* | perl'
   - 'wget * - http* | sh'
   - 'wget * - http* | bash'
   - 'python -m SimpleHTTPServer'
 `
 
-var identKeyword1pos1 = `
+var identKeyword2pos1 = `
 { "cmd": "/usr/bin/python -m SimpleHTTPServer" }
 `
-var identKeyword1neg1 = `
+var identKeyword2neg1 = `
 { "cmd": "/usr/bin/python -m pip install --user pip" }
 `
 
-var identKeyword2 = `
+var identKeyword3 = `
 ---
 detection:
   condition: keywords
