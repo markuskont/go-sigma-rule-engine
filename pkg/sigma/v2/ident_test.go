@@ -231,7 +231,5 @@ func TestParseIdent(t *testing.T) {
 				t.Fatalf("ident case %d negative test case matched %s", i+1, cases.Neg)
 			}
 		}
-
-		fmt.Print(cases)
 	}
 }
