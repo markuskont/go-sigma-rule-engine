@@ -128,7 +128,7 @@ func (i identTestCase) sigma() (*identPosNegCase, error) {
 		if err := json.Unmarshal([]byte(i.Pos), &pos); err != nil {
 			return nil, err
 		}
-		if err := json.Unmarshal([]byte(i.Pos), &neg); err != nil {
+		if err := json.Unmarshal([]byte(i.Neg), &neg); err != nil {
 			return nil, err
 		}
 		return &identPosNegCase{Pos: pos, Neg: neg}, nil
@@ -149,6 +149,7 @@ var keywordCases = []identTestCase{
 		Rule:       identKeyword1,
 		IdentTypes: []identType{identKeyword},
 		Pos:        identKeyword1pos1,
+		Neg:        identKeyword1neg1,
 		Example:    ident1,
 	},
 }
@@ -167,6 +168,7 @@ func TestParseIdent(t *testing.T) {
 		}
 		l := lex(condition)
 		var items, j int
+		keywords := make([]Matcher, 0)
 		for item := range l.items {
 			switch item.T {
 			case TokIdentifier:
@@ -181,11 +183,12 @@ func TestParseIdent(t *testing.T) {
 				}
 				switch c.IdentTypes[j] {
 				case identKeyword:
-					_, err := newKeyword(val)
+					kw, err := newKeyword(val)
 					if err != nil {
 						t.Fatalf("ident case %d token %d failed to parse as keyword: %s",
 							i+1, j+1, err)
 					}
+					keywords = append(keywords, kw)
 				case identSelection:
 
 				}
@@ -198,9 +201,21 @@ func TestParseIdent(t *testing.T) {
 		}
 		cases, err := c.sigma()
 		if err != nil {
-			t.Fatalf("ident case %d unable to cast positive case to sigma event, err: %s",
+			t.Fatalf("ident case %d unable to cast test cases to sigma events, err: %s",
 				i+1, err)
 		}
+		for _, rule := range keywords {
+			if rule == nil {
+				t.Fatalf("ident case %d nil rule pointer", i+1)
+			}
+			if !rule.Match(cases.Pos) {
+				t.Fatalf("ident case %d positive test case did not match %s", i+1, cases.Neg)
+			}
+			if rule.Match(cases.Neg) {
+				t.Fatalf("ident case %d negative test case matched %s", i+1, cases.Neg)
+			}
+		}
+
 		fmt.Print(cases)
 	}
 }
