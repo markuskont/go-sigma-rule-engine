@@ -1,6 +1,9 @@
 package sigma
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type TextPatternModifier int
 
@@ -14,6 +17,39 @@ const (
 type StringMatcher interface {
 	// StringMatch implements StringMatcher
 	StringMatch(string) bool
+}
+
+func NewStringMatcher(mod TextPatternModifier, lower bool, patterns ...string) (StringMatcher, error) {
+	if patterns == nil || len(patterns) == 0 {
+		return nil, fmt.Errorf("no patterns defined for keyword match rule")
+	}
+	matcher := make(StringMatchers, 0)
+	for _, p := range patterns {
+		if strings.Contains(p, "*") {
+			return nil, ErrUnsupportedExpression{
+				Msg: "glob", T: identKeyword, Expr: patterns, Critical: true,
+			}
+		} else if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
+			return nil, ErrUnsupportedExpression{
+				Msg: "regex", T: identKeyword, Expr: patterns, Critical: true,
+			}
+		} else {
+			switch mod {
+			case TextPatternSuffix:
+				matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
+			case TextPatternPrefix:
+				matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower})
+			default:
+				matcher = append(matcher, ContentPattern{Token: p, Lowercase: lower})
+			}
+		}
+	}
+	return func() StringMatcher {
+		if len(matcher) == 1 {
+			return matcher[0]
+		}
+		return matcher
+	}(), nil
 }
 
 // StringMatchers holds multiple atomic matchers

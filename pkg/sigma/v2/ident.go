@@ -110,37 +110,11 @@ func newKeyword(expr interface{}) (*Keyword, error) {
 }
 
 func newStringKeyword(mod TextPatternModifier, lower bool, patterns ...string) (*Keyword, error) {
-	if patterns == nil || len(patterns) == 0 {
-		return nil, fmt.Errorf("no patterns defined for keyword match rule")
+	matcher, err := NewStringMatcher(mod, lower, patterns...)
+	if err != nil {
+		return nil, err
 	}
-	matcher := make(StringMatchers, 0)
-	for _, p := range patterns {
-		if strings.Contains(p, "*") {
-			return nil, ErrUnsupportedExpression{
-				Msg: "glob", T: identKeyword, Expr: patterns, Critical: true,
-			}
-		} else if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
-			return nil, ErrUnsupportedExpression{
-				Msg: "regex", T: identKeyword, Expr: patterns, Critical: true,
-			}
-		} else {
-			switch mod {
-			case TextPatternSuffix:
-				matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
-			case TextPatternPrefix:
-				matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower})
-			default:
-				matcher = append(matcher, ContentPattern{Token: p, Lowercase: lower})
-			}
-		}
-	}
-	return &Keyword{
-		S: func() StringMatcher {
-			if len(matcher) == 1 {
-				return matcher[0]
-			}
-			return matcher
-		}()}, nil
+	return &Keyword{S: matcher}, nil
 }
 
 type selection struct{}
