@@ -91,7 +91,7 @@ detection:
   - 'wget * - http* | perl'
   - 'wget * - http* | sh'
   - 'wget * - http* | bash'
-  - 'python -m SimpleHTTPServer'
+  - "*python -m Simple*Server"
 `
 
 var identKeyword2pos1 = `
@@ -105,7 +105,7 @@ var identKeyword3 = `
 ---
 detection:
   condition: keywords
-  keywords: "python* -m SimpleHTTPServer"
+  keywords: "*python* -m SimpleHTTPServer"
 `
 
 type identPosNegCase struct {
@@ -150,6 +150,14 @@ var keywordCases = []identTestCase{
 		IdentTypes: []identType{identKeyword},
 		Pos:        identKeyword1pos1,
 		Neg:        identKeyword1neg1,
+		Example:    ident1,
+	},
+	{
+		IdentCount: 1,
+		Rule:       identKeyword2,
+		IdentTypes: []identType{identKeyword},
+		Pos:        identKeyword2pos1,
+		Neg:        identKeyword2neg1,
 		Example:    ident1,
 	},
 }
@@ -209,7 +217,7 @@ func TestParseIdent(t *testing.T) {
 				t.Fatalf("ident case %d nil rule pointer", i+1)
 			}
 			if !rule.Match(cases.Pos) {
-				t.Fatalf("ident case %d positive test case did not match %s", i+1, cases.Neg)
+				t.Fatalf("ident case %d positive test case did not match %s", i+1, cases.Pos)
 			}
 			if rule.Match(cases.Neg) {
 				t.Fatalf("ident case %d negative test case matched %s", i+1, cases.Neg)
