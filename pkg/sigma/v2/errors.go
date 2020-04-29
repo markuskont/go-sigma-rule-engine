@@ -141,3 +141,44 @@ func (e ErrInvalidSelectionConstruct) Error() string {
 	return fmt.Sprintf("Invalid type for parsing selection expression. Got |%+v| with type |%s|",
 		e.Expr, reflect.TypeOf(e.Expr).String())
 }
+
+// ErrInvalidKind indicates that type switching function received an unsupported
+// or unhandled data type
+// Contains the type in question, arbitrary error text and keyword/selection indicator
+// Critical is used to indicate if this error should cause an exit or can simply
+// be handled as a warning for future improvements
+type ErrInvalidKind struct {
+	reflect.Kind
+	Msg      string
+	T        identType
+	Critical bool
+}
+
+func (e ErrInvalidKind) Error() string {
+	return fmt.Sprintf("%s data type error. %s got %s. %s",
+		func() string {
+			if e.Critical {
+				return "CRITICAL"
+			}
+			return "Informative"
+		}(), e.T, e.Kind, e.Msg)
+}
+
+// ErrUnsupportedExpression indicates that rule expression is not yet supported by parser
+// mostly a type issue
+type ErrUnsupportedExpression struct {
+	Msg      string
+	T        identType
+	Expr     interface{}
+	Critical bool
+}
+
+func (e ErrUnsupportedExpression) Error() string {
+	return fmt.Sprintf("%s unsupported expression for %s, %s. %+v",
+		func() string {
+			if e.Critical {
+				return "CRITICAL"
+			}
+			return "Informative"
+		}(), e.T, e.Msg, e.Expr)
+}
