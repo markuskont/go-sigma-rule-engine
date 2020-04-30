@@ -92,7 +92,7 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 		}
 		switch v := k; {
 		case v == reflect.String:
-			s, _ := castIfaceToString(val...)
+			s, _ := castIfaceToString(val)
 			return newStringKeyword(TextPatternContains, false, s...)
 		default:
 			return nil, ErrInvalidKind{
@@ -228,7 +228,7 @@ func isSameKind(data []interface{}) (reflect.Kind, bool) {
 }
 
 // castIfaceToString assumes that kind check has already been done
-func castIfaceToString(items ...interface{}) ([]string, int) {
+func castIfaceToString(items []interface{}) ([]string, int) {
 	tx := make([]string, 0)
 	var failed int
 	for _, val := range items {

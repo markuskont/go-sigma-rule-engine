@@ -45,7 +45,7 @@ func NewStringMatcher(
 	patterns ...string,
 ) (StringMatcher, error) {
 	if patterns == nil || len(patterns) == 0 {
-		return nil, fmt.Errorf("no patterns defined for keyword match rule")
+		return nil, fmt.Errorf("no patterns defined for matcher object")
 	}
 	matcher := make(StringMatchers, 0)
 	for _, p := range patterns {
