@@ -86,7 +86,7 @@ func (g group) splitByOr() []offsets {
 			})
 		}
 	}
-	return nil
+	return out
 }
 
 func (g group) hasSub() bool {

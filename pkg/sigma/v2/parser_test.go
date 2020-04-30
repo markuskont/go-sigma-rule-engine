@@ -78,7 +78,8 @@ func TestParse(t *testing.T) {
 		}
 		expr := rule.Detection["condition"].(string)
 		p := &parser{
-			lex: lex(expr),
+			lex:   lex(expr),
+			sigma: rule.Detection,
 		}
 		if err := p.collect(); err != nil {
 			t.Fatalf("rule parser case %d failed to collect lexical tokens, %s", i+1, err)
