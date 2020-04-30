@@ -30,20 +30,19 @@ func (p *parser) run() error {
 		return err
 	}
 	// Pass 2: find groups
-	/*
-		b, err := parseSearch(p.tokens, p.sigma, RuleConfig{}, true)
-		if err != nil {
-			return err
-		}
-		p.result = b
-	*/
+	if err := p.parse(); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (p *parser) parse() error {
+	return ErrWip{}
 }
 
 // collect gathers all items from lexer and does preliminary sequence validation
 func (p *parser) collect() error {
 	for item := range p.lex.items {
-
 		if item.T == TokUnsupp {
 			return ErrUnsupportedToken{Msg: item.Val}
 		}

@@ -1,27 +1,31 @@
 package sigma
 
-import "testing"
+import (
+	"testing"
+
+	"gopkg.in/yaml.v2"
+)
 
 var detection1 = `
 detection:
-	condition: "selection1 and not selection3"
-	selection1:
-		Image:
-			- *\schtasks.exe
-			- *\nslookup.exe
-			- *\certutil.exe
-			- *\bitsadmin.exe
-			- *\mshta.exe
-		ParentImage:
-			- *\mshta.exe
-			- *\powershell.exe
-			- *\cmd.exe
-			- *\rundll32.exe
-			- *\cscript.exe
-			- *\wscript.exe
-			- *\wmiprvse.exe
-	selection3:
-		CommandLine: "+R +H +S +A *.cui"
+  condition: "selection1 and not selection3"
+  selection1:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bitsadmin.exe'
+    - '*\mshta.exe'
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+  selection3:
+    CommandLine: "+R +H +S +A *.cui"
 `
 
 var detection1_positive = `
@@ -62,6 +66,15 @@ func TestTokenCollect(t *testing.T) {
 			default:
 				t.Fatal(err)
 			}
+		}
+	}
+}
+
+func TestParse(t *testing.T) {
+	for i, c := range parseTestCases {
+		var rule Rule
+		if err := yaml.Unmarshal([]byte(c.Rule), &rule); err != nil {
+			t.Fatalf("rule parse case %d failed to unmarshal yaml, %s", i+1, err)
 		}
 	}
 }
