@@ -142,12 +142,14 @@ var identSelection1pos1 = `
   "opcode": "On create calls",
   "version": 1,
   "record_id": 1559,
-  "event_data": {
-    "MessageNumber": "1",
-    "MessageTotal": "1",
-		"ScriptBlockText": "$s=New-Object IO.MemoryStream(,[Convert]::FromBase64String(\"OMITTED BASE64 STRING\"));",
-    "ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
-  }
+	"winlog": {
+		"event_data": {
+			"MessageNumber": "1",
+			"MessageTotal": "1",
+			"ScriptBlockText": "$s=New-Object IO.MemoryStream(,[Convert]::FromBase64String(\"OMITTED BASE64 STRING\"));",
+			"ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+		}
+	}
 }
 `
 
@@ -160,12 +162,14 @@ var identSelection1neg1 = `
   "opcode": "On create calls",
   "version": 1,
   "record_id": 1559,
-  "event_data": {
-    "MessageNumber": "1",
-    "MessageTotal": "1",
-		"ScriptBlockText": "Some awesome command",
-    "ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
-  }
+	"winlog": {
+		"event_data": {
+			"MessageNumber": "1",
+			"MessageTotal": "1",
+			"ScriptBlockText": "Some awesome command",
+			"ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+		}
+	}
 }
 `
 
@@ -178,11 +182,13 @@ var identSelection1neg2 = `
   "opcode": "On create calls",
   "version": 1,
   "record_id": 1559,
-  "event_data": {
-    "MessageNumber": "1",
-    "MessageTotal": "1",
-    "ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
-  }
+	"winlog": {
+		"event_data": {
+			"MessageNumber": "1",
+			"MessageTotal": "1",
+			"ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+		}
+	}
 }
 `
 
@@ -304,6 +310,7 @@ func TestParseIdent(t *testing.T) {
 		l := lex(condition)
 		var items, j int
 		keywords := make([]Matcher, 0)
+		selections := make([]Matcher, 0)
 		for item := range l.items {
 			switch item.T {
 			case TokIdentifier:
@@ -325,11 +332,12 @@ func TestParseIdent(t *testing.T) {
 					}
 					keywords = append(keywords, kw)
 				case identSelection:
-					_, err := NewSelection(val)
+					sel, err := NewSelectionMatcher(val)
 					if err != nil {
 						t.Fatalf("ident case %d token %d failed to parse as selection: %s",
 							i+1, j+1, err)
 					}
+					selections = append(selections, sel)
 				}
 				j++
 			}
@@ -344,6 +352,23 @@ func TestParseIdent(t *testing.T) {
 				i+1, err)
 		}
 		for _, rule := range keywords {
+			if rule == nil {
+				t.Fatalf("ident case %d nil rule pointer", i+1)
+			}
+			for j, c := range cases.Pos {
+				if !rule.Match(c) {
+					t.Fatalf("ident case %d positive test case %d did not match %s",
+						i+1, j+1, c)
+				}
+			}
+			for j, c := range cases.Neg {
+				if rule.Match(c) {
+					t.Fatalf("ident case %d negative test case %d did not match %s",
+						i+1, j+1, c)
+				}
+			}
+		}
+		for _, rule := range selections {
 			if rule == nil {
 				t.Fatalf("ident case %d nil rule pointer", i+1)
 			}
