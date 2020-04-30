@@ -2,11 +2,107 @@ package sigma
 
 import "fmt"
 
+func newBranch(d Detection, t []Item) (Branch, error) {
+	group := &group{expr: t}
+	if err := group.getSub(); err != nil {
+		return nil, err
+	}
+	if !group.hasSub() {
+		for _, o := range group.splitByOr() {
+			and := make([]Branch, 0)
+			for _, item := range group.expr[o.start:o.end] {
+				switch item.T {
+				case TokIdentifier:
+					val, ok := d[item.Val]
+					if !ok {
+						return nil, ErrMissingConditionItem{Key: item.Val}
+					}
+					b, err := newRuleFromIdent(val, checkIdentType(item, val))
+					if err != nil {
+						return nil, err
+					}
+					and = append(and, b)
+				default:
+					panic("TODO")
+				}
+			}
+		}
+	}
+	return nil, ErrWip{}
+}
+
+// offsets denote beginning and end of a logical expresison group
+type offsets struct {
+	start, end int
+}
+
+type group struct {
+	sub  []offsets
+	expr []Item
+}
+
+func (g *group) getSub() error {
+	g.sub = make([]offsets, 0)
+	var balance int
+	//last := len(g.expr) - 1
+	var start, end int
+	for i, item := range g.expr {
+		switch item.T {
+		case TokSepLpar:
+			balance++
+			start = i
+		case TokSepRpar:
+			balance--
+			if balance == 0 {
+				end = i
+				g.sub = append(g.sub, offsets{
+					start: start + 1,
+					end:   end - 1,
+				})
+			}
+		}
+	}
+	if balance != 0 {
+		return fmt.Errorf("invalid expr group balance %d", balance)
+	}
+	return nil
+}
+
+func (g group) splitByOr() []offsets {
+	out := make([]offsets, 0)
+	var start int
+	for i, tok := range g.expr {
+		if tok.T == TokKeywordOr {
+			out = append(out, offsets{
+				start: start,
+				end:   i - 1,
+			})
+			start = i + 1
+		}
+		if i == len(g.expr)-1 {
+			out = append(out, offsets{
+				start: start,
+				end:   i,
+			})
+		}
+	}
+	return nil
+}
+
+func (g group) hasSub() bool {
+	if g.sub != nil && len(g.sub) > 0 {
+		return true
+	}
+	return false
+}
+
 type parser struct {
 	// lexer that tokenizes input string
 	lex *lexer
 
+	// container for collected tokens and their values
 	tokens []Item
+
 	// memorize last token to validate proper sequence
 	// for example, two identifiers have to be joined via logical AND or OR, otherwise the sequence is invalid
 	previous Item
@@ -37,7 +133,11 @@ func (p *parser) run() error {
 }
 
 func (p *parser) parse() error {
-	return ErrWip{}
+	_, err := newBranch(p.sigma, p.tokens)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // collect gathers all items from lexer and does preliminary sequence validation

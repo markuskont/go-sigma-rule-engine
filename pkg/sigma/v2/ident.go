@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync/atomic"
 )
 
 type identType int
@@ -52,9 +51,9 @@ func reflectIdentKind(data interface{}) identType {
 func newRuleFromIdent(rule interface{}, kind identType) (Branch, error) {
 	switch kind {
 	case identKeyword:
-
+		return NewKeyword(rule)
 	case identSelection:
-
+		return NewSelection(rule)
 	}
 	return nil, fmt.Errorf("Unknown rule kind, should be keyword or selection")
 }
@@ -190,7 +189,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 	return sel, nil
 }
 
-func NewSelectionMatcher(expr interface{}) (*Selection, error) {
+func NewSelection(expr interface{}) (*Selection, error) {
 	switch v := expr.(type) {
 	case map[interface{}]interface{}:
 		return newSelectionFromMap(cleanUpInterfaceMap(v))
@@ -206,7 +205,7 @@ func NewSelectionMatcher(expr interface{}) (*Selection, error) {
 
 // Match implements Matcher
 // TODO - numeric and boolean pattern match
-func (s *Selection) Match(msg Event) bool {
+func (s Selection) Match(msg Event) bool {
 	for _, v := range s.S {
 		val, ok := msg.Select(v.Key)
 		if !ok {
@@ -223,11 +222,16 @@ func (s *Selection) Match(msg Event) bool {
 				return false
 			}
 		default:
-			atomic.AddUint64(&s.TypeMismatchCount, 1)
+			s.incrementMismatchCount()
 			return false
 		}
 	}
 	return true
+}
+
+func (s *Selection) incrementMismatchCount() *Selection {
+	s.TypeMismatchCount++
+	return s
 }
 
 func isSameKind(data []interface{}) (reflect.Kind, bool) {

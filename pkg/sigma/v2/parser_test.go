@@ -76,5 +76,20 @@ func TestParse(t *testing.T) {
 		if err := yaml.Unmarshal([]byte(c.Rule), &rule); err != nil {
 			t.Fatalf("rule parse case %d failed to unmarshal yaml, %s", i+1, err)
 		}
+		expr := rule.Detection["condition"].(string)
+		p := &parser{
+			lex: lex(expr),
+		}
+		if err := p.collect(); err != nil {
+			t.Fatalf("rule parser case %d failed to collect lexical tokens, %s", i+1, err)
+		}
+		if err := p.parse(); err != nil {
+			switch err.(type) {
+			case ErrWip:
+				t.Fatalf("WIP")
+			default:
+				t.Fatalf("rule parser case %d failed to parse lexical tokens, %s", i+1, err)
+			}
+		}
 	}
 }
