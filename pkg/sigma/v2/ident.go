@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync/atomic"
 )
 
 type identType int
@@ -123,7 +124,8 @@ type SelectionStringItem struct {
 }
 
 type Selection struct {
-	S []SelectionStringItem
+	S                 []SelectionStringItem
+	TypeMismatchCount uint64
 }
 
 func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
@@ -202,16 +204,21 @@ func NewSelectionMatcher(expr interface{}) (*Selection, error) {
 }
 
 // Match implements Matcher
-func (s Selection) Match(msg Event) bool {
+// TODO - numeric and boolean pattern match
+func (s *Selection) Match(msg Event) bool {
 	for _, v := range s.S {
 		val, ok := msg.Select(v.Key)
 		if !ok {
 			return false
 		}
-		if val, ok := val.(string); ok {
-			if !v.Pattern.StringMatch(val) {
+		switch vt := val.(type) {
+		case string:
+			if !v.Pattern.StringMatch(vt) {
 				return false
 			}
+		default:
+			atomic.AddUint64(&s.TypeMismatchCount, 1)
+			return false
 		}
 	}
 	return true
