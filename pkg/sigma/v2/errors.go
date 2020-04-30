@@ -21,6 +21,15 @@ type ErrMissingDetection struct{}
 
 func (e ErrMissingDetection) Error() string { return "sigma rule is missing detection field" }
 
+// ErrMissingConditionItem indicates that identifier in condition is missing in detection map
+type ErrMissingConditionItem struct {
+	Key string
+}
+
+func (e ErrMissingConditionItem) Error() string {
+	return fmt.Sprintf("missing condition identifier %s", e.Key)
+}
+
 // ErrEmptyDetection indicates detection field present but empty
 type ErrEmptyDetection struct{}
 
