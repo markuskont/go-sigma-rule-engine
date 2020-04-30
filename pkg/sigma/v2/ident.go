@@ -194,7 +194,7 @@ func NewSelection(expr interface{}) (*Selection, error) {
 			Msg:      "Unsupported selection root container",
 		}
 	}
-	return nil, ErrWip{}
+	return sel, nil
 }
 
 // Match implements Matcher
