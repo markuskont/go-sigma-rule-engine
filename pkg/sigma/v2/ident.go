@@ -3,6 +3,7 @@ package sigma
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync/atomic"
 )
@@ -214,6 +215,11 @@ func (s *Selection) Match(msg Event) bool {
 		switch vt := val.(type) {
 		case string:
 			if !v.Pattern.StringMatch(vt) {
+				return false
+			}
+		case float64:
+			// TODO - tmp hack that also loses floating point accuracy
+			if !v.Pattern.StringMatch(strconv.Itoa(int(vt))) {
 				return false
 			}
 		default:
