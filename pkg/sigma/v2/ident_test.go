@@ -36,6 +36,68 @@ const (
 	ident2
 )
 
+type identPosNegCases struct {
+	Pos, Neg []Event
+}
+
+type identTestCase struct {
+	IdentCount int
+	IdentTypes []identType
+	Rule       string
+	Pos, Neg   []string
+
+	Example identExampleType
+}
+
+func (i identTestCase) sigma() (*identPosNegCases, error) {
+	posContainer := make([]Event, 0)
+	negContainer := make([]Event, 0)
+	switch i.Example {
+	case ident1:
+		if i.Pos == nil || len(i.Pos) == 0 {
+			return nil, fmt.Errorf("missing positive test cases")
+		}
+		for _, c := range i.Pos {
+			var obj simpleKeywordAuditEventExample1
+			if err := json.Unmarshal([]byte(c), &obj); err != nil {
+				return nil, err
+			}
+			posContainer = append(posContainer, obj)
+		}
+		for _, c := range i.Neg {
+			var obj simpleKeywordAuditEventExample1
+			if err := json.Unmarshal([]byte(c), &obj); err != nil {
+				return nil, err
+			}
+			negContainer = append(negContainer, obj)
+		}
+		return &identPosNegCases{Pos: posContainer, Neg: negContainer}, nil
+	case ident2:
+		if i.Pos == nil || len(i.Pos) == 0 {
+			return nil, fmt.Errorf("missing positive test cases")
+		}
+		for _, c := range i.Pos {
+			var obj simpleDynamicMapEventExample1
+			if err := json.Unmarshal([]byte(c), &obj); err != nil {
+				return nil, err
+			}
+			posContainer = append(posContainer, obj)
+		}
+		if i.Neg == nil || len(i.Neg) == 0 {
+			return nil, fmt.Errorf("missing negative test cases")
+		}
+		for _, c := range i.Neg {
+			var obj simpleDynamicMapEventExample1
+			if err := json.Unmarshal([]byte(c), &obj); err != nil {
+				return nil, err
+			}
+			negContainer = append(negContainer, obj)
+		}
+		return &identPosNegCases{Pos: posContainer, Neg: negContainer}, nil
+	}
+	return nil, fmt.Errorf("Unknown identifier test case")
+}
+
 type simpleKeywordAuditEventExample1 struct {
 	Command string `json:"cmd"`
 }
@@ -84,6 +146,41 @@ var identSelection1pos1 = `
     "MessageNumber": "1",
     "MessageTotal": "1",
 		"ScriptBlockText": "$s=New-Object IO.MemoryStream(,[Convert]::FromBase64String(\"OMITTED BASE64 STRING\"));",
+    "ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+  }
+}
+`
+
+// another command
+var identSelection1neg1 = `
+{
+  "event_id": 4104,
+  "channel": "Microsoft-Windows-PowerShell/Operational",
+  "task": "Execute a Remote Command",
+  "opcode": "On create calls",
+  "version": 1,
+  "record_id": 1559,
+  "event_data": {
+    "MessageNumber": "1",
+    "MessageTotal": "1",
+		"ScriptBlockText": "Some awesome command",
+    "ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+  }
+}
+`
+
+// missing field
+var identSelection1neg2 = `
+{
+  "event_id": 4104,
+  "channel": "Microsoft-Windows-PowerShell/Operational",
+  "task": "Execute a Remote Command",
+  "opcode": "On create calls",
+  "version": 1,
+  "record_id": 1559,
+  "event_data": {
+    "MessageNumber": "1",
+    "MessageTotal": "1",
     "ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
   }
 }
@@ -154,53 +251,13 @@ detection:
   - '/\S+python.* -m Simple\w+Server.*/'
 `
 
-type identPosNegCase struct {
-	Pos, Neg Event
-}
-
-type identTestCase struct {
-	IdentCount int
-	IdentTypes []identType
-	Rule       string
-	Pos, Neg   string
-
-	Example identExampleType
-}
-
-func (i identTestCase) sigma() (*identPosNegCase, error) {
-	switch i.Example {
-	case ident1:
-		var pos, neg simpleKeywordAuditEventExample1
-		if err := json.Unmarshal([]byte(i.Pos), &pos); err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal([]byte(i.Neg), &neg); err != nil {
-			return nil, err
-		}
-		return &identPosNegCase{Pos: pos, Neg: neg}, nil
-	case ident2:
-		var pos, neg simpleDynamicMapEventExample1
-		if i.Pos != "" {
-			if err := json.Unmarshal([]byte(i.Pos), &pos); err != nil {
-				return nil, err
-			}
-		}
-		if i.Neg != "" {
-			if err := json.Unmarshal([]byte(i.Neg), &neg); err != nil {
-				return nil, err
-			}
-		}
-		return &identPosNegCase{Pos: pos, Neg: neg}, nil
-	}
-	return nil, fmt.Errorf("Unknown identifier test case")
-}
-
 var selectionCases = []identTestCase{
 	{
 		IdentCount: 1,
 		Rule:       identSelection1,
 		IdentTypes: []identType{identSelection},
-		Pos:        identSelection1pos1,
+		Pos:        []string{identSelection1pos1},
+		Neg:        []string{identSelection1neg1, identSelection1neg2},
 		Example:    ident2,
 	},
 }
@@ -210,24 +267,24 @@ var keywordCases = []identTestCase{
 		IdentCount: 1,
 		Rule:       identKeyword1,
 		IdentTypes: []identType{identKeyword},
-		Pos:        identKeyword1pos1,
-		Neg:        identKeyword1neg1,
+		Pos:        []string{identKeyword1pos1},
+		Neg:        []string{identKeyword1neg1},
 		Example:    ident1,
 	},
 	{
 		IdentCount: 1,
 		Rule:       identKeyword2,
 		IdentTypes: []identType{identKeyword},
-		Pos:        identKeyword2pos1,
-		Neg:        identKeyword2neg1,
+		Pos:        []string{identKeyword2pos1},
+		Neg:        []string{identKeyword2neg1},
 		Example:    ident1,
 	},
 	{
 		IdentCount: 1,
 		Rule:       identKeyword3,
 		IdentTypes: []identType{identKeyword},
-		Pos:        identKeyword2pos1,
-		Neg:        identKeyword2neg1,
+		Pos:        []string{identKeyword2pos1},
+		Neg:        []string{identKeyword2neg1},
 		Example:    ident1,
 	},
 }
@@ -290,11 +347,17 @@ func TestParseIdent(t *testing.T) {
 			if rule == nil {
 				t.Fatalf("ident case %d nil rule pointer", i+1)
 			}
-			if c.Pos != "" && !rule.Match(cases.Pos) {
-				t.Fatalf("ident case %d positive test case did not match %s", i+1, cases.Pos)
+			for j, c := range cases.Pos {
+				if !rule.Match(c) {
+					t.Fatalf("ident case %d positive test case %d did not match %s",
+						i+1, j+1, c)
+				}
 			}
-			if c.Neg != "" && rule.Match(cases.Neg) {
-				t.Fatalf("ident case %d negative test case matched %s", i+1, cases.Neg)
+			for j, c := range cases.Neg {
+				if rule.Match(c) {
+					t.Fatalf("ident case %d negative test case %d did not match %s",
+						i+1, j+1, c)
+				}
 			}
 		}
 	}
