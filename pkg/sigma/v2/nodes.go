@@ -84,9 +84,9 @@ func (n NodeOr) Match(e Event) bool {
 	return n.L.Match(e) || n.R.Match(e)
 }
 
-func newNodeNotIfNegated(b Branch, negated bool) Branch {
+func newNodeNotIfNegated(b Branch, negated bool) (Branch, bool) {
 	if negated {
-		return &NodeNot{B: b}
+		return &NodeNot{B: b}, false
 	}
-	return b
+	return b, false
 }
