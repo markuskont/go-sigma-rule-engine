@@ -46,6 +46,28 @@ var detection1_negative = `
 	"ParentImage": "C:\test\mshta.exe"
 }
 `
+var detection2 = `
+detection:
+  condition: "(selection1 and selection2) and not selection3"
+  selection1:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bitsadmin.exe'
+    - '*\mshta.exe'
+  selection2:
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+  selection3:
+    CommandLine: "+R +H +S +A *.cui"
+`
 
 type parseTestCase struct {
 	Rule, Pos, Neg string
@@ -53,6 +75,7 @@ type parseTestCase struct {
 
 var parseTestCases = []parseTestCase{
 	{Rule: detection1, Pos: detection1_positive, Neg: detection1_negative},
+	{Rule: detection2, Pos: detection1_positive, Neg: detection1_negative},
 }
 
 func TestTokenCollect(t *testing.T) {
