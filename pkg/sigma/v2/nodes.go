@@ -26,7 +26,7 @@ func (n NodeSimpleAnd) Reduce() Branch {
 	return n
 }
 
-// NodeSimpleAnd is a list of matchers connected with logical disjunction
+// NodeSimpleOr is a list of matchers connected with logical disjunction
 type NodeSimpleOr []Branch
 
 // Reduce cleans up unneeded slices
@@ -73,7 +73,7 @@ func (n NodeAnd) Match(e Event) bool {
 	return n.L.Match(e) && n.R.Match(e)
 }
 
-// NodeAnd is a two element node of a binary tree with Left and Right branches
+// NodeOr is a two element node of a binary tree with Left and Right branches
 // connected via logical disjunction
 type NodeOr struct {
 	L, R Branch
