@@ -64,7 +64,7 @@ func newBranch(d Detection, t []Item) (Branch, error) {
 			}
 		}
 	}
-	or = append(or, and.Reduce())
+	or = append(or, newNodeNotIfNegated(and.Reduce(), negated))
 
 	return or.Reduce(), nil
 }
