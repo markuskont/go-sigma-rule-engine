@@ -52,8 +52,14 @@ func newBranch(d Detection, t []Item) (Branch, error) {
 			}
 			and = append(and, newNodeNotIfNegated(b, negated))
 			negated = false
+		case TokIdentifierWithWildcard, TokIdentifierAll:
+			// TODO
+			panic("TODO")
+		case TokStAll, TokStOne:
+			// TODO
+			panic("TODO")
 		default:
-			return nil, &ErrUnsupportedToken{
+			return nil, ErrUnsupportedToken{
 				Msg: fmt.Sprintf("%s | %s", item.T, item.T.Literal()),
 			}
 		}
