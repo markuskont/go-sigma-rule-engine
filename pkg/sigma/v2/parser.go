@@ -1,99 +1,88 @@
 package sigma
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
+// newBranch builds a binary tree from token list
+// sequence and group validation should be done before invoking newBranch
 func newBranch(d Detection, t []Item) (Branch, error) {
-	group := &group{expr: t}
-	if err := group.getSub(); err != nil {
-		return nil, err
-	}
-	if !group.hasSub() {
-		for _, o := range group.splitByOr() {
-			and := make([]Branch, 0)
-			for _, item := range group.expr[o.start:o.end] {
-				switch item.T {
-				case TokIdentifier:
-					val, ok := d[item.Val]
-					if !ok {
-						return nil, ErrMissingConditionItem{Key: item.Val}
-					}
-					b, err := newRuleFromIdent(val, checkIdentType(item, val))
-					if err != nil {
-						return nil, err
-					}
-					and = append(and, b)
-				default:
-					panic("TODO")
-				}
+	tx := make(chan Item, 0)
+	go func(ctx context.Context) {
+		defer close(tx)
+		for _, item := range t {
+			tx <- item
+		}
+	}(context.TODO())
+
+	and := make(NodeSimpleAnd, 0)
+	or := make(NodeSimpleOr, 0)
+	var negated bool
+
+	for item := range tx {
+		switch item.T {
+		case TokIdentifier:
+			val, ok := d[item.Val]
+			if !ok {
+				return nil, ErrMissingConditionItem{Key: item.Val}
+			}
+			b, err := newRuleFromIdent(val, checkIdentType(item, val))
+			if err != nil {
+				return nil, err
+			}
+			and = append(and, newNodeNotIfNegated(b, negated))
+			negated = false
+		case TokKeywordAnd:
+			// no need to do anything special here
+		case TokKeywordOr:
+			// fill OR gate with collected AND nodes
+			// reduce will strip AND logic if only one token has been collected
+			or = append(or, and.Reduce())
+			// reset existing AND collector
+			and = make(NodeSimpleAnd, 0)
+		case TokKeywordNot:
+			negated = true
+		case TokSepLpar:
+			// recursively create new branch and append to existing list
+			// then skip to next token after grouping
+			b, err := newBranch(d, extractGroup(tx))
+			if err != nil {
+				return nil, err
+			}
+			and = append(and, newNodeNotIfNegated(b, negated))
+			negated = false
+		default:
+			return nil, &ErrUnsupportedToken{
+				Msg: fmt.Sprintf("%s | %s", item.T, item.T.Literal()),
 			}
 		}
 	}
-	return nil, ErrWip{}
+	or = append(or, and.Reduce())
+
+	return or.Reduce(), nil
 }
 
-// offsets denote beginning and end of a logical expresison group
-type offsets struct {
-	start, end int
-}
-
-type group struct {
-	sub  []offsets
-	expr []Item
-}
-
-func (g *group) getSub() error {
-	g.sub = make([]offsets, 0)
+func extractGroup(rx <-chan Item) []Item {
 	var balance int
-	//last := len(g.expr) - 1
-	var start, end int
-	for i, item := range g.expr {
+	group := make([]Item, 0)
+	for item := range rx {
 		switch item.T {
 		case TokSepLpar:
+			if balance > 0 {
+				group = append(group, item)
+			}
 			balance++
-			start = i
 		case TokSepRpar:
 			balance--
 			if balance == 0 {
-				end = i
-				g.sub = append(g.sub, offsets{
-					start: start + 1,
-					end:   end - 1,
-				})
+				return group
+			} else if balance > 0 {
+				group = append(group, item)
 			}
 		}
 	}
-	if balance != 0 {
-		return fmt.Errorf("invalid expr group balance %d", balance)
-	}
-	return nil
-}
-
-func (g group) splitByOr() []offsets {
-	out := make([]offsets, 0)
-	var start int
-	for i, tok := range g.expr {
-		if tok.T == TokKeywordOr {
-			out = append(out, offsets{
-				start: start,
-				end:   i - 1,
-			})
-			start = i + 1
-		}
-		if i == len(g.expr)-1 {
-			out = append(out, offsets{
-				start: start,
-				end:   i,
-			})
-		}
-	}
-	return out
-}
-
-func (g group) hasSub() bool {
-	if g.sub != nil && len(g.sub) > 0 {
-		return true
-	}
-	return false
+	return group
 }
 
 type parser struct {
