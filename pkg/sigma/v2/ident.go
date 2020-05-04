@@ -150,6 +150,12 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 			}
 		}
 		switch pat := pattern.(type) {
+		case string:
+			m, err := NewStringMatcher(mod, false, pat)
+			if err != nil {
+				return nil, err
+			}
+			sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
 		case []interface{}:
 			// TODO - move this part to separate function and reuse in NewKeyword
 			k, ok := isSameKind(pat)
