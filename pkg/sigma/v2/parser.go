@@ -128,10 +128,11 @@ func (p *parser) run() error {
 }
 
 func (p *parser) parse() error {
-	_, err := newBranch(p.sigma, p.tokens)
+	res, err := newBranch(p.sigma, p.tokens)
 	if err != nil {
 		return err
 	}
+	p.result = res
 	return nil
 }
 
