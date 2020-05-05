@@ -117,11 +117,18 @@ func TestParse(t *testing.T) {
 			}
 		}
 		var pos, neg DynamicMap
+
 		if err := json.Unmarshal([]byte(c.Pos), &pos); err != nil {
 			t.Fatalf("rule parser case %d positive case json unmarshal error %s", i+1, err)
 		}
 		if err := json.Unmarshal([]byte(c.Neg), &neg); err != nil {
 			t.Fatalf("rule parser case %d positive case json unmarshal error %s", i+1, err)
+		}
+		if !p.result.Match(pos) {
+			t.Fatalf("rule parser case %d positive case did not match", i+1)
+		}
+		if p.result.Match(neg) {
+			t.Fatalf("rule parser case %d negative case matched", i+1)
 		}
 	}
 }

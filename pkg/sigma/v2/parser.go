@@ -1,26 +1,19 @@
 package sigma
 
 import (
-	"context"
 	"fmt"
 )
 
 // newBranch builds a binary tree from token list
 // sequence and group validation should be done before invoking newBranch
-func newBranch(d Detection, t []Item) (Branch, error) {
-	tx := make(chan Item, 0)
-	go func(ctx context.Context) {
-		defer close(tx)
-		for _, item := range t {
-			tx <- item
-		}
-	}(context.TODO())
+func newBranch(d Detection, t []Item, depth int) (Branch, error) {
+	rx := genItems(t)
 
 	and := make(NodeSimpleAnd, 0)
 	or := make(NodeSimpleOr, 0)
 	var negated bool
 
-	for item := range tx {
+	for item := range rx {
 		switch item.T {
 		case TokIdentifier:
 			val, ok := d[item.Val]
@@ -46,7 +39,7 @@ func newBranch(d Detection, t []Item) (Branch, error) {
 		case TokSepLpar:
 			// recursively create new branch and append to existing list
 			// then skip to next token after grouping
-			b, err := newBranch(d, extractGroup(tx))
+			b, err := newBranch(d, extractGroup(rx), depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -54,10 +47,13 @@ func newBranch(d Detection, t []Item) (Branch, error) {
 			negated = false
 		case TokIdentifierWithWildcard, TokIdentifierAll:
 			// TODO
-			panic("TODO")
+			return nil, ErrWip{}
 		case TokStAll, TokStOne:
 			// TODO
-			panic("TODO")
+			return nil, ErrWip{}
+		case TokSepRpar:
+			return nil, fmt.Errorf("parser error, should not see %s",
+				TokSepRpar)
 		default:
 			return nil, ErrUnsupportedToken{
 				Msg: fmt.Sprintf("%s | %s", item.T, item.T.Literal()),
@@ -70,22 +66,23 @@ func newBranch(d Detection, t []Item) (Branch, error) {
 }
 
 func extractGroup(rx <-chan Item) []Item {
-	var balance int
+	// fn is called when newBranch hits TokSepLpar
+	// it will be consumed, so balance is already 1
+	balance := 1
 	group := make([]Item, 0)
 	for item := range rx {
+		if balance > 0 {
+			group = append(group, item)
+		}
 		switch item.T {
 		case TokSepLpar:
-			if balance > 0 {
-				group = append(group, item)
-			}
 			balance++
 		case TokSepRpar:
 			balance--
 			if balance == 0 {
-				return group
-			} else if balance > 0 {
-				group = append(group, item)
+				return group[:len(group)-1]
 			}
+		default:
 		}
 	}
 	return group
@@ -128,7 +125,7 @@ func (p *parser) run() error {
 }
 
 func (p *parser) parse() error {
-	res, err := newBranch(p.sigma, p.tokens)
+	res, err := newBranch(p.sigma, p.tokens, 0)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,8 @@
 package sigma
 
-import "context"
+import (
+	"context"
+)
 
 var eof = rune(0)
 
