@@ -1,6 +1,7 @@
 package sigma
 
 import (
+	"encoding/json"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -30,20 +31,20 @@ detection:
 
 var detection1_positive = `
 {
-	"Image":       C:\test\bitsadmin.exe,
-	"CommandLine": +R +H +A asd.cui,
-	"ParentImage": C:\test\wmiprvse.exe,
-	"Image":       C:\test\bitsadmin.exe,
-	"CommandLine": aaa,
-	"ParentImage": C:\test\wmiprvse.exe,
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"CommandLine": "+R +H +A asd.cui",
+	"ParentImage": "C:\\test\\wmiprvse.exe",
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"CommandLine": "aaa",
+	"ParentImage": "C:\\test\\wmiprvse.exe"
 }
 `
 
 var detection1_negative = `
 {
-	"Image":       "C:\test\bitsadmin.exe",
+	"Image":       "C:\\test\\bitsadmin.exe",
 	"CommandLine": "+R +H +S +A lll.cui",
-	"ParentImage": "C:\test\mshta.exe"
+	"ParentImage": "C:\\test\\mshta.exe"
 }
 `
 var detection2 = `
@@ -114,6 +115,13 @@ func TestParse(t *testing.T) {
 			default:
 				t.Fatalf("rule parser case %d failed to parse lexical tokens, %s", i+1, err)
 			}
+		}
+		var pos, neg DynamicMap
+		if err := json.Unmarshal([]byte(c.Pos), &pos); err != nil {
+			t.Fatalf("rule parser case %d positive case json unmarshal error %s", i+1, err)
+		}
+		if err := json.Unmarshal([]byte(c.Neg), &neg); err != nil {
+			t.Fatalf("rule parser case %d positive case json unmarshal error %s", i+1, err)
 		}
 	}
 }
