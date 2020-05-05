@@ -122,6 +122,52 @@ var detection3_negative = `
 }
 `
 
+var detection4 = `
+detection:
+  condition: "all of selection* and not selection3"
+  selection1:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bitsadmin.exe'
+    - '*\mshta.exe'
+  selection2:
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+  selection3:
+    CommandLine: "+R +H +S +A *.cui"
+`
+
+var detection5 = `
+detection:
+  condition: "1 of selection* and not selection3"
+  selection1:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bitsadmin.exe'
+    - '*\mshta.exe'
+  selection2:
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+  selection3:
+    CommandLine: "+R +H +S +A *.cui"
+`
+
 type parseTestCase struct {
 	Rule     string
 	Pos, Neg []string
@@ -132,6 +178,12 @@ var parseTestCases = []parseTestCase{
 	{Rule: detection2, Pos: []string{detection1_positive}, Neg: []string{detection1_negative}},
 	{
 		Rule: detection3,
+		Pos:  []string{detection3_positive1, detection3_positive2},
+		Neg:  []string{detection3_negative},
+	},
+	//{Rule: detection4, Pos: []string{detection1_positive}, Neg: []string{detection1_negative}},
+	{
+		Rule: detection5,
 		Pos:  []string{detection3_positive1, detection3_positive2},
 		Neg:  []string{detection3_negative},
 	},

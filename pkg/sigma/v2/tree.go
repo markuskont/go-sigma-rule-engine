@@ -83,26 +83,26 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 			}
 			and = append(and, newNodeNotIfNegated(b, negated))
 			negated = false
+		case TokIdentifierAll:
+			return nil, ErrWip{}
 		case TokIdentifierWithWildcard:
 			switch wildcard {
 			case TokStAll:
 				// build logical conjunction
-				vals, err := extractWildcardIdents(d, item.Val)
+				rules, err := extractAndBuildBranches(d, item.Val)
 				if err != nil {
 					return nil, err
 				}
-				rules := make(NodeSimpleAnd, len(vals))
-				for i, v := range vals {
-					b, err := newRuleFromIdent(v, identSelection)
-					if err != nil {
-						return nil, err
-					}
-					rules[i] = b
-				}
-				and = append(and, newNodeNotIfNegated(rules, negated))
+				and = append(and, newNodeNotIfNegated(NodeSimpleAnd(rules), negated))
 				negated = false
 			case TokStOne:
 				// build logical disjunction
+				rules, err := extractAndBuildBranches(d, item.Val)
+				if err != nil {
+					return nil, err
+				}
+				and = append(and, newNodeNotIfNegated(NodeSimpleOr(rules), negated))
+				negated = false
 			default:
 				// invalid case, did not see 1of/allof statement before wildcard ident
 				return nil, fmt.Errorf("Invalid wildcard ident, missing 1 of/ all of prefix")
@@ -147,6 +147,22 @@ func extractGroup(rx <-chan Item) []Item {
 		}
 	}
 	return group
+}
+
+func extractAndBuildBranches(d Detection, g string) ([]Branch, error) {
+	vals, err := extractWildcardIdents(d, g)
+	if err != nil {
+		return nil, err
+	}
+	rules := make(NodeSimpleAnd, len(vals))
+	for i, v := range vals {
+		b, err := newRuleFromIdent(v, identSelection)
+		if err != nil {
+			return nil, err
+		}
+		rules[i] = b
+	}
+	return rules, nil
 }
 
 func extractWildcardIdents(d Detection, g string) ([]interface{}, error) {
