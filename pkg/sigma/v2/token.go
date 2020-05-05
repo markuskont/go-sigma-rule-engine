@@ -1,5 +1,7 @@
 package sigma
 
+import "context"
+
 var eof = rune(0)
 
 // Item is lexical token along with respective plaintext value
@@ -10,6 +12,17 @@ type Item struct {
 }
 
 func (i Item) String() string { return i.Val }
+
+func genItems(t []Item) <-chan Item {
+	tx := make(chan Item, 0)
+	go func(ctx context.Context) {
+		defer close(tx)
+		for _, item := range t {
+			tx <- item
+		}
+	}(context.TODO())
+	return tx
+}
 
 // Token is a lexical token extracted from condition field
 type Token int
