@@ -7,8 +7,6 @@ import (
 	"unicode/utf8"
 )
 
-func (i Item) String() string { return i.Val }
-
 type lexer struct {
 	input    string    // we'll store the string being parsed
 	start    int       // the position we started scanning

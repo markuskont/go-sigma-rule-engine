@@ -9,6 +9,8 @@ type Item struct {
 	Val string
 }
 
+func (i Item) String() string { return i.Val }
+
 // Token is a lexical token extracted from condition field
 type Token int
 
