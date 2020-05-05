@@ -3,30 +3,10 @@ package sigma
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v2"
 )
-
-func getField(key string, data map[string]interface{}) (interface{}, bool) {
-	if data == nil {
-		return nil, false
-	}
-	bits := strings.SplitN(key, ".", 2)
-	if len(bits) == 0 {
-		return nil, false
-	}
-	if val, ok := data[bits[0]]; ok {
-		switch res := val.(type) {
-		case map[string]interface{}:
-			return getField(bits[1], res)
-		default:
-			return val, ok
-		}
-	}
-	return nil, false
-}
 
 type identExampleType int
 
@@ -77,7 +57,7 @@ func (i identTestCase) sigma() (*identPosNegCases, error) {
 			return nil, fmt.Errorf("missing positive test cases")
 		}
 		for _, c := range i.Pos {
-			var obj simpleDynamicMapEventExample1
+			var obj DynamicMap
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
 				return nil, err
 			}
@@ -87,7 +67,7 @@ func (i identTestCase) sigma() (*identPosNegCases, error) {
 			return nil, fmt.Errorf("missing negative test cases")
 		}
 		for _, c := range i.Neg {
-			var obj simpleDynamicMapEventExample1
+			var obj DynamicMap
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
 				return nil, err
 			}
@@ -110,18 +90,6 @@ func (s simpleKeywordAuditEventExample1) Keywords() ([]string, bool) {
 // Select implements Selector
 func (s simpleKeywordAuditEventExample1) Select(_ string) (interface{}, bool) {
 	return nil, false
-}
-
-type simpleDynamicMapEventExample1 map[string]interface{}
-
-// Keywords implements Keyworder
-func (s simpleDynamicMapEventExample1) Keywords() ([]string, bool) {
-	return nil, false
-}
-
-// Select implements Selector
-func (s simpleDynamicMapEventExample1) Select(key string) (interface{}, bool) {
-	return getField(key, s)
 }
 
 var identSelection1 = `
