@@ -34,8 +34,3 @@ type Branch interface {
 	// Must be type switched externally
 	// Self() interface{}
 }
-
-// Tree represents the full AST for a sigma rule
-type Tree struct {
-	Root Branch
-}
