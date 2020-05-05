@@ -1,6 +1,10 @@
 package sigma
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ryanuber/go-glob"
+)
 
 // Tree represents the full AST for a sigma rule
 type Tree struct {
@@ -45,6 +49,7 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 	and := make(NodeSimpleAnd, 0)
 	or := make(NodeSimpleOr, 0)
 	var negated bool
+	var wildcard Token
 
 	for item := range rx {
 		switch item.T {
@@ -78,12 +83,35 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 			}
 			and = append(and, newNodeNotIfNegated(b, negated))
 			negated = false
-		case TokIdentifierWithWildcard, TokIdentifierAll:
-			// TODO
-			return nil, ErrWip{}
-		case TokStAll, TokStOne:
-			// TODO
-			return nil, ErrWip{}
+		case TokIdentifierWithWildcard:
+			switch wildcard {
+			case TokStAll:
+				// build logical conjunction
+				vals, err := extractWildcardIdents(d, item.Val)
+				if err != nil {
+					return nil, err
+				}
+				rules := make(NodeSimpleAnd, len(vals))
+				for i, v := range vals {
+					b, err := newRuleFromIdent(v, identSelection)
+					if err != nil {
+						return nil, err
+					}
+					rules[i] = b
+				}
+				and = append(and, newNodeNotIfNegated(rules, negated))
+				negated = false
+			case TokStOne:
+				// build logical disjunction
+			default:
+				// invalid case, did not see 1of/allof statement before wildcard ident
+				return nil, fmt.Errorf("Invalid wildcard ident, missing 1 of/ all of prefix")
+			}
+			wildcard = TokBegin
+		case TokStAll:
+			wildcard = TokStAll
+		case TokStOne:
+			wildcard = TokStOne
 		case TokSepRpar:
 			return nil, fmt.Errorf("parser error, should not see %s",
 				TokSepRpar)
@@ -119,4 +147,17 @@ func extractGroup(rx <-chan Item) []Item {
 		}
 	}
 	return group
+}
+
+func extractWildcardIdents(d Detection, g string) ([]interface{}, error) {
+	rules := make([]interface{}, 0)
+	for k, v := range d {
+		if glob.Glob(g, k) {
+			rules = append(rules, v)
+		}
+	}
+	if len(rules) == 0 {
+		return nil, fmt.Errorf("ident %s did not match any values", g)
+	}
+	return rules, nil
 }
