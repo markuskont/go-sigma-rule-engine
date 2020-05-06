@@ -124,7 +124,7 @@ var detection3_negative = `
 
 var detection4 = `
 detection:
-  condition: "all of selection* and not selection3"
+  condition: "all of selection* and not filter"
   selection1:
     Image:
     - '*\schtasks.exe'
@@ -141,13 +141,13 @@ detection:
     - '*\cscript.exe'
     - '*\wscript.exe'
     - '*\wmiprvse.exe'
-  selection3:
+  filter:
     CommandLine: "+R +H +S +A *.cui"
 `
 
 var detection5 = `
 detection:
-  condition: "1 of selection* and not selection3"
+  condition: "1 of selection* and not filter"
   selection1:
     Image:
     - '*\schtasks.exe'
@@ -164,7 +164,7 @@ detection:
     - '*\cscript.exe'
     - '*\wscript.exe'
     - '*\wmiprvse.exe'
-  selection3:
+  filter:
     CommandLine: "+R +H +S +A *.cui"
 `
 
@@ -181,12 +181,8 @@ var parseTestCases = []parseTestCase{
 		Pos:  []string{detection3_positive1, detection3_positive2},
 		Neg:  []string{detection3_negative},
 	},
-	//{Rule: detection4, Pos: []string{detection1_positive}, Neg: []string{detection1_negative}},
-	{
-		Rule: detection5,
-		Pos:  []string{detection3_positive1, detection3_positive2},
-		Neg:  []string{detection3_negative},
-	},
+	{Rule: detection4, Pos: []string{detection1_positive}, Neg: []string{detection1_negative}},
+	{Rule: detection5, Pos: []string{detection3_positive1, detection3_positive2}, Neg: []string{detection3_negative}},
 }
 
 func TestTokenCollect(t *testing.T) {
