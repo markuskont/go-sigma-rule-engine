@@ -93,6 +93,16 @@ type Logsource struct {
 // contains condition expression and identifier fields for building AST
 type Detection map[string]interface{}
 
+func (d Detection) Extract() map[string]interface{} {
+	tx := make(map[string]interface{})
+	for k, v := range d {
+		if k != "condition" {
+			tx[k] = v
+		}
+	}
+	return tx
+}
+
 // Tags contains a metadata list for tying positive matches together with other threat intel sources
 // For example, for attaching MITRE ATT&CK tactics or techniques to the event
 type Tags []string

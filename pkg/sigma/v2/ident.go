@@ -26,9 +26,9 @@ const (
 	identKeyword
 )
 
-func checkIdentType(item Item, data interface{}) identType {
+func checkIdentType(name string, data interface{}) identType {
 	t := reflectIdentKind(data)
-	if strings.HasPrefix(item.Val, "keyword") {
+	if strings.HasPrefix(name, "keyword") {
 		if data == nil {
 			return identKeyword
 		}

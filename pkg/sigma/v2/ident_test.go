@@ -287,7 +287,7 @@ func TestParseIdent(t *testing.T) {
 					t.Fatalf("ident case %d missing ident %s or unable to extract", i+1, item.Val)
 				}
 				items++
-				if k := checkIdentType(item, val); k != c.IdentTypes[j] {
+				if k := checkIdentType(item.Val, val); k != c.IdentTypes[j] {
 					t.Fatalf("ident case %d ident %d kind mismatch expected %s got %s",
 						i+1, j+1, c.IdentTypes[j], k)
 				}
