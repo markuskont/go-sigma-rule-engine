@@ -168,6 +168,46 @@ detection:
     CommandLine: "+R +H +S +A *.cui"
 `
 
+var detection6 = `
+detection:
+  condition: "all of them"
+  selection_images:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bitsadmin.exe'
+    - '*\mshta.exe'
+  selection_parent_images:
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+`
+
+var detection6_positive = `
+{
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"CommandLine": "+R +H +A asd.cui",
+	"ParentImage": "C:\\test\\wmiprvse.exe",
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"CommandLine": "aaa",
+	"ParentImage": "C:\\test\\wmiprvse.exe"
+}
+`
+
+var detection6_negative = `
+{
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"CommandLine": "+R +H +S +A lll.cui",
+	"ParentImage": "C:\\test\\mshta\\lll.exe"
+}
+`
+
 type parseTestCase struct {
 	Rule     string
 	Pos, Neg []string
@@ -183,6 +223,7 @@ var parseTestCases = []parseTestCase{
 	},
 	{Rule: detection4, Pos: []string{detection1_positive}, Neg: []string{detection1_negative}},
 	{Rule: detection5, Pos: []string{detection3_positive1, detection3_positive2}, Neg: []string{detection3_negative}},
+	{Rule: detection6, Pos: []string{detection6_positive}, Neg: []string{detection6_negative}},
 }
 
 func TestTokenCollect(t *testing.T) {

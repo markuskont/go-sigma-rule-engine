@@ -58,7 +58,7 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 			if !ok {
 				return nil, ErrMissingConditionItem{Key: item.Val}
 			}
-			b, err := newRuleFromIdent(val, checkIdentType(item, val))
+			b, err := newRuleFromIdent(val, checkIdentType(item.Val, val))
 			if err != nil {
 				return nil, err
 			}
@@ -84,7 +84,19 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 			and = append(and, newNodeNotIfNegated(b, negated))
 			negated = false
 		case TokIdentifierAll:
-			return nil, ErrWip{}
+			switch wildcard {
+			case TokStAll:
+				rules, err := extractAllToRules(d)
+				if err != nil {
+					return nil, err
+				}
+				and = append(and, newNodeNotIfNegated(NodeSimpleAnd(rules), negated))
+				negated = false
+			case TokStOne:
+				panic("WIP")
+			default:
+				return nil, fmt.Errorf("Invalid wildcard ident, missing 1 of/ all of prefix")
+			}
 		case TokIdentifierWithWildcard:
 			switch wildcard {
 			case TokStAll:
@@ -174,6 +186,18 @@ func extractWildcardIdents(d Detection, g string) ([]interface{}, error) {
 	}
 	if len(rules) == 0 {
 		return nil, fmt.Errorf("ident %s did not match any values", g)
+	}
+	return rules, nil
+}
+
+func extractAllToRules(d Detection) ([]Branch, error) {
+	rules := make([]Branch, 0)
+	for k, v := range d.Extract() {
+		b, err := newRuleFromIdent(v, checkIdentType(k, v))
+		if err != nil {
+			return nil, err
+		}
+		rules = append(rules, b)
 	}
 	return rules, nil
 }
