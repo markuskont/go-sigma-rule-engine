@@ -93,7 +93,12 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 				and = append(and, newNodeNotIfNegated(NodeSimpleAnd(rules), negated))
 				negated = false
 			case TokStOne:
-				panic("WIP")
+				rules, err := extractAllToRules(d)
+				if err != nil {
+					return nil, err
+				}
+				and = append(and, newNodeNotIfNegated(NodeSimpleOr(rules), negated))
+				negated = false
 			default:
 				return nil, fmt.Errorf("Invalid wildcard ident, missing 1 of/ all of prefix")
 			}

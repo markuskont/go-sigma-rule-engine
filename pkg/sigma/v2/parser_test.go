@@ -40,11 +40,17 @@ var detection1_positive = `
 }
 `
 
-var detection1_negative = `
+var detection1_negative1 = `
 {
 	"Image":       "C:\\test\\bitsadmin.exe",
 	"CommandLine": "+R +H +S +A lll.cui",
 	"ParentImage": "C:\\test\\mshta.exe"
+}
+`
+var detection1_negative2 = `
+{
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"CommandLine": "+R +H +S +A lll.cui"
 }
 `
 var detection2 = `
@@ -208,22 +214,82 @@ var detection6_negative = `
 }
 `
 
+var detection7 = `
+detection:
+  condition: "1 of them"
+  selection_images:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bitsadmin.exe'
+    - '*\mshta.exe'
+  selection_parent_images:
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+`
+
+var detection7_negative1 = `
+{
+	"Image":       "C:\\test\\bytesadmin.exe",
+	"CommandLine": "+R +H +S +A lll.cui",
+	"ParentImage": "E:\\go\\bin\\gofmt"
+}
+`
+var detection7_negative2 = `
+{
+	"Image":       "C:\\test\\bytesadmin.exe",
+	"CommandLine": "+R +H +S +A lll.cui"
+}
+`
+
 type parseTestCase struct {
 	Rule     string
 	Pos, Neg []string
 }
 
 var parseTestCases = []parseTestCase{
-	{Rule: detection1, Pos: []string{detection1_positive}, Neg: []string{detection1_negative}},
-	{Rule: detection2, Pos: []string{detection1_positive}, Neg: []string{detection1_negative}},
+	{
+		Rule: detection1,
+		Pos:  []string{detection1_positive},
+		Neg:  []string{detection1_negative1, detection1_negative2},
+	},
+	{
+		Rule: detection2,
+		Pos:  []string{detection1_positive},
+		Neg:  []string{detection1_negative1, detection1_negative2},
+	},
 	{
 		Rule: detection3,
 		Pos:  []string{detection3_positive1, detection3_positive2},
 		Neg:  []string{detection3_negative},
 	},
-	{Rule: detection4, Pos: []string{detection1_positive}, Neg: []string{detection1_negative}},
-	{Rule: detection5, Pos: []string{detection3_positive1, detection3_positive2}, Neg: []string{detection3_negative}},
-	{Rule: detection6, Pos: []string{detection6_positive}, Neg: []string{detection6_negative}},
+	{
+		Rule: detection4,
+		Pos:  []string{detection1_positive},
+		Neg:  []string{detection1_negative1, detection1_negative2},
+	},
+	{
+		Rule: detection5,
+		Pos:  []string{detection3_positive1, detection3_positive2},
+		Neg:  []string{detection3_negative},
+	},
+	{
+		Rule: detection6,
+		Pos:  []string{detection6_positive},
+		Neg:  []string{detection6_negative},
+	},
+	{
+		Rule: detection7,
+		Pos:  []string{detection3_positive1, detection3_positive2},
+		Neg:  []string{detection7_negative1, detection7_negative2},
+	},
 }
 
 func TestTokenCollect(t *testing.T) {
