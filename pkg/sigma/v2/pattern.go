@@ -186,3 +186,13 @@ func (g GlobPattern) StringMatch(msg string) bool {
 		return g.Token
 	}(), msg)
 }
+
+// SimplePattern is a reference type to illustrate StringMatcher
+type SimplePattern struct {
+	Token string
+}
+
+// StringMatch implements StringMatcher
+func (s SimplePattern) StringMatch(msg string) bool {
+	return strings.Contains(msg, s.Token)
+}
