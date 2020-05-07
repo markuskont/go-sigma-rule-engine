@@ -34,3 +34,8 @@ func (s DynamicMap) Keywords() ([]string, bool) {
 func (s DynamicMap) Select(key string) (interface{}, bool) {
 	return GetField(key, s)
 }
+
+// Stats holds various rule statistics
+type Stats struct {
+	TypeMismatchCount uint64
+}

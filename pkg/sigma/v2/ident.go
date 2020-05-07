@@ -61,6 +61,7 @@ func newRuleFromIdent(rule interface{}, kind identType) (Branch, error) {
 // Keyword is a container for patterns joined by logical disjunction
 type Keyword struct {
 	S StringMatcher
+	Stats
 }
 
 // Match implements Matcher
@@ -124,8 +125,8 @@ type SelectionStringItem struct {
 }
 
 type Selection struct {
-	S                 []SelectionStringItem
-	TypeMismatchCount uint64
+	S []SelectionStringItem
+	Stats
 }
 
 func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
@@ -236,7 +237,7 @@ func (s Selection) Match(msg Event) bool {
 }
 
 func (s *Selection) incrementMismatchCount() *Selection {
-	s.TypeMismatchCount++
+	s.Stats.TypeMismatchCount++
 	return s
 }
 
