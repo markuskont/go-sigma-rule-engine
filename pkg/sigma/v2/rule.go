@@ -107,6 +107,16 @@ func (d Detection) Extract() map[string]interface{} {
 // For example, for attaching MITRE ATT&CK tactics or techniques to the event
 type Tags []string
 
+// Result is an object returned on positive sigma match
+type Result struct {
+	Tags
+
+	ID, Title string
+}
+
+// Results should be returned when single event matches multiple rules
+type Results []Result
+
 // NewRuleFileList finds all yaml files from defined root directories
 // Subtree is scanned recursively
 // No file validation, other than suffix matching
