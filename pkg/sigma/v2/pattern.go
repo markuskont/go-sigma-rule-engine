@@ -121,12 +121,10 @@ type ContentPattern struct {
 
 // StringMatch implements StringMatcher
 func (c ContentPattern) StringMatch(msg string) bool {
-	return strings.Contains(msg, func() string {
-		if c.Lowercase {
-			return strings.ToLower(c.Token)
-		}
-		return c.Token
-	}())
+	return strings.Contains(
+		lowerCaseIfNeeded(msg, c.Lowercase),
+		lowerCaseIfNeeded(c.Token, c.Lowercase),
+	)
 }
 
 // PrefixPattern is a token for literal content matching
@@ -137,12 +135,10 @@ type PrefixPattern struct {
 
 // StringMatch implements StringMatcher
 func (c PrefixPattern) StringMatch(msg string) bool {
-	return strings.HasPrefix(msg, func() string {
-		if c.Lowercase {
-			return strings.ToLower(c.Token)
-		}
-		return c.Token
-	}())
+	return strings.HasPrefix(
+		lowerCaseIfNeeded(c.Token, c.Lowercase),
+		lowerCaseIfNeeded(msg, c.Lowercase),
+	)
 }
 
 // SuffixPattern is a token for literal content matching
@@ -153,12 +149,10 @@ type SuffixPattern struct {
 
 // StringMatch implements StringMatcher
 func (c SuffixPattern) StringMatch(msg string) bool {
-	return strings.HasSuffix(msg, func() string {
-		if c.Lowercase {
-			return strings.ToLower(c.Token)
-		}
-		return c.Token
-	}())
+	return strings.HasSuffix(
+		lowerCaseIfNeeded(msg, c.Lowercase),
+		lowerCaseIfNeeded(c.Token, c.Lowercase),
+	)
 }
 
 // RegexPattern is for matching messages with regular expresions
@@ -179,12 +173,10 @@ type GlobPattern struct {
 
 // StringMatch implements StringMatcher
 func (g GlobPattern) StringMatch(msg string) bool {
-	return glob.Glob(func() string {
-		if g.Lowercase {
-			return strings.ToLower(g.Token)
-		}
-		return g.Token
-	}(), msg)
+	return glob.Glob(
+		lowerCaseIfNeeded(g.Token, g.Lowercase),
+		lowerCaseIfNeeded(msg, g.Lowercase),
+	)
 }
 
 // SimplePattern is a reference type to illustrate StringMatcher
@@ -195,4 +187,11 @@ type SimplePattern struct {
 // StringMatch implements StringMatcher
 func (s SimplePattern) StringMatch(msg string) bool {
 	return strings.Contains(msg, s.Token)
+}
+
+func lowerCaseIfNeeded(str string, lower bool) string {
+	if lower {
+		return strings.ToLower(str)
+	}
+	return str
 }
