@@ -108,8 +108,7 @@ func (s StringMatchers) Optimize() StringMatchers {
 			re = append(re, pat)
 		}
 	}
-	tx := append(literals, globs...)
-	tx = append(tx, re...)
+	tx := append(literals, append(globs, re...))
 	return tx
 }
 
