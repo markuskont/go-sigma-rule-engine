@@ -96,20 +96,18 @@ func newConjunction(s NodeSimpleAnd) Branch {
 	if l := len(s); l == 1 || l == 2 {
 		return s.Reduce()
 	}
-	a := &NodeAnd{
+	return &NodeAnd{
 		L: s[0],
 		R: newConjunction(s[1:]),
 	}
-	return a
 }
 
 func newDisjunction(s NodeSimpleOr) Branch {
 	if l := len(s); l == 1 || l == 2 {
 		return s.Reduce()
 	}
-	a := &NodeOr{
+	return &NodeOr{
 		L: s[0],
 		R: newDisjunction(s[1:]),
 	}
-	return a
 }
