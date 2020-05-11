@@ -90,3 +90,26 @@ func newNodeNotIfNegated(b Branch, negated bool) Branch {
 	}
 	return b
 }
+
+// TODO - use these functions to create binary trees instead of dunamic slices
+func newConjunction(s NodeSimpleAnd) Branch {
+	if l := len(s); l == 1 || l == 2 {
+		return s.Reduce()
+	}
+	a := &NodeAnd{
+		L: s[0],
+		R: newConjunction(s[1:]),
+	}
+	return a
+}
+
+func newDisjunction(s NodeSimpleOr) Branch {
+	if l := len(s); l == 1 || l == 2 {
+		return s.Reduce()
+	}
+	a := &NodeOr{
+		L: s[0],
+		R: newDisjunction(s[1:]),
+	}
+	return a
+}
