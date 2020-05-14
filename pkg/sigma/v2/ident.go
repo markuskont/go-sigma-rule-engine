@@ -111,7 +111,7 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 }
 
 func newStringKeyword(mod TextPatternModifier, lower bool, patterns ...string) (*Keyword, error) {
-	matcher, err := NewStringMatcher(mod, lower, patterns...)
+	matcher, err := NewStringMatcher(mod, lower, false, patterns...)
 	if err != nil {
 		return nil, err
 	}
@@ -212,11 +212,12 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 	sel := &Selection{S: make([]SelectionStringItem, 0)}
 	for key, pattern := range expr {
 		var mod TextPatternModifier
+		var all bool
 		if strings.Contains(key, "|") {
 			bits := strings.Split(key, "|")
-			if length := len(bits); length != 2 {
+			if length := len(bits); length < 2 || length > 3 {
 				return nil, fmt.Errorf(
-					"selection key %s invalid. Specifier should result in 2 sections", key)
+					"selection key %s invalid. Specifier should result in 2 or 3 sections", key)
 			}
 			if !isValidSpecifier(bits[1]) {
 				return nil, fmt.Errorf("selection key %s specifier %s invalid",
@@ -227,11 +228,15 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 				mod = TextPatternPrefix
 			case "endswith":
 				mod = TextPatternSuffix
+			case "contains":
+				if len(bits) == 3 && bits[2] == "all" {
+					all = true
+				}
 			}
 		}
 		switch pat := pattern.(type) {
 		case string:
-			m, err := NewStringMatcher(mod, false, pat)
+			m, err := NewStringMatcher(mod, false, all, pat)
 			if err != nil {
 				return nil, err
 			}
@@ -263,7 +268,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 			}
 			switch k {
 			case reflect.String:
-				m, err := NewStringMatcher(mod, false, castIfaceToString(pat)...)
+				m, err := NewStringMatcher(mod, false, all, castIfaceToString(pat)...)
 				if err != nil {
 					return nil, err
 				}
