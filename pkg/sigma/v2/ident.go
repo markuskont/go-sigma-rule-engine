@@ -185,12 +185,15 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 				}
 			}
 		default:
-			return nil, ErrInvalidKind{
-				Kind:     reflect.TypeOf(pattern).Kind(),
-				T:        identSelection,
-				Critical: true,
-				Msg:      "Unsupported selection value",
+			if t := reflect.TypeOf(pattern); t != nil {
+				return nil, ErrInvalidKind{
+					Kind:     t.Kind(),
+					T:        identSelection,
+					Critical: true,
+					Msg:      "Unsupported selection value",
+				}
 			}
+			return nil, fmt.Errorf("unable to reflect on pattern kind")
 		}
 	}
 	return sel, nil

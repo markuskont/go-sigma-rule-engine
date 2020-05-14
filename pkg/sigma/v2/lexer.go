@@ -90,7 +90,6 @@ type stateFn func(*lexer) stateFn
 // lexCondition scans what is expected to be text.
 func lexCondition(l *lexer) stateFn {
 	for {
-		// TODO - run these cheks only if we have accumulated a word, not on every char
 		if strings.HasPrefix(l.todo(), TokStOne.Literal()) {
 			return lexOneOf
 		}
