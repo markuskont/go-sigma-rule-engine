@@ -134,6 +134,37 @@ type Selection struct {
 	Stats
 }
 
+// Match implements Matcher
+// TODO - numeric and boolean pattern match
+func (s Selection) Match(msg Event) bool {
+	for _, v := range s.S {
+		val, ok := msg.Select(v.Key)
+		if !ok {
+			return false
+		}
+		switch vt := val.(type) {
+		case string:
+			if !v.Pattern.StringMatch(vt) {
+				return false
+			}
+		case float64:
+			// TODO - tmp hack that also loses floating point accuracy
+			if !v.Pattern.StringMatch(strconv.Itoa(int(vt))) {
+				return false
+			}
+		default:
+			s.incrementMismatchCount()
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Selection) incrementMismatchCount() *Selection {
+	s.Stats.TypeMismatchCount++
+	return s
+}
+
 func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 	sel := &Selection{S: make([]SelectionStringItem, 0)}
 	for key, pattern := range expr {
@@ -229,37 +260,6 @@ func NewSelection(expr interface{}) (*Selection, error) {
 			Msg:      "Unsupported selection root container",
 		}
 	}
-}
-
-// Match implements Matcher
-// TODO - numeric and boolean pattern match
-func (s Selection) Match(msg Event) bool {
-	for _, v := range s.S {
-		val, ok := msg.Select(v.Key)
-		if !ok {
-			return false
-		}
-		switch vt := val.(type) {
-		case string:
-			if !v.Pattern.StringMatch(vt) {
-				return false
-			}
-		case float64:
-			// TODO - tmp hack that also loses floating point accuracy
-			if !v.Pattern.StringMatch(strconv.Itoa(int(vt))) {
-				return false
-			}
-		default:
-			s.incrementMismatchCount()
-			return false
-		}
-	}
-	return true
-}
-
-func (s *Selection) incrementMismatchCount() *Selection {
-	s.Stats.TypeMismatchCount++
-	return s
 }
 
 func isSameKind(data []interface{}) (reflect.Kind, bool) {
