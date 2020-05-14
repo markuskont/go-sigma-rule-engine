@@ -365,7 +365,7 @@ func TestParseIdent(t *testing.T) {
 					}
 					keywords = append(keywords, kw)
 				case identSelection:
-					sel, err := NewSelection(val)
+					sel, err := NewSelectionBranch(val)
 					if err != nil {
 						t.Fatalf("ident case %d token %d failed to parse as selection: %s",
 							i+1, j+1, err)
