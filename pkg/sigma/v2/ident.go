@@ -223,9 +223,9 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 					key, bits[1])
 			}
 			switch bits[1] {
-			case TextPatternPrefix.String():
+			case "startswith":
 				mod = TextPatternPrefix
-			case TextPatternSuffix.String():
+			case "endswith":
 				mod = TextPatternSuffix
 			}
 		}

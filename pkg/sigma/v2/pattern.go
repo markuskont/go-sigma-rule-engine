@@ -10,17 +10,6 @@ import (
 
 type TextPatternModifier int
 
-func (t TextPatternModifier) String() string {
-	switch t {
-	case TextPatternPrefix:
-		return "startswith"
-	case TextPatternSuffix:
-		return "endwith"
-	default:
-		return "contains"
-	}
-}
-
 const (
 	TextPatternContains TextPatternModifier = iota
 	TextPatternPrefix
@@ -28,9 +17,9 @@ const (
 )
 
 func isValidSpecifier(in string) bool {
-	return in == TextPatternContains.String() ||
-		in == TextPatternPrefix.String() ||
-		in == TextPatternSuffix.String()
+	return in == "contains" ||
+		in == "endswith" ||
+		in == "startswith"
 }
 
 // NumMatcher is an atomic pattern for numeric item or list of items
