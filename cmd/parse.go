@@ -55,36 +55,29 @@ func entrypoint(cmd *cobra.Command, args []string) {
 	logrus.Infof("Got %d rules from yaml", len(rules))
 	logrus.Info("Parsing rules into AST")
 	c := &counts{}
+loop:
 	for _, raw := range rules {
+		logrus.Trace(raw.Path)
+		if raw.Multipart {
+			c.unsupported++
+			continue loop
+		}
 		_, err := sigma.NewTree(&raw)
 		if err != nil {
-			logrus.Errorf("%s: %s", raw.Path, err)
-			c.fail++
+			switch err.(type) {
+			case sigma.ErrUnsupportedToken:
+				c.unsupported++
+				logrus.Warnf("%s: %s", err, raw.Path)
+			default:
+				c.fail++
+				logrus.Errorf("%s", err)
+			}
 		} else {
 			logrus.Infof("%s: ok", raw.Path)
 			c.ok++
 		}
 	}
 	logrus.Infof("OK: %d; FAIL: %d; UNSUPPORTED: %d", c.ok, c.fail, c.unsupported)
-	/*
-		for _, rule := range rules {
-			if val, ok := rule.Detection["condition"].(string); ok {
-				logrus.Info(val)
-			} else if rule.Multipart {
-				logrus.Warnf("%s is multipart", rule.Path)
-			} else {
-				logrus.Errorf("%s missing condition or not string", rule.Path)
-			}
-		}
-	*/
-	/*
-		contextLogger := log.WithFields(log.Fields{
-			"ok":          r.Total,
-			"errors":      len(r.Broken),
-			"unsupported": len(r.Unsupported),
-		})
-		contextLogger.Info("Done")
-	*/
 }
 
 func init() {
@@ -93,4 +86,6 @@ func init() {
 	parseCmd.PersistentFlags().StringSlice("sigma-rules-dir", []string{},
 		"Directories that contains sigma rules.")
 	viper.BindPFlag("sigma.rules.dir", parseCmd.PersistentFlags().Lookup("sigma-rules-dir"))
+
+	logrus.SetLevel(logrus.TraceLevel)
 }
