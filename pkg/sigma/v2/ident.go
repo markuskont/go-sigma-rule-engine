@@ -120,7 +120,7 @@ func newStringKeyword(mod TextPatternModifier, lower bool, patterns ...string) (
 
 type SelectionNumItem struct {
 	Key     string
-	Pattern interface{}
+	Pattern NumMatcher
 }
 
 type SelectionStringItem struct {
@@ -137,6 +137,49 @@ type Selection struct {
 // Match implements Matcher
 // TODO - numeric and boolean pattern match
 func (s Selection) Match(msg Event) bool {
+	for _, v := range s.N {
+		val, ok := msg.Select(v.Key)
+		if !ok {
+			return false
+		}
+		switch vt := val.(type) {
+		case float64:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case int:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(vt) {
+				return false
+			}
+		case int64:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case int32:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case uint:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case uint32:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case uint64:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		}
+	}
 	for _, v := range s.S {
 		val, ok := msg.Select(v.Key)
 		if !ok {
@@ -193,6 +236,20 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 				return nil, err
 			}
 			sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
+		case int:
+			m, err := NewNumMatcher(pat)
+			if err != nil {
+				return nil, err
+			}
+			sel.N = func() []SelectionNumItem {
+				item := SelectionNumItem{
+					Key: key, Pattern: m,
+				}
+				if sel.N == nil {
+					sel.N = []SelectionNumItem{item}
+				}
+				return append(sel.N, item)
+			}()
 		case []interface{}:
 			// TODO - move this part to separate function and reuse in NewKeyword
 			k, ok := isSameKind(pat)
@@ -265,7 +322,11 @@ func NewSelection(expr interface{}) (*Selection, error) {
 func isSameKind(data []interface{}) (reflect.Kind, bool) {
 	var current, last reflect.Kind
 	for i, d := range data {
-		current = reflect.TypeOf(d).Kind()
+		cType := reflect.TypeOf(d)
+		if cType == nil {
+			return reflect.Invalid, false
+		}
+		current = cType.Kind()
 		if i > 0 {
 			if current != last {
 				return current, false
