@@ -40,9 +40,20 @@ func checkIdentType(name string, data interface{}) identType {
 }
 
 func reflectIdentKind(data interface{}) identType {
-	switch data.(type) {
+	switch v := data.(type) {
 	case map[string]interface{}, map[interface{}]interface{}:
 		return identSelection
+	case []interface{}:
+		k, ok := isSameKind(v)
+		if !ok {
+			return identErr
+		}
+		switch k {
+		case reflect.Map:
+			return identSelection
+		default:
+			return identKeyword
+		}
 	default:
 		return identKeyword
 	}
@@ -53,7 +64,7 @@ func newRuleFromIdent(rule interface{}, kind identType) (Branch, error) {
 	case identKeyword:
 		return NewKeyword(rule)
 	case identSelection:
-		return NewSelection(rule)
+		return NewSelectionBranch(rule)
 	}
 	return nil, fmt.Errorf("Unknown rule kind, should be keyword or selection")
 }
@@ -310,8 +321,18 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 	return sel, nil
 }
 
-func NewSelection(expr interface{}) (*Selection, error) {
+func NewSelectionBranch(expr interface{}) (Branch, error) {
 	switch v := expr.(type) {
+	case []interface{}:
+		selections := make([]Branch, 0)
+		for _, item := range v {
+			b, err := NewSelectionBranch(item)
+			if err != nil {
+				return nil, err
+			}
+			selections = append(selections, b)
+		}
+		return NodeSimpleOr(selections).Reduce(), nil
 	case map[interface{}]interface{}:
 		return newSelectionFromMap(cleanUpInterfaceMap(v))
 	default:
