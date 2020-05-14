@@ -94,8 +94,7 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 		}
 		switch v := k; {
 		case v == reflect.String:
-			s, _ := castIfaceToString(val)
-			return newStringKeyword(TextPatternContains, false, s...)
+			return newStringKeyword(TextPatternContains, false, castIfaceToString(val)...)
 		default:
 			return nil, ErrInvalidKind{
 				Kind:     v,
@@ -119,12 +118,18 @@ func newStringKeyword(mod TextPatternModifier, lower bool, patterns ...string) (
 	return &Keyword{S: matcher}, nil
 }
 
+type SelectionNumItem struct {
+	Key     string
+	Pattern interface{}
+}
+
 type SelectionStringItem struct {
 	Key     string
 	Pattern StringMatcher
 }
 
 type Selection struct {
+	N []SelectionNumItem
 	S []SelectionStringItem
 	Stats
 }
@@ -170,12 +175,25 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 			}
 			switch k {
 			case reflect.String:
-				s, _ := castIfaceToString(pat)
-				m, err := NewStringMatcher(mod, false, s...)
+				m, err := NewStringMatcher(mod, false, castIfaceToString(pat)...)
 				if err != nil {
 					return nil, err
 				}
 				sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
+			case reflect.Int:
+				m, err := NewNumMatcher(castIfaceToInt(pat)...)
+				if err != nil {
+					return nil, err
+				}
+				sel.N = func() []SelectionNumItem {
+					item := SelectionNumItem{
+						Key: key, Pattern: m,
+					}
+					if sel.N == nil {
+						sel.N = []SelectionNumItem{item}
+					}
+					return append(sel.N, item)
+				}()
 			default:
 				return nil, ErrInvalidKind{
 					Kind:     k,
@@ -193,7 +211,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 					Msg:      "Unsupported selection value",
 				}
 			}
-			return nil, fmt.Errorf("unable to reflect on pattern kind")
+			return nil, ErrUnableToReflect
 		}
 	}
 	return sel, nil
@@ -258,18 +276,22 @@ func isSameKind(data []interface{}) (reflect.Kind, bool) {
 	return current, true
 }
 
-// castIfaceToString assumes that kind check has already been done
-func castIfaceToString(items []interface{}) ([]string, int) {
+func castIfaceToString(items []interface{}) []string {
 	tx := make([]string, 0)
-	var failed int
 	for _, val := range items {
-		if s, ok := val.(string); ok {
-			tx = append(tx, s)
-		} else {
-			failed++
+		tx = append(tx, fmt.Sprintf("%v", val))
+	}
+	return tx
+}
+
+func castIfaceToInt(items []interface{}) []int {
+	tx := make([]int, 0)
+	for _, val := range items {
+		if n, ok := val.(int); ok {
+			tx = append(tx, n)
 		}
 	}
-	return tx, failed
+	return tx
 }
 
 // Yaml can have non-string keys, so go-yaml unmarshals to map[interface{}]interface{}

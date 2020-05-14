@@ -39,6 +39,36 @@ type NumMatcher interface {
 	NumMatch(int) bool
 }
 
+// NumMatchers holds multiple numeric matchers
+type NumMatchers []NumMatcher
+
+// NumMatch implements NumMatcher
+func (n NumMatchers) NumMatch(val int) bool {
+	for _, v := range n {
+		if v.NumMatch(val) {
+			return true
+		}
+	}
+	return false
+}
+
+func NewNumMatcher(patterns ...int) (NumMatcher, error) {
+	if patterns == nil || len(patterns) == 0 {
+		return nil, fmt.Errorf("no patterns defined for matcher object")
+	}
+	matcher := make(NumMatchers, 0)
+	for _, p := range patterns {
+		matcher = append(matcher, NumPattern{Val: p})
+	}
+
+	return func() NumMatcher {
+		if len(matcher) == 1 {
+			return matcher[0]
+		}
+		return matcher
+	}(), nil
+}
+
 // StringMatcher is an atomic pattern that could implement glob, literal or regex matchers
 type StringMatcher interface {
 	// StringMatch implements StringMatcher
@@ -80,19 +110,6 @@ func NewStringMatcher(
 		}
 		return matcher.Optimize()
 	}(), nil
-}
-
-// NumMatchers holds multiple numeric matchers
-type NumMatchers []NumMatcher
-
-// NumMatch implements NumMatcher
-func (n NumMatchers) NumMatch(val int) bool {
-	for _, v := range n {
-		if v.NumMatch(val) {
-			return true
-		}
-	}
-	return false
 }
 
 // StringMatchers holds multiple atomic matchers
