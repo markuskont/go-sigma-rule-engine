@@ -160,31 +160,6 @@ var identSelection1neg2 = `
 }
 `
 
-var identSelection2 = `
----
-detection:
-  condition: selection
-  selection:
-    winlog.event_data.ScriptBlockText:
-    - ' -FromBase64String'
-    - '::FromBase64String'
-    task: 
-    - 'Remote Command'
-`
-
-var identSelection3 = `
----
-detection:
-  condition: selection
-  selection:
-    winlog.event_data.ScriptBlockText:
-    - ' -FromBase64String'
-    - '::FromBase64String'
-    task: 
-    - 'Remote Command'
-    channel|endswith: "PowerShell/Operational"
-`
-
 var identKeyword1 = `
 ---
 detection:
@@ -225,6 +200,72 @@ detection:
   - '/\S+python.* -m Simple\w+Server.*/'
 `
 
+var identSelection2 = `
+---
+detection:
+  condition: selection
+  selection:
+    event_id:
+    - 8888
+    - 1337
+    - 13
+`
+
+var identSelection2pos1 = `
+{
+  "event_id": 1337,
+  "channel": "Microsoft-Windows-PowerShell/Operational",
+  "task": "Execute a Remote Command",
+  "opcode": "On create calls",
+  "version": 1,
+  "record_id": 1559,
+	"winlog": {
+		"event_data": {
+			"MessageNumber": "1",
+			"MessageTotal": "1",
+			"ScriptBlockText": "Some awesome command",
+			"ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+		}
+	}
+}
+`
+
+var identSelection2neg1 = `
+{
+  "event_id": 4104,
+  "channel": "Microsoft-Windows-PowerShell/Operational",
+  "task": "Execute a Remote Command",
+  "opcode": "On create calls",
+  "version": 1,
+  "record_id": 1559,
+	"winlog": {
+		"event_data": {
+			"MessageNumber": "1",
+			"MessageTotal": "1",
+			"ScriptBlockText": "Some awesome command",
+			"ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+		}
+	}
+}
+`
+var identSelection2neg2 = `
+{
+  "channel": "Microsoft-Windows-PowerShell/Operational",
+  "task": "Execute a Remote Command",
+  "opcode": "On create calls",
+  "version": 1,
+  "record_id": 1559,
+	"winlog": {
+		"event_data": {
+			"MessageNumber": "1",
+			"MessageTotal": "1",
+			"ScriptBlockText": "Some awesome command",
+			"ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+		}
+	}
+}
+`
+
 var selectionCases = []identTestCase{
 	{
 		IdentCount: 1,
@@ -232,6 +273,14 @@ var selectionCases = []identTestCase{
 		IdentTypes: []identType{identSelection},
 		Pos:        []string{identSelection1pos1},
 		Neg:        []string{identSelection1neg1, identSelection1neg2},
+		Example:    ident2,
+	},
+	{
+		IdentCount: 1,
+		Rule:       identSelection2,
+		IdentTypes: []identType{identSelection},
+		Pos:        []string{identSelection2pos1},
+		Neg:        []string{identSelection2neg1, identSelection2neg2},
 		Example:    ident2,
 	},
 }

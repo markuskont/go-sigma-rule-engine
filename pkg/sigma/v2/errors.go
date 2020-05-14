@@ -1,6 +1,7 @@
 package sigma
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
@@ -191,3 +192,8 @@ func (e ErrUnsupportedExpression) Error() string {
 			return "Informative"
 		}(), e.T, e.Msg, e.Expr)
 }
+
+// ErrUnableToReflect indicates that kind reflection could not be done, as
+// typeOf returned a nil value
+// likely a missing pattern
+var ErrUnableToReflect = errors.New("Unable to reflect on pattern kind")

@@ -33,6 +33,12 @@ func isValidSpecifier(in string) bool {
 		in == TextPatternSuffix.String()
 }
 
+// NumMatcher is an atomic pattern for numeric item or list of items
+type NumMatcher interface {
+	// NumMatch implements NumMatcher
+	NumMatch(int) bool
+}
+
 // StringMatcher is an atomic pattern that could implement glob, literal or regex matchers
 type StringMatcher interface {
 	// StringMatch implements StringMatcher
@@ -74,6 +80,19 @@ func NewStringMatcher(
 		}
 		return matcher.Optimize()
 	}(), nil
+}
+
+// NumMatchers holds multiple numeric matchers
+type NumMatchers []NumMatcher
+
+// NumMatch implements NumMatcher
+func (n NumMatchers) NumMatch(val int) bool {
+	for _, v := range n {
+		if v.NumMatch(val) {
+			return true
+		}
+	}
+	return false
 }
 
 // StringMatchers holds multiple atomic matchers
@@ -193,4 +212,14 @@ func lowerCaseIfNeeded(str string, lower bool) string {
 		return strings.ToLower(str)
 	}
 	return str
+}
+
+// NumPattern matches on numeric value
+type NumPattern struct {
+	Val int
+}
+
+// NumMatch implements NumMatcher
+func (n NumPattern) NumMatch(val int) bool {
+	return n.Val == val
 }
