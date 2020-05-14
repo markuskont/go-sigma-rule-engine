@@ -211,6 +211,14 @@ detection:
     - 13
 `
 
+var identSelection3 = `
+---
+detection:
+  condition: selection
+  selection:
+    event_id: 1337
+`
+
 var identSelection2pos1 = `
 {
   "event_id": 1337,
@@ -278,6 +286,14 @@ var selectionCases = []identTestCase{
 	{
 		IdentCount: 1,
 		Rule:       identSelection2,
+		IdentTypes: []identType{identSelection},
+		Pos:        []string{identSelection2pos1},
+		Neg:        []string{identSelection2neg1, identSelection2neg2},
+		Example:    ident2,
+	},
+	{
+		IdentCount: 1,
+		Rule:       identSelection3,
 		IdentTypes: []identType{identSelection},
 		Pos:        []string{identSelection2pos1},
 		Neg:        []string{identSelection2neg1, identSelection2neg2},
