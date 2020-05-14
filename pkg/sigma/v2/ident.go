@@ -40,9 +40,20 @@ func checkIdentType(name string, data interface{}) identType {
 }
 
 func reflectIdentKind(data interface{}) identType {
-	switch data.(type) {
+	switch v := data.(type) {
 	case map[string]interface{}, map[interface{}]interface{}:
 		return identSelection
+	case []interface{}:
+		k, ok := isSameKind(v)
+		if !ok {
+			return identErr
+		}
+		switch k {
+		case reflect.Map:
+			return identSelection
+		default:
+			return identKeyword
+		}
 	default:
 		return identKeyword
 	}
@@ -53,7 +64,7 @@ func newRuleFromIdent(rule interface{}, kind identType) (Branch, error) {
 	case identKeyword:
 		return NewKeyword(rule)
 	case identSelection:
-		return NewSelection(rule)
+		return NewSelectionBranch(rule)
 	}
 	return nil, fmt.Errorf("Unknown rule kind, should be keyword or selection")
 }
@@ -94,8 +105,7 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 		}
 		switch v := k; {
 		case v == reflect.String:
-			s, _ := castIfaceToString(val)
-			return newStringKeyword(TextPatternContains, false, s...)
+			return newStringKeyword(TextPatternContains, false, castIfaceToString(val)...)
 		default:
 			return nil, ErrInvalidKind{
 				Kind:     v,
@@ -112,11 +122,16 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 }
 
 func newStringKeyword(mod TextPatternModifier, lower bool, patterns ...string) (*Keyword, error) {
-	matcher, err := NewStringMatcher(mod, lower, patterns...)
+	matcher, err := NewStringMatcher(mod, lower, false, patterns...)
 	if err != nil {
 		return nil, err
 	}
 	return &Keyword{S: matcher}, nil
+}
+
+type SelectionNumItem struct {
+	Key     string
+	Pattern NumMatcher
 }
 
 type SelectionStringItem struct {
@@ -125,97 +140,57 @@ type SelectionStringItem struct {
 }
 
 type Selection struct {
+	N []SelectionNumItem
 	S []SelectionStringItem
 	Stats
-}
-
-func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
-	sel := &Selection{S: make([]SelectionStringItem, 0)}
-	for key, pattern := range expr {
-		var mod TextPatternModifier
-		if strings.Contains(key, "|") {
-			bits := strings.Split(key, "|")
-			if length := len(bits); length != 2 {
-				return nil, fmt.Errorf(
-					"selection key %s invalid. Specifier should result in 2 sections", key)
-			}
-			if !isValidSpecifier(bits[1]) {
-				return nil, fmt.Errorf("selection key %s specifier %s invalid",
-					key, bits[1])
-			}
-			switch bits[1] {
-			case TextPatternPrefix.String():
-				mod = TextPatternPrefix
-			case TextPatternSuffix.String():
-				mod = TextPatternSuffix
-			}
-		}
-		switch pat := pattern.(type) {
-		case string:
-			m, err := NewStringMatcher(mod, false, pat)
-			if err != nil {
-				return nil, err
-			}
-			sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
-		case []interface{}:
-			// TODO - move this part to separate function and reuse in NewKeyword
-			k, ok := isSameKind(pat)
-			if !ok {
-				return nil, ErrInvalidKind{
-					Kind:     reflect.Array,
-					T:        identKeyword,
-					Critical: false,
-					Msg:      "Mixed type slice",
-				}
-			}
-			switch k {
-			case reflect.String:
-				s, _ := castIfaceToString(pat)
-				m, err := NewStringMatcher(mod, false, s...)
-				if err != nil {
-					return nil, err
-				}
-				sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
-			default:
-				return nil, ErrInvalidKind{
-					Kind:     k,
-					T:        identKeyword,
-					Critical: false,
-					Msg:      "Unsupported data type",
-				}
-			}
-		default:
-			if t := reflect.TypeOf(pattern); t != nil {
-				return nil, ErrInvalidKind{
-					Kind:     t.Kind(),
-					T:        identSelection,
-					Critical: true,
-					Msg:      "Unsupported selection value",
-				}
-			}
-			return nil, fmt.Errorf("unable to reflect on pattern kind")
-		}
-	}
-	return sel, nil
-}
-
-func NewSelection(expr interface{}) (*Selection, error) {
-	switch v := expr.(type) {
-	case map[interface{}]interface{}:
-		return newSelectionFromMap(cleanUpInterfaceMap(v))
-	default:
-		return nil, ErrInvalidKind{
-			Kind:     reflect.TypeOf(expr).Kind(),
-			T:        identSelection,
-			Critical: true,
-			Msg:      "Unsupported selection root container",
-		}
-	}
 }
 
 // Match implements Matcher
 // TODO - numeric and boolean pattern match
 func (s Selection) Match(msg Event) bool {
+	for _, v := range s.N {
+		val, ok := msg.Select(v.Key)
+		if !ok {
+			return false
+		}
+		switch vt := val.(type) {
+		case float64:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case int:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(vt) {
+				return false
+			}
+		case int64:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case int32:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case uint:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case uint32:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		case uint64:
+			// JSON numbers are all by spec float64 values
+			if !v.Pattern.NumMatch(int(vt)) {
+				return false
+			}
+		}
+	}
 	for _, v := range s.S {
 		val, ok := msg.Select(v.Key)
 		if !ok {
@@ -244,10 +219,140 @@ func (s *Selection) incrementMismatchCount() *Selection {
 	return s
 }
 
+func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
+	sel := &Selection{S: make([]SelectionStringItem, 0)}
+	for key, pattern := range expr {
+		var mod TextPatternModifier
+		var all bool
+		if strings.Contains(key, "|") {
+			bits := strings.Split(key, "|")
+			if length := len(bits); length < 2 || length > 3 {
+				return nil, fmt.Errorf(
+					"selection key %s invalid. Specifier should result in 2 or 3 sections", key)
+			}
+			if !isValidSpecifier(bits[1]) {
+				return nil, fmt.Errorf("selection key %s specifier %s invalid",
+					key, bits[1])
+			}
+			switch bits[1] {
+			case "startswith":
+				mod = TextPatternPrefix
+			case "endswith":
+				mod = TextPatternSuffix
+			case "contains":
+				if len(bits) == 3 && bits[2] == "all" {
+					all = true
+				}
+			}
+		}
+		switch pat := pattern.(type) {
+		case string:
+			m, err := NewStringMatcher(mod, false, all, pat)
+			if err != nil {
+				return nil, err
+			}
+			sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
+		case int:
+			m, err := NewNumMatcher(pat)
+			if err != nil {
+				return nil, err
+			}
+			sel.N = func() []SelectionNumItem {
+				item := SelectionNumItem{
+					Key: key, Pattern: m,
+				}
+				if sel.N == nil {
+					sel.N = []SelectionNumItem{item}
+				}
+				return append(sel.N, item)
+			}()
+		case []interface{}:
+			// TODO - move this part to separate function and reuse in NewKeyword
+			k, ok := isSameKind(pat)
+			if !ok {
+				return nil, ErrInvalidKind{
+					Kind:     reflect.Array,
+					T:        identKeyword,
+					Critical: false,
+					Msg:      "Mixed type slice",
+				}
+			}
+			switch k {
+			case reflect.String:
+				m, err := NewStringMatcher(mod, false, all, castIfaceToString(pat)...)
+				if err != nil {
+					return nil, err
+				}
+				sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
+			case reflect.Int:
+				m, err := NewNumMatcher(castIfaceToInt(pat)...)
+				if err != nil {
+					return nil, err
+				}
+				sel.N = func() []SelectionNumItem {
+					item := SelectionNumItem{
+						Key: key, Pattern: m,
+					}
+					if sel.N == nil {
+						sel.N = []SelectionNumItem{item}
+					}
+					return append(sel.N, item)
+				}()
+			default:
+				return nil, ErrInvalidKind{
+					Kind:     k,
+					T:        identKeyword,
+					Critical: false,
+					Msg:      "Unsupported data type",
+				}
+			}
+		default:
+			if t := reflect.TypeOf(pattern); t != nil {
+				return nil, ErrInvalidKind{
+					Kind:     t.Kind(),
+					T:        identSelection,
+					Critical: true,
+					Msg:      "Unsupported selection value",
+				}
+			}
+			return nil, ErrUnableToReflect
+		}
+	}
+	return sel, nil
+}
+
+func NewSelectionBranch(expr interface{}) (Branch, error) {
+	switch v := expr.(type) {
+	case []interface{}:
+		selections := make([]Branch, 0)
+		for _, item := range v {
+			b, err := NewSelectionBranch(item)
+			if err != nil {
+				return nil, err
+			}
+			selections = append(selections, b)
+		}
+		return NodeSimpleOr(selections).Reduce(), nil
+	case map[interface{}]interface{}:
+		return newSelectionFromMap(cleanUpInterfaceMap(v))
+	default:
+		return nil, ErrInvalidKind{
+			Kind:     reflect.TypeOf(expr).Kind(),
+			T:        identSelection,
+			Critical: true,
+			Msg:      "Unsupported selection root container",
+		}
+	}
+}
+
 func isSameKind(data []interface{}) (reflect.Kind, bool) {
 	var current, last reflect.Kind
 	for i, d := range data {
-		current = reflect.TypeOf(d).Kind()
+		cType := reflect.TypeOf(d)
+		if cType == nil {
+			return reflect.Invalid, false
+		}
+		current = cType.Kind()
 		if i > 0 {
 			if current != last {
 				return current, false
@@ -258,18 +363,22 @@ func isSameKind(data []interface{}) (reflect.Kind, bool) {
 	return current, true
 }
 
-// castIfaceToString assumes that kind check has already been done
-func castIfaceToString(items []interface{}) ([]string, int) {
+func castIfaceToString(items []interface{}) []string {
 	tx := make([]string, 0)
-	var failed int
 	for _, val := range items {
-		if s, ok := val.(string); ok {
-			tx = append(tx, s)
-		} else {
-			failed++
+		tx = append(tx, fmt.Sprintf("%v", val))
+	}
+	return tx
+}
+
+func castIfaceToInt(items []interface{}) []int {
+	tx := make([]int, 0)
+	for _, val := range items {
+		if n, ok := val.(int); ok {
+			tx = append(tx, n)
 		}
 	}
-	return tx, failed
+	return tx
 }
 
 // Yaml can have non-string keys, so go-yaml unmarshals to map[interface{}]interface{}

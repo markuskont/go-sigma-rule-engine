@@ -10,27 +10,53 @@ import (
 
 type TextPatternModifier int
 
-func (t TextPatternModifier) String() string {
-	switch t {
-	case TextPatternPrefix:
-		return "startswith"
-	case TextPatternSuffix:
-		return "endwith"
-	default:
-		return "contains"
-	}
-}
-
 const (
 	TextPatternContains TextPatternModifier = iota
 	TextPatternPrefix
 	TextPatternSuffix
+	TextPatternAll
 )
 
 func isValidSpecifier(in string) bool {
-	return in == TextPatternContains.String() ||
-		in == TextPatternPrefix.String() ||
-		in == TextPatternSuffix.String()
+	return in == "contains" ||
+		in == "endswith" ||
+		in == "startswith"
+}
+
+// NumMatcher is an atomic pattern for numeric item or list of items
+type NumMatcher interface {
+	// NumMatch implements NumMatcher
+	NumMatch(int) bool
+}
+
+// NumMatchers holds multiple numeric matchers
+type NumMatchers []NumMatcher
+
+// NumMatch implements NumMatcher
+func (n NumMatchers) NumMatch(val int) bool {
+	for _, v := range n {
+		if v.NumMatch(val) {
+			return true
+		}
+	}
+	return false
+}
+
+func NewNumMatcher(patterns ...int) (NumMatcher, error) {
+	if patterns == nil || len(patterns) == 0 {
+		return nil, fmt.Errorf("no patterns defined for matcher object")
+	}
+	matcher := make(NumMatchers, 0)
+	for _, p := range patterns {
+		matcher = append(matcher, NumPattern{Val: p})
+	}
+
+	return func() NumMatcher {
+		if len(matcher) == 1 {
+			return matcher[0]
+		}
+		return matcher
+	}(), nil
 }
 
 // StringMatcher is an atomic pattern that could implement glob, literal or regex matchers
@@ -41,13 +67,13 @@ type StringMatcher interface {
 
 func NewStringMatcher(
 	mod TextPatternModifier,
-	lower bool,
+	lower, all bool,
 	patterns ...string,
 ) (StringMatcher, error) {
 	if patterns == nil || len(patterns) == 0 {
 		return nil, fmt.Errorf("no patterns defined for matcher object")
 	}
-	matcher := make(StringMatchers, 0)
+	matcher := make([]StringMatcher, 0)
 	for _, p := range patterns {
 		if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
 			re, err := regexp.Compile(strings.TrimLeft(strings.TrimRight(p, "/"), "/"))
@@ -72,7 +98,10 @@ func NewStringMatcher(
 		if len(matcher) == 1 {
 			return matcher[0]
 		}
-		return matcher.Optimize()
+		if all {
+			return StringMatchersConj(matcher).Optimize()
+		}
+		return StringMatchers(matcher).Optimize()
 	}(), nil
 }
 
@@ -95,9 +124,35 @@ func (s StringMatchers) StringMatch(msg string) bool {
 // First match wins, thus we can optimize by making sure fast string patterns
 // are executed first, then globs, and finally slow regular expressions
 func (s StringMatchers) Optimize() StringMatchers {
-	globs := make(StringMatchers, 0)
-	re := make(StringMatchers, 0)
-	literals := make(StringMatchers, 0)
+	return optimizeStringMatchers(s)
+}
+
+// StringMatchersConj is similar to StringMatcher but elements are joined with
+// conjunction, i.e. all patterns must match
+// used to implement "all" specifier for selection types
+type StringMatchersConj []StringMatcher
+
+// StringMatch implements StringMatcher
+func (s StringMatchersConj) StringMatch(msg string) bool {
+	for _, m := range s {
+		if !m.StringMatch(msg) {
+			return false
+		}
+	}
+	return true
+}
+
+// Optimize creates a new StringMatchers slice ordered by matcher type
+// First match wins, thus we can optimize by making sure fast string patterns
+// are executed first, then globs, and finally slow regular expressions
+func (s StringMatchersConj) Optimize() StringMatchersConj {
+	return optimizeStringMatchers(s)
+}
+
+func optimizeStringMatchers(s []StringMatcher) []StringMatcher {
+	globs := make([]StringMatcher, 0)
+	re := make([]StringMatcher, 0)
+	literals := make([]StringMatcher, 0)
 	for _, pat := range s {
 		switch pat.(type) {
 		case ContentPattern, PrefixPattern, SuffixPattern:
@@ -108,8 +163,7 @@ func (s StringMatchers) Optimize() StringMatchers {
 			re = append(re, pat)
 		}
 	}
-	tx := append(literals, append(globs, re...))
-	return tx
+	return append(literals, append(globs, re...)...)
 }
 
 // ContentPattern is a token for literal content matching
@@ -193,4 +247,14 @@ func lowerCaseIfNeeded(str string, lower bool) string {
 		return strings.ToLower(str)
 	}
 	return str
+}
+
+// NumPattern matches on numeric value
+type NumPattern struct {
+	Val int
+}
+
+// NumMatch implements NumMatcher
+func (n NumPattern) NumMatch(val int) bool {
+	return n.Val == val
 }

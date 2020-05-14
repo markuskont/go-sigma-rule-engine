@@ -1,4 +1,3 @@
 # go-sigma-rule-engine
-Golang library that implements a sigma log rule parser and match engine.
 
-## WORK IN PROGRESS
+Golang library that implements a sigma log rule parser and match engine.
