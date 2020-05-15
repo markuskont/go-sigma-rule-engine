@@ -35,7 +35,7 @@ var parseCmd = &cobra.Command{
 }
 
 func parse(cmd *cobra.Command, args []string) {
-	files, err := sigma.NewRuleFileList(viper.GetStringSlice("sigma.rules.dir"))
+	files, err := sigma.NewRuleFileList(viper.GetStringSlice("rules.dir"))
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -62,7 +62,7 @@ loop:
 			c.unsupported++
 			continue loop
 		}
-		_, err := sigma.NewTree(&raw)
+		_, err := sigma.NewTree(raw)
 		if err != nil {
 			switch err.(type) {
 			case sigma.ErrUnsupportedToken:
@@ -82,8 +82,4 @@ loop:
 
 func init() {
 	rootCmd.AddCommand(parseCmd)
-
-	parseCmd.PersistentFlags().StringSlice("sigma-rules-dir", []string{},
-		"Directories that contains sigma rules.")
-	viper.BindPFlag("sigma.rules.dir", parseCmd.PersistentFlags().Lookup("sigma-rules-dir"))
 }

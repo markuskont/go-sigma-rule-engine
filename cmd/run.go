@@ -78,6 +78,14 @@ func scanLines(input io.Reader, ctx context.Context) <-chan []byte {
 }
 
 func run(cmd *cobra.Command, args []string) {
+	ruleset, err := sigma.NewRuleset(sigma.Config{
+		Directory: viper.GetStringSlice("rules.dir"),
+	})
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	logrus.Debugf("Found %d files, %d ok, %d failed, %d unsupported",
+		ruleset.Total, ruleset.Ok, ruleset.Failed, ruleset.Unsupported)
 	lines := scanLines(os.Stdin, context.TODO())
 	if err := dispatch.Run(dispatch.Config{
 		Async:   false,

@@ -17,10 +17,7 @@ func (t Tree) Match(e Event) bool {
 }
 
 // NewTree parses rule handle into an abstract syntax tree
-func NewTree(r *RuleHandle) (*Tree, error) {
-	if r == nil {
-		return nil, fmt.Errorf("Missing rule handle")
-	}
+func NewTree(r RuleHandle) (*Tree, error) {
 	if r.Detection == nil {
 		return nil, ErrMissingDetection{}
 	}
