@@ -81,3 +81,16 @@ func (r Ruleset) Match(e Event) bool {
 	}
 	return false
 }
+
+func (r Ruleset) EvalAll(e Event) (Results, bool) {
+	results := make(Results, 0)
+	for _, rule := range r.Rules {
+		if res, match := rule.Eval(e); match {
+			results = append(results, *res)
+		}
+	}
+	if len(results) > 0 {
+		return results, true
+	}
+	return nil, false
+}

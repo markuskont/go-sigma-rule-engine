@@ -9,11 +9,26 @@ import (
 // Tree represents the full AST for a sigma rule
 type Tree struct {
 	Root Branch
+	Rule *RuleHandle
 }
 
 // Match implements Matcher
 func (t Tree) Match(e Event) bool {
 	return t.Root.Match(e)
+}
+
+func (t Tree) Eval(e Event) (*Result, bool) {
+	if t.Match(e) {
+		if t.Rule == nil {
+			return &Result{}, true
+		}
+		return &Result{
+			ID:    t.Rule.ID,
+			Title: t.Rule.Title,
+			Tags:  t.Rule.Tags,
+		}, true
+	}
+	return nil, false
 }
 
 // NewTree parses rule handle into an abstract syntax tree

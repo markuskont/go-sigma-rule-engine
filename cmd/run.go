@@ -155,7 +155,7 @@ func run(cmd *cobra.Command, args []string) {
 					logrus.Debugf("Worker %d Found %d files, %d ok, %d failed, %d unsupported",
 						id, ruleset.Total, ruleset.Ok, ruleset.Failed, ruleset.Unsupported)
 					for e := range events {
-						if ruleset.Match(e) {
+						if _, match := ruleset.EvalAll(e); match {
 
 						}
 					}
