@@ -19,6 +19,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -155,8 +156,8 @@ func run(cmd *cobra.Command, args []string) {
 					logrus.Debugf("Worker %d Found %d files, %d ok, %d failed, %d unsupported",
 						id, ruleset.Total, ruleset.Ok, ruleset.Failed, ruleset.Unsupported)
 					for e := range events {
-						if _, match := ruleset.EvalAll(e); match {
-
+						if result, match := ruleset.EvalAll(e); match {
+							fmt.Printf("MATCH: %d rules", len(result))
 						}
 					}
 					return nil
