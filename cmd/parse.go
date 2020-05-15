@@ -86,6 +86,4 @@ func init() {
 	parseCmd.PersistentFlags().StringSlice("sigma-rules-dir", []string{},
 		"Directories that contains sigma rules.")
 	viper.BindPFlag("sigma.rules.dir", parseCmd.PersistentFlags().Lookup("sigma-rules-dir"))
-
-	logrus.SetLevel(logrus.TraceLevel)
 }

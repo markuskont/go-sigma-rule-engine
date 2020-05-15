@@ -5,7 +5,9 @@ go 1.13
 require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
+	github.com/json-iterator/go v1.1.9
 	github.com/kr/text v0.2.0 // indirect
+	github.com/markuskont/go-dispatch v0.0.0-20200515094439-8288130f278f
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

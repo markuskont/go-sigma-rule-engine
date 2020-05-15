@@ -17,11 +17,17 @@ package cmd
 
 import (
 	"bufio"
-	"fmt"
-	"log"
+	"context"
+	"io"
 	"os"
+	"time"
 
+	jsoniter "github.com/json-iterator/go"
+	"github.com/markuskont/go-dispatch"
+	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // runCmd represents the run command
@@ -36,17 +42,72 @@ var runCmd = &cobra.Command{
 	Run: run,
 }
 
-func run(cmd *cobra.Command, args []string) {
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-	}
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-	if err := scanner.Err(); err != nil {
-		log.Println(err)
+func copyBytes(in []byte) []byte {
+	tx := make([]byte, len(in))
+	for i, b := range in {
+		tx[i] = b
+	}
+	return tx
+}
+
+func scanLines(input io.Reader, ctx context.Context) <-chan []byte {
+	tx := make(chan []byte, 1)
+	go func(ctx context.Context) {
+		defer close(tx)
+		var count uint64
+		scanner := bufio.NewScanner(input)
+		tick := time.NewTicker(1 * time.Second)
+		start := time.Now()
+		for scanner.Scan() {
+			select {
+			case <-ctx.Done():
+			case <-tick.C:
+				logrus.Tracef("scanner got %d lines %.2f eps",
+					count, float64(count)/float64(time.Since(start).Seconds()))
+			case tx <- copyBytes(scanner.Bytes()):
+				count++
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			logrus.Fatal(err)
+		}
+	}(ctx)
+	return tx
+}
+
+func run(cmd *cobra.Command, args []string) {
+	lines := scanLines(os.Stdin, context.TODO())
+	if err := dispatch.Run(dispatch.Config{
+		Async:   false,
+		Workers: viper.GetInt("decode.workers"),
+		FeederFunc: func(tasks chan<- dispatch.Task, stop <-chan struct{}) {
+			for i := 0; i < viper.GetInt("decode.workers"); i++ {
+				tasks <- func(id, count int, ctx context.Context) error {
+					for l := range lines {
+						var d sigma.DynamicMap
+						if err := json.Unmarshal(l, &d); err != nil {
+							logrus.Fatal(err)
+						}
+					}
+					return nil
+				}
+			}
+		},
+		ErrFunc: func(err error) bool {
+			return true
+		},
+	}); err != nil {
+		logrus.Fatal(err)
 	}
 }
 
 func init() {
 	rootCmd.AddCommand(runCmd)
+
+	rootCmd.PersistentFlags().Int("decode-workers", 4,
+		`Number of workers for decoding JSON events.`)
+	viper.BindPFlag("decode.workers",
+		rootCmd.PersistentFlags().Lookup("decode-workers"))
 }
