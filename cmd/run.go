@@ -17,14 +17,18 @@ package cmd
 
 import (
 	"bufio"
+	"compress/gzip"
 	"context"
 	"io"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/markuskont/go-dispatch"
 	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma/v2"
+	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -77,26 +81,82 @@ func scanLines(input io.Reader, ctx context.Context) <-chan []byte {
 	return tx
 }
 
-func run(cmd *cobra.Command, args []string) {
-	ruleset, err := sigma.NewRuleset(sigma.Config{
-		Directory: viper.GetStringSlice("rules.dir"),
-	})
-	if err != nil {
-		logrus.Fatal(err)
+func open(path string) (io.ReadCloser, error) {
+	var (
+		file *os.File
+		err  error
+	)
+	if file, err = os.Open(path); err != nil {
+		return nil, err
 	}
-	logrus.Debugf("Found %d files, %d ok, %d failed, %d unsupported",
-		ruleset.Total, ruleset.Ok, ruleset.Failed, ruleset.Unsupported)
-	lines := scanLines(os.Stdin, context.TODO())
+	if strings.HasSuffix(path, "gz") {
+		return gzip.NewReader(file)
+	}
+	return file, nil
+}
+
+func run(cmd *cobra.Command, args []string) {
+	var input io.ReadCloser
+	var err error
+	if infile := viper.GetString("sigma.input"); infile != "" {
+		input, err = open(infile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer input.Close()
+	} else {
+		input = os.Stdin
+	}
+
+	lines := scanLines(input, context.TODO())
+	events := make(chan sigma.Event, 0)
+
 	if err := dispatch.Run(dispatch.Config{
-		Async:   false,
+		Async:   true,
 		Workers: viper.GetInt("decode.workers"),
 		FeederFunc: func(tasks chan<- dispatch.Task, stop <-chan struct{}) {
+			var wg sync.WaitGroup
 			for i := 0; i < viper.GetInt("decode.workers"); i++ {
+				wg.Add(1)
 				tasks <- func(id, count int, ctx context.Context) error {
+					defer wg.Done()
 					for l := range lines {
 						var d sigma.DynamicMap
 						if err := json.Unmarshal(l, &d); err != nil {
 							logrus.Fatal(err)
+						}
+						events <- d
+					}
+					return nil
+				}
+			}
+			wg.Wait()
+			close(events)
+		},
+		ErrFunc: func(err error) bool {
+			return true
+		},
+	}); err != nil {
+		logrus.Fatal(err)
+	}
+	if err := dispatch.Run(dispatch.Config{
+		Async:   false,
+		Workers: viper.GetInt("sigma.workers"),
+		FeederFunc: func(tasks chan<- dispatch.Task, stop <-chan struct{}) {
+			for i := 0; i < viper.GetInt("sigma.workers"); i++ {
+				tasks <- func(id, count int, ctx context.Context) error {
+					// ruleset is not thread safe, each worker needs a distinct copy
+					ruleset, err := sigma.NewRuleset(sigma.Config{
+						Directory: viper.GetStringSlice("rules.dir"),
+					})
+					if err != nil {
+						return err
+					}
+					logrus.Debugf("Worker %d Found %d files, %d ok, %d failed, %d unsupported",
+						id, ruleset.Total, ruleset.Ok, ruleset.Failed, ruleset.Unsupported)
+					for e := range events {
+						if ruleset.Match(e) {
+
 						}
 					}
 					return nil
@@ -104,7 +164,7 @@ func run(cmd *cobra.Command, args []string) {
 			}
 		},
 		ErrFunc: func(err error) bool {
-			return true
+			return false
 		},
 	}); err != nil {
 		logrus.Fatal(err)
@@ -114,8 +174,18 @@ func run(cmd *cobra.Command, args []string) {
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	rootCmd.PersistentFlags().Int("decode-workers", 4,
+	runCmd.PersistentFlags().Int("decode-workers", 4,
 		`Number of workers for decoding JSON events.`)
 	viper.BindPFlag("decode.workers",
-		rootCmd.PersistentFlags().Lookup("decode-workers"))
+		runCmd.PersistentFlags().Lookup("decode-workers"))
+
+	runCmd.PersistentFlags().Int("sigma-workers", 4,
+		`Number of workers for sigma matching.`)
+	viper.BindPFlag("sigma.workers",
+		runCmd.PersistentFlags().Lookup("sigma-workers"))
+
+	runCmd.PersistentFlags().String("sigma-input", "",
+		`Input log file.`)
+	viper.BindPFlag("sigma.input",
+		runCmd.PersistentFlags().Lookup("sigma-input"))
 }

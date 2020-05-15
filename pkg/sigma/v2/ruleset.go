@@ -56,10 +56,10 @@ loop:
 			switch err.(type) {
 			case ErrUnsupportedToken, *ErrUnsupportedToken:
 				unsupp++
-				continue loop
 			default:
 				fail++
 			}
+			continue loop
 		}
 		set = append(set, tree)
 	}
