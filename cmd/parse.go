@@ -31,10 +31,10 @@ var parseCmd = &cobra.Command{
 	Use:   "parse",
 	Short: "Parse a ruleset for testing",
 	Long:  `Recursively parses a sigma ruleset from filesystem and provides detailed feedback to the user about rule support.`,
-	Run:   entrypoint,
+	Run:   parse,
 }
 
-func entrypoint(cmd *cobra.Command, args []string) {
+func parse(cmd *cobra.Command, args []string) {
 	files, err := sigma.NewRuleFileList(viper.GetStringSlice("sigma.rules.dir"))
 	if err != nil {
 		logrus.Fatal(err)
