@@ -47,6 +47,19 @@ var runCmd = &cobra.Command{
 	Run: run,
 }
 
+type stats struct {
+	count int
+	start time.Time
+}
+
+func (s stats) since() float64 {
+	return time.Since(s.start).Seconds()
+}
+
+func (s stats) eps() float64 {
+	return float64(s.count) / s.since()
+}
+
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func copyBytes(in []byte) []byte {
@@ -57,22 +70,24 @@ func copyBytes(in []byte) []byte {
 	return tx
 }
 
-func scanLines(input io.Reader, ctx context.Context) <-chan []byte {
+func scanLines(input io.Reader, ctx context.Context, logFn func(stats)) <-chan []byte {
 	tx := make(chan []byte, 1)
 	go func(ctx context.Context) {
 		defer close(tx)
-		var count uint64
 		scanner := bufio.NewScanner(input)
-		tick := time.NewTicker(1 * time.Second)
-		start := time.Now()
+		tick := time.NewTicker(viper.GetDuration("sigma.log.interval"))
+		s := &stats{start: time.Now()}
+	loop:
 		for scanner.Scan() {
 			select {
 			case <-ctx.Done():
+				break loop
 			case <-tick.C:
-				logrus.Tracef("scanner got %d lines %.2f eps",
-					count, float64(count)/float64(time.Since(start).Seconds()))
+				if logFn != nil {
+					logFn(*s)
+				}
 			case tx <- copyBytes(scanner.Bytes()):
-				count++
+				s.count++
 			}
 		}
 		if err := scanner.Err(); err != nil {
@@ -109,44 +124,31 @@ func run(cmd *cobra.Command, args []string) {
 		input = os.Stdin
 	}
 
-	lines := scanLines(input, context.TODO())
-	events := make(chan sigma.Event, 0)
+	ctx := context.Background()
+	timeout, cancel := context.WithTimeout(ctx,
+		viper.GetDuration("sigma.consumer.timeout.value"))
+	defer cancel()
 
-	if err := dispatch.Run(dispatch.Config{
-		Async:   true,
-		Workers: viper.GetInt("decode.workers"),
-		FeederFunc: func(tasks chan<- dispatch.Task, stop <-chan struct{}) {
-			var wg sync.WaitGroup
-			for i := 0; i < viper.GetInt("decode.workers"); i++ {
-				wg.Add(1)
-				tasks <- func(id, count int, ctx context.Context) error {
-					defer wg.Done()
-					for l := range lines {
-						var d sigma.DynamicMap
-						if err := json.Unmarshal(l, &d); err != nil {
-							logrus.Fatal(err)
-						}
-						events <- d
-					}
-					return nil
-				}
-			}
-			wg.Wait()
-			close(events)
-		},
-		ErrFunc: func(err error) bool {
-			return true
-		},
-	}); err != nil {
-		logrus.Fatal(err)
-	}
+	lines := scanLines(input, func() context.Context {
+		if viper.GetBool("sigma.consumer.timeout.enable") {
+			return timeout
+		}
+		return ctx
+	}(), func(s stats) {
+		logrus.Tracef("scanner got %d lines %.2f eps",
+			s.count, s.eps())
+	})
+	matchDisable := viper.GetBool("sigma.disable.match")
+
 	if err := dispatch.Run(dispatch.Config{
 		Async:   false,
 		Workers: viper.GetInt("sigma.workers"),
 		FeederFunc: func(tasks chan<- dispatch.Task, stop <-chan struct{}) {
+			var wg sync.WaitGroup
 			for i := 0; i < viper.GetInt("sigma.workers"); i++ {
+				wg.Add(1)
 				tasks <- func(id, count int, ctx context.Context) error {
-					// ruleset is not thread safe, each worker needs a distinct copy
+					defer wg.Done()
 					ruleset, err := sigma.NewRuleset(sigma.Config{
 						Directory: viper.GetStringSlice("rules.dir"),
 					})
@@ -155,17 +157,27 @@ func run(cmd *cobra.Command, args []string) {
 					}
 					logrus.Debugf("Worker %d Found %d files, %d ok, %d failed, %d unsupported",
 						id, ruleset.Total, ruleset.Ok, ruleset.Failed, ruleset.Unsupported)
-					for e := range events {
-						if result, match := ruleset.EvalAll(e); match {
+
+				loop:
+					for l := range lines {
+						var d sigma.DynamicMap
+						if err := json.Unmarshal(l, &d); err != nil {
+							logrus.Fatal(err)
+						}
+						if matchDisable {
+							continue loop
+						}
+						if result, match := ruleset.EvalAll(d); match {
 							fmt.Printf("MATCH: %d rules", len(result))
 						}
 					}
 					return nil
 				}
 			}
+			wg.Wait()
 		},
 		ErrFunc: func(err error) bool {
-			return false
+			return true
 		},
 	}); err != nil {
 		logrus.Fatal(err)
@@ -174,11 +186,6 @@ func run(cmd *cobra.Command, args []string) {
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-
-	runCmd.PersistentFlags().Int("decode-workers", 4,
-		`Number of workers for decoding JSON events.`)
-	viper.BindPFlag("decode.workers",
-		runCmd.PersistentFlags().Lookup("decode-workers"))
 
 	runCmd.PersistentFlags().Int("sigma-workers", 4,
 		`Number of workers for sigma matching.`)
@@ -189,4 +196,24 @@ func init() {
 		`Input log file.`)
 	viper.BindPFlag("sigma.input",
 		runCmd.PersistentFlags().Lookup("sigma-input"))
+
+	runCmd.PersistentFlags().Bool("sigma-disable-match", false,
+		`Skips pattern matching. For measuring JSON decode performance.`)
+	viper.BindPFlag("sigma.disable.match",
+		runCmd.PersistentFlags().Lookup("sigma-disable-match"))
+
+	runCmd.PersistentFlags().Bool("sigma-consumer-timeout-enable", false,
+		`Enable timeout for consumer. For testing.`)
+	viper.BindPFlag("sigma.consumer.timeout.enable",
+		runCmd.PersistentFlags().Lookup("sigma-consumer-timeout-enable"))
+
+	runCmd.PersistentFlags().Duration("sigma-consumer-timeout-value", 10*time.Second,
+		`Duration value for consumer timeout if enabled.`)
+	viper.BindPFlag("sigma.consumer.timeout.value",
+		runCmd.PersistentFlags().Lookup("sigma-consumer-timeout-value"))
+
+	runCmd.PersistentFlags().Duration("sigma-log-interval", 1*time.Second,
+		`Interval between stats logging.`)
+	viper.BindPFlag("sigma.log.interval",
+		runCmd.PersistentFlags().Lookup("sigma-log-interval"))
 }
