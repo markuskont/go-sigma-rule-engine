@@ -49,7 +49,10 @@ func NewTree(r RuleHandle) (*Tree, error) {
 	if err := p.run(); err != nil {
 		return nil, err
 	}
-	t := &Tree{Root: p.result}
+	t := &Tree{
+		Root: p.result,
+		Rule: &r,
+	}
 	return t, nil
 }
 
