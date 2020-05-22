@@ -48,36 +48,58 @@ var runCmd = &cobra.Command{
 	Run: run,
 }
 
-func calculateAverageNanos(rx *list.List) int64 {
+func sumList(rx *list.List) int64 {
 	if rx.Len() == 0 {
 		return 0
 	}
-	var count, sum int64
+	var sum int64
 	for e := rx.Front(); e != nil; e = e.Next() {
-		count++
 		sum += e.Value.(time.Duration).Nanoseconds()
 	}
-	return sum / count
+	return sum
+}
+
+type timeStats struct {
+	ID int
+
+	decode *list.List
+	match  *list.List
+}
+
+func newTimeStats(id int) *timeStats {
+	return &timeStats{
+		ID:     id,
+		decode: list.New(),
+		match:  list.New(),
+	}
 }
 
 type stats struct {
-	start  time.Time
-	decode *list.List
-	match  *list.List
+	start time.Time
+
+	timeStats *timeStats
 
 	Timestamp     time.Time `json:"timestamp"`
 	Count         int       `json:"count"`
 	EPS           float64   `json:"eps"`
 	AvgDecodeNano int64     `json:"avg_decode_nano"`
 	AvgMatchNano  int64     `json:"avg_match_nano"`
+
+	k                int64
+	totalDecodeNanos int64
+	totalMatchNanos  int64
 }
 
-func newStats() *stats {
+func newStats(id int) *stats {
 	return &stats{
-		start:  time.Now(),
-		match:  list.New(),
-		decode: list.New(),
+		start:     time.Now(),
+		timeStats: newTimeStats(id),
 	}
+}
+
+func (s *stats) now() *stats {
+	s.Timestamp = time.Now()
+	return s
 }
 
 func (s stats) since() float64 {
@@ -90,11 +112,9 @@ func (s stats) eps() float64 {
 
 func (s *stats) calculate() *stats {
 	s.EPS = s.eps()
-	if s.decode != nil {
-		s.AvgDecodeNano = calculateAverageNanos(s.decode)
-	}
-	if s.match != nil {
-		s.AvgMatchNano = calculateAverageNanos(s.match)
+	if s.k != 0 {
+		s.AvgDecodeNano = s.totalDecodeNanos / s.k
+		s.AvgMatchNano = s.totalMatchNanos / s.k
 	}
 	return s
 }
@@ -131,20 +151,6 @@ func (s stats) json() (string, error) {
 	return string(b), nil
 }
 
-func (s *stats) calculateDecode(start time.Time) *stats {
-	if s.decode != nil {
-		s.decode.PushBack(time.Since(start))
-	}
-	return s
-}
-
-func (s *stats) calculateMatch(start time.Time) *stats {
-	if s.match != nil {
-		s.match.PushBack(time.Since(start))
-	}
-	return s
-}
-
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func copyBytes(in []byte) []byte {
@@ -155,13 +161,13 @@ func copyBytes(in []byte) []byte {
 	return tx
 }
 
-func scanLines(input io.Reader, ctx context.Context, logFn func(int)) <-chan []byte {
+func scanLines(input io.Reader, ctx context.Context, logFn func(int, int)) <-chan []byte {
 	tx := make(chan []byte, 1)
 	go func(ctx context.Context) {
 		defer close(tx)
 		scanner := bufio.NewScanner(input)
 		tick := time.NewTicker(100 * time.Millisecond)
-		var count int
+		var count, last int
 	loop:
 		for scanner.Scan() {
 			select {
@@ -169,8 +175,9 @@ func scanLines(input io.Reader, ctx context.Context, logFn func(int)) <-chan []b
 				break loop
 			case <-tick.C:
 				if logFn != nil {
-					logFn(count)
+					logFn(count, count-last)
 				}
+				last = count
 			case tx <- copyBytes(scanner.Bytes()):
 				count++
 			}
@@ -205,7 +212,11 @@ const (
 )
 
 // goroutine
-func logStats(ingestCh <-chan int) {
+func logStats(
+	ingestCh <-chan int,
+	workerCh <-chan timeStats,
+	ctx context.Context,
+) {
 	statFile, statFileEnabled := func() (io.WriteCloser, bool) {
 		if path := viper.GetString("sigma.stats.file"); path != "" {
 			handle, err := os.Create(path)
@@ -235,13 +246,13 @@ func logStats(ingestCh <-chan int) {
 	}()
 
 	tick := time.NewTicker(viper.GetDuration("sigma.stats.interval"))
-	s := newStats()
+	s := newStats(0)
 
 loop:
 	for {
 		select {
 		case <-tick.C:
-			logrus.Trace(s)
+			logrus.Trace(s.now())
 
 			if !statFileEnabled {
 				continue loop
@@ -260,12 +271,20 @@ loop:
 					return s.String()
 				}
 			}())
-			//s = newStats()
 		case count, ok := <-ingestCh:
 			if !ok {
-				break loop
+				continue loop
 			}
-			s.set(count)
+			s.increment(count)
+		case s2, ok := <-workerCh:
+			if !ok {
+				continue loop
+			}
+			s.totalDecodeNanos += sumList(s2.decode)
+			s.totalMatchNanos += sumList(s2.match)
+			s.k += int64(s2.decode.Len())
+		case <-ctx.Done():
+			break loop
 		}
 	}
 }
@@ -289,6 +308,7 @@ func run(cmd *cobra.Command, args []string) {
 	defer cancel()
 
 	ingestStatCh := make(chan int, 0)
+	workerStatCh := make(chan timeStats, viper.GetInt("sigma.workers"))
 	lines := scanLines(input, func() context.Context {
 		if viper.GetBool("sigma.consumer.timeout.enable") {
 			logrus.Infof("Enabling consumer timeout after %s",
@@ -296,10 +316,10 @@ func run(cmd *cobra.Command, args []string) {
 			return timeout
 		}
 		return ctx
-	}(), func(count int) {
-		ingestStatCh <- count
+	}(), func(count, diff int) {
+		ingestStatCh <- diff
 	})
-	go logStats(ingestStatCh)
+	go logStats(ingestStatCh, workerStatCh, context.TODO())
 
 	matchDisable := viper.GetBool("sigma.disable.match")
 	if matchDisable {
@@ -324,7 +344,7 @@ func run(cmd *cobra.Command, args []string) {
 					logrus.Debugf("Worker %d Found %d files, %d ok, %d failed, %d unsupported",
 						id, ruleset.Total, ruleset.Ok, ruleset.Failed, ruleset.Unsupported)
 
-					s := newStats()
+					s := newTimeStats(id)
 					report := time.NewTicker(1 * time.Second)
 
 				loop:
@@ -339,7 +359,7 @@ func run(cmd *cobra.Command, args []string) {
 							if err := json.Unmarshal(l, &d); err != nil {
 								logrus.Fatal(err)
 							}
-							s.calculateDecode(start)
+							s.decode.PushBack(time.Since(start))
 							if matchDisable {
 								continue loop
 							}
@@ -347,9 +367,13 @@ func run(cmd *cobra.Command, args []string) {
 							if _, match := ruleset.EvalAll(d); match {
 								//fmt.Printf("MATCH: %d rules\n", len(result))
 							}
-							s.calculateMatch(start)
+							s.match.PushBack(time.Since(start))
 						case <-report.C:
-							s = newStats()
+							if len(workerStatCh) == viper.GetInt("sigma.workers") {
+								<-workerStatCh
+							}
+							workerStatCh <- *s
+							s = newTimeStats(id)
 						}
 					}
 					return nil
