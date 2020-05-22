@@ -380,8 +380,8 @@ func run(cmd *cobra.Command, args []string) {
 								continue loop
 							}
 							start = time.Now()
-							if _, match := ruleset.EvalAll(d); match {
-								//fmt.Printf("MATCH: %d rules\n", len(result))
+							if result, match := ruleset.EvalAll(d); match {
+								fmt.Printf("MATCH: %v \n", result)
 							}
 							s.match.PushBack(time.Since(start))
 						case <-report.C:
