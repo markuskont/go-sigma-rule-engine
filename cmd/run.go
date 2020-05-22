@@ -88,6 +88,7 @@ type stats struct {
 	AvgDecodeNano       int64     `json:"avg_decode_nano"`
 	AvgMatchRulesetNano int64     `json:"avg_match_ruleset_nano"`
 	AvgMatchPerRuleNano int64     `json:"avg_match_per_rule_nano"`
+	RuleCount           int       `json:"rule_count"`
 
 	k                int64
 	totalDecodeNanos int64
@@ -121,6 +122,7 @@ func (s *stats) calculate() *stats {
 		s.AvgMatchRulesetNano = s.totalMatchNanos / s.k
 	}
 	if s.timeStats.ruleCount > 0 {
+		s.RuleCount = s.timeStats.ruleCount
 		s.AvgMatchPerRuleNano = s.AvgMatchRulesetNano / int64(s.timeStats.ruleCount)
 	}
 	return s
@@ -141,13 +143,18 @@ func (s stats) String() string {
 
 func (s stats) csv() string {
 	s.calculate()
-	return fmt.Sprintf("%d,%.2f,%d,%d,%d",
-		s.Count, s.EPS, s.AvgDecodeNano, s.AvgMatchRulesetNano, s.AvgMatchPerRuleNano)
+	return fmt.Sprintf("%d,%.2f,%d,%d,%d,%d",
+		s.Count, s.EPS, s.AvgDecodeNano, s.AvgMatchRulesetNano, s.AvgMatchPerRuleNano, s.RuleCount)
 }
 
 func (s stats) header() string {
 	return strings.Join([]string{
-		"count", "eps", "avg_decode_nano", "avg_match_ruleset_nano", "avg_match_per_rule_nano",
+		"count",
+		"eps",
+		"avg_decode_nano",
+		"avg_match_ruleset_nano",
+		"avg_match_per_rule_nano",
+		"rule_count",
 	}, ",")
 }
 
