@@ -62,15 +62,18 @@ func sumList(rx *list.List) int64 {
 type timeStats struct {
 	ID int
 
+	ruleCount int
+
 	decode *list.List
 	match  *list.List
 }
 
-func newTimeStats(id int) *timeStats {
+func newTimeStats(id, ruleCount int) *timeStats {
 	return &timeStats{
-		ID:     id,
-		decode: list.New(),
-		match:  list.New(),
+		ID:        id,
+		ruleCount: ruleCount,
+		decode:    list.New(),
+		match:     list.New(),
 	}
 }
 
@@ -79,21 +82,22 @@ type stats struct {
 
 	timeStats *timeStats
 
-	Timestamp     time.Time `json:"timestamp"`
-	Count         int       `json:"count"`
-	EPS           float64   `json:"eps"`
-	AvgDecodeNano int64     `json:"avg_decode_nano"`
-	AvgMatchNano  int64     `json:"avg_match_nano"`
+	Timestamp           time.Time `json:"timestamp"`
+	Count               int       `json:"count"`
+	EPS                 float64   `json:"eps"`
+	AvgDecodeNano       int64     `json:"avg_decode_nano"`
+	AvgMatchRulesetNano int64     `json:"avg_match_ruleset_nano"`
+	AvgMatchPerRuleNano int64     `json:"avg_match_per_rule_nano"`
 
 	k                int64
 	totalDecodeNanos int64
 	totalMatchNanos  int64
 }
 
-func newStats(id int) *stats {
+func newStats(id, ruleCount int) *stats {
 	return &stats{
 		start:     time.Now(),
-		timeStats: newTimeStats(id),
+		timeStats: newTimeStats(id, ruleCount),
 	}
 }
 
@@ -112,9 +116,12 @@ func (s stats) eps() float64 {
 
 func (s *stats) calculate() *stats {
 	s.EPS = s.eps()
-	if s.k != 0 {
+	if s.k > 0 {
 		s.AvgDecodeNano = s.totalDecodeNanos / s.k
-		s.AvgMatchNano = s.totalMatchNanos / s.k
+		s.AvgMatchRulesetNano = s.totalMatchNanos / s.k
+	}
+	if s.timeStats.ruleCount > 0 {
+		s.AvgMatchPerRuleNano = s.AvgMatchRulesetNano / int64(s.timeStats.ruleCount)
 	}
 	return s
 }
@@ -134,12 +141,13 @@ func (s stats) String() string {
 
 func (s stats) csv() string {
 	s.calculate()
-	return fmt.Sprintf("%d,%.2f,%d,%d", s.Count, s.EPS, s.AvgDecodeNano, s.AvgMatchNano)
+	return fmt.Sprintf("%d,%.2f,%d,%d,%d",
+		s.Count, s.EPS, s.AvgDecodeNano, s.AvgMatchRulesetNano, s.AvgMatchPerRuleNano)
 }
 
 func (s stats) header() string {
 	return strings.Join([]string{
-		"count", "eps", "avg_decode_nano", "avg_match_nano",
+		"count", "eps", "avg_decode_nano", "avg_match_ruleset_nano", "avg_match_per_rule_nano",
 	}, ",")
 }
 
@@ -246,7 +254,7 @@ func logStats(
 	}()
 
 	tick := time.NewTicker(viper.GetDuration("sigma.stats.interval"))
-	s := newStats(0)
+	s := newStats(0, 0)
 
 loop:
 	for {
@@ -283,6 +291,7 @@ loop:
 			s.totalDecodeNanos += sumList(s2.decode)
 			s.totalMatchNanos += sumList(s2.match)
 			s.k += int64(s2.decode.Len())
+			s.timeStats.ruleCount = s2.ruleCount
 		case <-ctx.Done():
 			break loop
 		}
@@ -344,7 +353,7 @@ func run(cmd *cobra.Command, args []string) {
 					logrus.Debugf("Worker %d Found %d files, %d ok, %d failed, %d unsupported",
 						id, ruleset.Total, ruleset.Ok, ruleset.Failed, ruleset.Unsupported)
 
-					s := newTimeStats(id)
+					s := newTimeStats(id, ruleset.Ok)
 					report := time.NewTicker(1 * time.Second)
 
 				loop:
@@ -373,7 +382,7 @@ func run(cmd *cobra.Command, args []string) {
 								<-workerStatCh
 							}
 							workerStatCh <- *s
-							s = newTimeStats(id)
+							s = newTimeStats(id, ruleset.Ok)
 						}
 					}
 					return nil
