@@ -57,6 +57,10 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Quiet output. Suppress warnings and other stuff. Cannot be used together with --debug and --quiet will take precedence.")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Debug mode. Enable trace logging. Cannot be used together with --quiet.")
+
+	rootCmd.PersistentFlags().StringSlice("rules-dir", []string{},
+		"Directories that contains sigma rules.")
+	viper.BindPFlag("rules.dir", rootCmd.PersistentFlags().Lookup("rules-dir"))
 }
 
 // initConfig reads in config file and ENV variables if set.
