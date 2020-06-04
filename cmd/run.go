@@ -24,6 +24,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -395,6 +396,23 @@ func run(cmd *cobra.Command, args []string) {
 		return nil, false
 	}()
 
+	ruleProfileDir, ruleProfileEnabled := func() (string, bool) {
+		if dir := viper.GetString("sigma.rule.profile.dir"); dir != "" {
+			if stat, err := os.Stat(dir); err != nil {
+				log.Fatalf("Profiling path %s error %s", dir, err)
+			} else if !stat.IsDir() {
+				logrus.Fatalf("Profiling path %s exists but is not a directory", dir)
+			} else {
+				return dir, true
+			}
+		}
+		return "", false
+	}()
+	if ruleProfileEnabled {
+		logrus.Infof("Enabling rule profiling to %s", ruleProfileDir)
+	}
+	// spawn logger routine here
+
 	if err := dispatch.Run(dispatch.Config{
 		Async:   false,
 		Workers: viper.GetInt("sigma.workers"),
@@ -406,6 +424,7 @@ func run(cmd *cobra.Command, args []string) {
 					defer wg.Done()
 					ruleset, err := sigma.NewRuleset(sigma.Config{
 						Directory: viper.GetStringSlice("rules.dir"),
+						Profile:   ruleProfileEnabled,
 					})
 					if err != nil {
 						return err
@@ -448,6 +467,35 @@ func run(cmd *cobra.Command, args []string) {
 							}
 							workerStatCh <- *s
 							s = newTimeStats(id, ruleset.Ok)
+						}
+					}
+					// TODO - refactor
+					if ruleProfileEnabled {
+						logrus.Infof("Worker %d rule profiling enabled", id)
+					loop2:
+						for k, v := range ruleset.Measurements {
+							logrus.Infof("Worker %d dumping rule %s with %d measurements", id, k, v.Len())
+							p := path.Join(ruleProfileDir, fmt.Sprintf("worker-%d-rule-%s.json", id, k))
+							handle, err := os.Create(p)
+							if err != nil {
+								logrus.Fatal(err)
+							}
+							for e := v.Front(); e != nil; e = e.Next() {
+								select {
+								case <-ctx.Done():
+									break loop2
+								default:
+								}
+								val := e.Value.(sigma.RuleProfileItem)
+								b, err := json.Marshal(val)
+								if err != nil {
+									logrus.Fatal(err)
+								}
+								b = append(b, []byte("\n")...)
+								handle.Write(b)
+							}
+							handle.Sync()
+							handle.Close()
 						}
 					}
 					return nil
@@ -520,4 +568,9 @@ func init() {
 		`Destination file for storing events that match a sigma rule.`)
 	viper.BindPFlag("sigma.emit.file",
 		runCmd.PersistentFlags().Lookup("sigma-emit-file"))
+
+	runCmd.PersistentFlags().String("sigma-rule-profile-dir", "",
+		`Destination directory for storing per rule profiling information.`)
+	viper.BindPFlag("sigma.rule.profile.dir",
+		runCmd.PersistentFlags().Lookup("sigma-rule-profile-dir"))
 }
