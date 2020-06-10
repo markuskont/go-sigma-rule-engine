@@ -182,6 +182,48 @@ func (s DynamicMap) Select(key string) (interface{}, bool) {
 }
 ```
 
+Static structs for well-standardized event formats may simply handle these lookups manually.
+
+```go
+type Syslog struct {
+	Timestamp time.Time `json:"@timestamp"`
+	Host      string    `json:"host"`
+	Program   string    `json:"program"`
+	Pid       int       `json:"pid"`
+	Severity  int       `json:"severity"`
+	Facility  int       `json:"facility"`
+	Sender    net.IP    `json:"ip"`
+
+	Message `json:"message"`
+}
+
+func (m Syslog) Select(key string) (interface{}, bool) {
+	switch key {
+	case "timestamp", "@timestamp":
+		return m.Timestamp, true
+	case "host":
+		return m.Host, true
+	case "program":
+		return m.Program, true
+	case "pid":
+		return m.Pid, true
+	case "severity":
+		return m.Severity, true
+	case "facility":
+		return m.Facility, true
+	case "sender":
+		if m.Sender == nil {
+			return nil, false
+		}
+		return m.Sender.String(), true
+	case "message", "msg":
+		return m.Keywords(), true
+	default:
+		return nil, false
+	}
+}
+```
+
 # Performance
 
 ```go
@@ -200,3 +242,13 @@ BenchmarkTreeNegative4-12         819126              1417 ns/op
 BenchmarkTreeNegative5-12         748514              1416 ns/op
 BenchmarkTreeNegative6-12         856683              1382 ns/op
 ```
+
+# Limitations
+
+**Ruleset is not thread safe**. Nor can it be easily deep-copied due to possible pointers behind interfaces and pattern containers. Each worker thread should instantiate independent ruleset. However, public sigma ruleset only produces about ~500 rules, so overhead is currently trivial.
+
+**Library is built around distinct rules, rather than entire ruleset**. That means that each rule could run separate map lookups and no data is shared between them. While individual rules are quite efficient, even in current unoptimized form, passing each event thought entire ruleset means traversing hundreds of rules. Thus having significant performance overhead. For example, we measured that passing an ECS formatted Windows EventLog message through all Windows rules in public Sigma ruleset took 4.5 times the amount of time that was otherwise spent on simply decoding the message.
+
+**Ruleset splitting and pre-filtering must be handled by the user.** Sigma has `logsource` field to indicate which events should be evaluated against a rule. We simply handled this externally, parsing rules into a map of smaller rulesets. So, we had separate rulesets for Syslog, Snoopy, Suricata and EventLog. Logsource field was used to determine which ruleset was executed for event.
+
+**No support for aggregations or event correlation.** Relatively small amount of Sigma rules use aggregations with `count() > N` or `Near()` keywords. Implementing them in streaming scenario is quite complex, as they require sharing state between messages over sliding window. Thus requiring full event correlation to be implemented. However, this did not fit our present concurrency model where N workers load balance over common message channel and no information is shared between them. Future work.
