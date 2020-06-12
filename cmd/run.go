@@ -408,7 +408,7 @@ func run(cmd *cobra.Command, args []string) {
 						Directory: viper.GetStringSlice("rules.dir"),
 					})
 					if err != nil {
-						return err
+						logrus.Fatal(err)
 					}
 					logrus.Debugf("Worker %d Found %d files, %d ok, %d failed, %d unsupported",
 						id, ruleset.Total, ruleset.Ok, ruleset.Failed, ruleset.Unsupported)

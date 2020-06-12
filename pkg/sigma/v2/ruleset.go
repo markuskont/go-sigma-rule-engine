@@ -1,6 +1,9 @@
 package sigma
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 // Config is used as argument to creating a new ruleset
 type Config struct {
@@ -17,6 +20,15 @@ func (c Config) validate() error {
 	if c.Directory == nil || len(c.Directory) == 0 {
 		return fmt.Errorf("Missing root directory for sigma rules")
 	}
+	for _, dir := range c.Directory {
+		info, err := os.Stat(dir)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%s does not exist", dir)
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("%s is not a directory", dir)
+		}
+	}
 	return nil
 }
 
@@ -30,6 +42,9 @@ type Ruleset struct {
 
 // NewRuleset instanciates a Ruleset object
 func NewRuleset(c Config) (*Ruleset, error) {
+	if err := c.validate(); err != nil {
+		return nil, err
+	}
 	files, err := NewRuleFileList(c.Directory)
 	if err != nil {
 		return nil, err
