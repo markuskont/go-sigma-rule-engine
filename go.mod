@@ -1,6 +1,6 @@
-module github.com/markuskont/go-sigma-rule-engine
+module go-sigma-rule-engine
 
-go 1.13
+go 1.15
 
 require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
@@ -9,6 +9,7 @@ require (
 	github.com/json-iterator/go v1.1.9
 	github.com/kr/text v0.2.0 // indirect
 	github.com/markuskont/go-dispatch v0.0.0-20200515094439-8288130f278f
+	github.com/markuskont/go-sigma-rule-engine v0.0.0-20200612201953-8e55ad01aa3a
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

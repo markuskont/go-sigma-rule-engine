@@ -16,7 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma/v2"
+	"go-sigma-rule-engine/pkg/sigma/v2"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
