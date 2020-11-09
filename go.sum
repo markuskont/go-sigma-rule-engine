@@ -141,8 +141,6 @@ github.com/magiconair/properties v1.8.1 h1:ZC2Vc7/ZFkGmsVC9KvOjumD+G5lXy2RtTKyzR
 github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/markuskont/go-dispatch v0.0.0-20200515094439-8288130f278f h1:iP9ctpzIqBF3+CN7GzzKbgoIa5CIjSgh87N63gXPxzQ=
 github.com/markuskont/go-dispatch v0.0.0-20200515094439-8288130f278f/go.mod h1:s1cdXpjf4UmLHaLGf/2ZRhm/qIHw/ChenI+MXs8VTxA=
-github.com/markuskont/go-sigma-rule-engine v0.0.0-20200612201953-8e55ad01aa3a h1:ErexiS2WlhjmV0s1w52mv0VEEgEMJgwwonkrwvuud+8=
-github.com/markuskont/go-sigma-rule-engine v0.0.0-20200612201953-8e55ad01aa3a/go.mod h1:IKQbYoaqIFE8T2852owXaTPhbHDn3aynrNsjSlBL41w=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-isatty v0.0.3/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNxMWT7Zi4=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
