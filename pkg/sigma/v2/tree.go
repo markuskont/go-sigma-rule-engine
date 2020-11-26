@@ -14,7 +14,11 @@ type Tree struct {
 
 // Match implements Matcher
 func (t Tree) Match(e Event) bool {
-	return t.Root.Match(e)
+	match, applicable := t.Root.Match(e)
+	if !applicable {
+		return false
+	}
+	return match
 }
 
 func (t Tree) Eval(e Event) (*Result, bool) {

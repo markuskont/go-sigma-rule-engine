@@ -389,13 +389,15 @@ func TestParseIdent(t *testing.T) {
 				t.Fatalf("ident case %d nil rule pointer", i+1)
 			}
 			for j, c := range cases.Pos {
-				if !rule.Match(c) {
+				m, _ := rule.Match(c)
+				if !m {
 					t.Fatalf("ident case %d positive test case %d did not match %s",
 						i+1, j+1, c)
 				}
 			}
 			for j, c := range cases.Neg {
-				if rule.Match(c) {
+				m, _ := rule.Match(c)
+				if m {
 					t.Fatalf("ident case %d negative test case %d did not match %s",
 						i+1, j+1, c)
 				}
@@ -406,13 +408,15 @@ func TestParseIdent(t *testing.T) {
 				t.Fatalf("ident case %d nil rule pointer", i+1)
 			}
 			for j, c := range cases.Pos {
-				if !rule.Match(c) {
+				m, _ := rule.Match(c)
+				if !m {
 					t.Fatalf("ident case %d positive test case %d did not match %s",
 						i+1, j+1, c)
 				}
 			}
 			for j, c := range cases.Neg {
-				if rule.Match(c) {
+				m, _ := rule.Match(c)
+				if m {
 					t.Fatalf("ident case %d negative test case %d did not match %s",
 						i+1, j+1, c)
 				}

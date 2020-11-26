@@ -76,17 +76,17 @@ type Keyword struct {
 }
 
 // Match implements Matcher
-func (k Keyword) Match(msg Event) bool {
+func (k Keyword) Match(msg Event) (bool, bool) {
 	msgs, ok := msg.Keywords()
 	if !ok {
-		return false
+		return false, false
 	}
 	for _, m := range msgs {
 		if k.S.StringMatch(m) {
-			return true
+			return true, true
 		}
 	}
-	return false
+	return false, true
 }
 
 func NewKeyword(expr interface{}) (*Keyword, error) {
@@ -147,71 +147,71 @@ type Selection struct {
 
 // Match implements Matcher
 // TODO - numeric and boolean pattern match
-func (s Selection) Match(msg Event) bool {
+func (s Selection) Match(msg Event) (bool, bool) {
 	for _, v := range s.N {
 		val, ok := msg.Select(v.Key)
 		if !ok {
-			return false
+			return false, false
 		}
 		switch vt := val.(type) {
 		case float64:
 			// JSON numbers are all by spec float64 values
 			if !v.Pattern.NumMatch(int(vt)) {
-				return false
+				return false, true
 			}
 		case int:
 			// JSON numbers are all by spec float64 values
 			if !v.Pattern.NumMatch(vt) {
-				return false
+				return false, true
 			}
 		case int64:
 			// JSON numbers are all by spec float64 values
 			if !v.Pattern.NumMatch(int(vt)) {
-				return false
+				return false, true
 			}
 		case int32:
 			// JSON numbers are all by spec float64 values
 			if !v.Pattern.NumMatch(int(vt)) {
-				return false
+				return false, true
 			}
 		case uint:
 			// JSON numbers are all by spec float64 values
 			if !v.Pattern.NumMatch(int(vt)) {
-				return false
+				return false, true
 			}
 		case uint32:
 			// JSON numbers are all by spec float64 values
 			if !v.Pattern.NumMatch(int(vt)) {
-				return false
+				return false, true
 			}
 		case uint64:
 			// JSON numbers are all by spec float64 values
 			if !v.Pattern.NumMatch(int(vt)) {
-				return false
+				return false, true
 			}
 		}
 	}
 	for _, v := range s.S {
 		val, ok := msg.Select(v.Key)
 		if !ok {
-			return false
+			return false, false
 		}
 		switch vt := val.(type) {
 		case string:
 			if !v.Pattern.StringMatch(vt) {
-				return false
+				return false, true
 			}
 		case float64:
 			// TODO - tmp hack that also loses floating point accuracy
 			if !v.Pattern.StringMatch(strconv.Itoa(int(vt))) {
-				return false
+				return false, true
 			}
 		default:
 			s.incrementMismatchCount()
-			return false
+			return false, true
 		}
 	}
-	return true
+	return true, true
 }
 
 func (s *Selection) incrementMismatchCount() *Selection {

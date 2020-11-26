@@ -249,6 +249,53 @@ var detection7_negative2 = `
 }
 `
 
+var detection8 = `
+detection:
+  condition: "selection1 and not selection3"
+  selection1:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bitsadmin.exe'
+    - '*\mshta.exe'
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+  selection3:
+    CommandLine: "+R +H +S +A *.cui"
+`
+
+var detection8_positive = `
+{
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"CommandLine": "+R +H +A asd.cui",
+	"ParentImage": "C:\\test\\wmiprvse.exe",
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"CommandLine": "aaa",
+	"ParentImage": "C:\\test\\wmiprvse.exe"
+}
+`
+
+var detection8_negative1 = `
+{
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"CommandLine": "+R +H +S +A lll.cui",
+	"ParentImage": "C:\\test\\mshta.exe"
+}
+`
+var detection8_negative2 = `
+{
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"ParentImage": "C:\\test\\mshta.exe"
+}
+`
+
 type parseTestCase struct {
 	Rule     string
 	Pos, Neg []string
@@ -289,6 +336,11 @@ var parseTestCases = []parseTestCase{
 		Rule: detection7,
 		Pos:  []string{detection3_positive1, detection3_positive2},
 		Neg:  []string{detection7_negative1, detection7_negative2},
+	},
+	{
+		Rule: detection8,
+		Pos:  []string{detection8_positive},
+		Neg:  []string{detection8_negative1, detection8_negative2},
 	},
 }
 
@@ -335,7 +387,8 @@ func TestParse(t *testing.T) {
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
 				t.Fatalf("rule parser case %d positive case json unmarshal error %s", i+1, err)
 			}
-			if !p.result.Match(obj) {
+			m, _ := p.result.Match(obj)
+			if !m {
 				t.Fatalf("rule parser case %d positive case did not match", i+1)
 			}
 		}
@@ -344,7 +397,8 @@ func TestParse(t *testing.T) {
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
 				t.Fatalf("rule parser case %d positive case json unmarshal error %s", i+1, err)
 			}
-			if p.result.Match(obj) {
+			m, _ := p.result.Match(obj)
+			if m {
 				t.Fatalf("rule parser case %d negative case matched", i+1)
 			}
 		}

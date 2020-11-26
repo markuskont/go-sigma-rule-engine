@@ -4,13 +4,14 @@ package sigma
 type NodeSimpleAnd []Branch
 
 // Match implements Matcher
-func (n NodeSimpleAnd) Match(e Event) bool {
+func (n NodeSimpleAnd) Match(e Event) (bool, bool) {
 	for _, b := range n {
-		if !b.Match(e) {
-			return false
+		match, applicable := b.Match(e)
+		if !match || !applicable {
+			return match, applicable
 		}
 	}
-	return true
+	return true, true
 }
 
 // Reduce cleans up unneeded slices
@@ -43,13 +44,18 @@ func (n NodeSimpleOr) Reduce() Branch {
 }
 
 // Match implements Matcher
-func (n NodeSimpleOr) Match(e Event) bool {
+func (n NodeSimpleOr) Match(e Event) (bool, bool) {
+	var oneApplicable bool
 	for _, b := range n {
-		if b.Match(e) {
-			return true
+		match, applicable := b.Match(e)
+		if match {
+			return true, true
+		}
+		if applicable {
+			oneApplicable = true
 		}
 	}
-	return false
+	return false, oneApplicable
 }
 
 // NodeNot negates a branch
@@ -58,8 +64,12 @@ type NodeNot struct {
 }
 
 // Match implements Matcher
-func (n NodeNot) Match(e Event) bool {
-	return !n.B.Match(e)
+func (n NodeNot) Match(e Event) (bool, bool) {
+	match, applicable := n.B.Match(e)
+	if !applicable {
+		return match, applicable
+	}
+	return !match, applicable
 }
 
 // NodeAnd is a two element node of a binary tree with Left and Right branches
@@ -69,8 +79,13 @@ type NodeAnd struct {
 }
 
 // Match implements Matcher
-func (n NodeAnd) Match(e Event) bool {
-	return n.L.Match(e) && n.R.Match(e)
+func (n NodeAnd) Match(e Event) (bool, bool) {
+	lMatch, lApplicable := n.L.Match(e)
+	if !lMatch {
+		return false, lApplicable
+	}
+	rMatch, rApplicable := n.R.Match(e)
+	return lMatch && rMatch, lApplicable && rApplicable
 }
 
 // NodeOr is a two element node of a binary tree with Left and Right branches
@@ -80,8 +95,13 @@ type NodeOr struct {
 }
 
 // Match implements Matcher
-func (n NodeOr) Match(e Event) bool {
-	return n.L.Match(e) || n.R.Match(e)
+func (n NodeOr) Match(e Event) (bool, bool) {
+	lMatch, lApplicable := n.L.Match(e)
+	if lMatch {
+		return true, lApplicable
+	}
+	rMatch, rApplicable := n.R.Match(e)
+	return lMatch || rMatch, lApplicable || rApplicable
 }
 
 func newNodeNotIfNegated(b Branch, negated bool) Branch {
