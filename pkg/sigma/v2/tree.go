@@ -22,10 +22,10 @@ func (t Tree) Eval(e Event) (*Result, bool) {
 	if !applicable {
 		return nil, false
 	}
+	if t.Rule == nil && match {
+		return &Result{}, true
+	}
 	if match {
-		if t.Rule == nil {
-			return &Result{}, true
-		}
 		return &Result{
 			ID:    t.Rule.ID,
 			Title: t.Rule.Title,
