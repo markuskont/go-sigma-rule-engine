@@ -154,6 +154,15 @@ func (s Selection) Match(msg Event) (bool, bool) {
 			return false, false
 		}
 		switch vt := val.(type) {
+		case string:
+			n, err := strconv.Atoi(vt)
+			if err != nil {
+				// TODO - better debugging
+				return false, true
+			}
+			if !v.Pattern.NumMatch(n) {
+				return false, true
+			}
 		case float64:
 			// JSON numbers are all by spec float64 values
 			if !v.Pattern.NumMatch(int(vt)) {
