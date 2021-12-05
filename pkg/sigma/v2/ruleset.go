@@ -88,15 +88,6 @@ loop:
 	}, nil
 }
 
-func (r Ruleset) Match(e Event) bool {
-	for _, rule := range r.Rules {
-		if rule.Match(e) {
-			return true
-		}
-	}
-	return false
-}
-
 func (r Ruleset) EvalAll(e Event) (Results, bool) {
 	results := make(Results, 0)
 	for _, rule := range r.Rules {

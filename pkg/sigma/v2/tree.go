@@ -13,16 +13,16 @@ type Tree struct {
 }
 
 // Match implements Matcher
-func (t Tree) Match(e Event) bool {
-	match, applicable := t.Root.Match(e)
-	if !applicable {
-		return false
-	}
-	return match
+func (t Tree) Match(e Event) (bool, bool) {
+	return t.Root.Match(e)
 }
 
 func (t Tree) Eval(e Event) (*Result, bool) {
-	if t.Match(e) {
+	match, applicable := t.Match(e)
+	if !applicable {
+		return nil, false
+	}
+	if match {
 		if t.Rule == nil {
 			return &Result{}, true
 		}

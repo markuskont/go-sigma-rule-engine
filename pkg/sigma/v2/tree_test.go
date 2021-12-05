@@ -24,7 +24,8 @@ func TestTreeParse(t *testing.T) {
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
 				t.Fatalf("tree parsercase %d positive case json unmarshal error %s", i+1, err)
 			}
-			if !p.Match(obj) {
+			match, _ := p.Match(obj)
+			if !match {
 				t.Fatalf("tree parser case %d positive case did not match", i+1)
 			}
 		}
@@ -33,7 +34,8 @@ func TestTreeParse(t *testing.T) {
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
 				t.Fatalf("tree parser case %d positive case json unmarshal error %s", i+1, err)
 			}
-			if p.Match(obj) {
+			match, _ := p.Match(obj)
+			if match {
 				t.Fatalf("tree parser case %d negative case matched", i+1)
 			}
 		}
