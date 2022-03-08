@@ -15,13 +15,14 @@ const (
 	TextPatternPrefix
 	TextPatternSuffix
 	TextPatternAll
+	TextPatternRegex
 )
 
-func isValidSpecifier(in string) bool {
-	return in == "contains" ||
-		in == "endswith" ||
-		in == "startswith"
-}
+// func isValidSpecifier(in string) bool {
+// 	return in == "contains" ||
+// 		in == "endswith" ||
+// 		in == "startswith"
+// }
 
 // NumMatcher is an atomic pattern for numeric item or list of items
 type NumMatcher interface {
@@ -85,6 +86,12 @@ func NewStringMatcher(
 			matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
 		} else {
 			switch mod {
+			case TextPatternRegex: //regex per spec
+				re, err := regexp.Compile(p)
+				if err != nil {
+					return nil, err
+				}
+				matcher = append(matcher, RegexPattern{Re: re})
 			case TextPatternSuffix:
 				matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
 			case TextPatternPrefix:
@@ -189,8 +196,8 @@ type PrefixPattern struct {
 // StringMatch implements StringMatcher
 func (c PrefixPattern) StringMatch(msg string) bool {
 	return strings.HasPrefix(
-		lowerCaseIfNeeded(c.Token, c.Lowercase),
 		lowerCaseIfNeeded(msg, c.Lowercase),
+		lowerCaseIfNeeded(c.Token, c.Lowercase),
 	)
 }
 

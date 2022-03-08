@@ -235,24 +235,27 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 		var all bool
 		if strings.Contains(key, "|") {
 			bits := strings.Split(key, "|")
-			if length := len(bits); length < 2 || length > 3 {
-				return nil, fmt.Errorf(
-					"selection key %s invalid. Specifier should result in 2 or 3 sections", key)
-			}
-			if !isValidSpecifier(bits[1]) {
-				return nil, fmt.Errorf("selection key %s specifier %s invalid",
-					key, bits[1])
-			}
-			switch bits[1] {
-			case "startswith":
-				mod = TextPatternPrefix
-			case "endswith":
-				mod = TextPatternSuffix
-			case "contains":
-				if len(bits) == 3 && bits[2] == "all" {
+			// allow support for longer chaining later on; simplifies specifier validation as well (I think)
+			for _, curBit := range bits[1:] {
+				//excepting 'all', the supported modifiers are mutually exclusive; last one wins
+				switch curBit {
+				case "startswith":
+					mod = TextPatternPrefix
+				case "endswith":
+					mod = TextPatternSuffix
+				case "re":
+					mod = TextPatternRegex //this is really a type, not a transformation per spec
+				case "contains":
+					mod = TextPatternContains
+				case "all":
 					all = true
+				default:
+					return nil, fmt.Errorf("selection key %s specifier %s invalid",
+						key, curBit)
 				}
 			}
+			//strip off the specifier from the key so we can look it up correctly
+			key = bits[0]
 		}
 		switch pat := pattern.(type) {
 		case string:
