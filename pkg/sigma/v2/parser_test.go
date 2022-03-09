@@ -296,6 +296,72 @@ var detection8_negative2 = `
 }
 `
 
+var detection9 = `
+detection:
+  condition: "selection"
+  selection:
+    - PipeName|re: '\\\\SomePipeName[0-9a-f]{2}'
+    - PipeName|re: '\\\\AnotherPipeName[a-z0-9]{2}'
+`
+
+var detection9_positive = `
+{
+	"PipeName":       "\\\\SomePipeNamea4"
+}
+`
+
+var detection9_negative = `
+{
+	"PipeName":       "\\\\SomePipeNameZZ"
+}
+`
+
+var detection10 = `
+detection:
+  condition: "selection1 and selection2"
+  selection1:
+    - SomeName|startswith: 'TestStart'
+  selection2:
+    - SomeName|endswith: 'TestEnd'
+`
+
+var detection10_positive = `
+{
+	"SomeName":       "TestStart-Value-TestEnd"
+}
+`
+
+var detection10_negative = `
+{
+	"SomeName":       "TestStart-Value"
+}
+`
+
+var detection11 = `
+detection:
+  condition: "selection1 and selection2"
+  selection1:
+    SomeName|contains|all: 
+      - 'mark1'
+      - 'mark2'
+  selection2:
+    SomeName|contains:
+      - 'version1'
+      - 'version2'
+`
+
+var detection11_positive = `
+{
+	"SomeName":       "Some mark1 mark2 String version2"
+}
+`
+
+var detection11_negative = `
+{
+	"SomeName":       "mark1 mark2 mark3 non-matching string"
+}
+`
+
 type parseTestCase struct {
 	Rule     string
 	Pos, Neg []string
@@ -341,6 +407,21 @@ var parseTestCases = []parseTestCase{
 		Rule: detection8,
 		Pos:  []string{detection8_positive},
 		Neg:  []string{detection8_negative1, detection8_negative2},
+	},
+	{
+		Rule: detection9,
+		Pos:  []string{detection9_positive},
+		Neg:  []string{detection9_negative},
+	},
+	{
+		Rule: detection10,
+		Pos:  []string{detection10_positive},
+		Neg:  []string{detection10_negative},
+	},
+	{
+		Rule: detection11,
+		Pos:  []string{detection11_positive},
+		Neg:  []string{detection11_negative},
 	},
 }
 
