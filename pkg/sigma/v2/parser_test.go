@@ -301,18 +301,20 @@ detection:
   condition: "selection"
   selection:
     - PipeName|re: '\\\\SomePipeName[0-9a-f]{2}'
-    - PipeName|re: '\\\\AnotherPipeName[a-z0-9]{2}'
+    - PipeName2|re: '\\\\AnotherPipe[0-9a-f]*Name'
 `
 
 var detection9_positive = `
 {
-	"PipeName":       "\\\\SomePipeNamea4"
+	"PipeName":       "\\\\SomePipeNamea4",
+	"PipeName2":       "\\\\AnotherPipe0af3Name"
 }
 `
 
 var detection9_negative = `
 {
-	"PipeName":       "\\\\SomePipeNameZZ"
+	"PipeName":       "\\\\SomePipeNameZZ",
+	"PipeName2":       "\\\\AnotherPipe01zzName"
 }
 `
 

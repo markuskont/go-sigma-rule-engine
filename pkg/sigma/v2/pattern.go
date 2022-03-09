@@ -76,13 +76,13 @@ func NewStringMatcher(
 	}
 	matcher := make([]StringMatcher, 0)
 	for _, p := range patterns {
-		if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
+		if mod != TextPatternRegex && (strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/")) {
 			re, err := regexp.Compile(strings.TrimLeft(strings.TrimRight(p, "/"), "/"))
 			if err != nil {
 				return nil, err
 			}
 			matcher = append(matcher, RegexPattern{Re: re})
-		} else if strings.Contains(p, "*") {
+		} else if mod != TextPatternRegex && strings.Contains(p, "*") {
 			matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
 		} else {
 			switch mod {
