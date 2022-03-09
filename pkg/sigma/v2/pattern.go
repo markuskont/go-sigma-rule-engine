@@ -71,7 +71,7 @@ func NewStringMatcher(
 	lower, all bool,
 	patterns ...string,
 ) (StringMatcher, error) {
-	if patterns == nil || len(patterns) == 0 {
+	if len(patterns) == 0 {
 		return nil, fmt.Errorf("no patterns defined for matcher object")
 	}
 	matcher := make([]StringMatcher, 0)
@@ -83,6 +83,10 @@ func NewStringMatcher(
 			}
 			matcher = append(matcher, RegexPattern{Re: re})
 		} else if mod != TextPatternRegex && strings.Contains(p, "*") {
+			//I think there may be a bug here with GlobPatterns - the sigma spec says you can escape * as \*,
+			//however, I don't think the underlying GlobPattern matcher respects this...
+			//may need to switch to something like glob.go (github.com/gobwas/glob) that /seems/ to support escaping
+			//and is MIT licensed as well
 			matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
 		} else {
 			switch mod {
@@ -92,6 +96,9 @@ func NewStringMatcher(
 					return nil, err
 				}
 				matcher = append(matcher, RegexPattern{Re: re})
+			case TextPatternContains: //contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
+				p = "*" + p + "*"
+				matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
 			case TextPatternSuffix:
 				matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
 			case TextPatternPrefix:
@@ -181,10 +188,7 @@ type ContentPattern struct {
 
 // StringMatch implements StringMatcher
 func (c ContentPattern) StringMatch(msg string) bool {
-	return strings.Contains(
-		lowerCaseIfNeeded(msg, c.Lowercase),
-		lowerCaseIfNeeded(c.Token, c.Lowercase),
-	)
+	return lowerCaseIfNeeded(msg, c.Lowercase) == lowerCaseIfNeeded(c.Token, c.Lowercase)
 }
 
 // PrefixPattern is a token for literal content matching
