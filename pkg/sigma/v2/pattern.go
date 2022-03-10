@@ -11,7 +11,8 @@ import (
 type TextPatternModifier int
 
 const (
-	TextPatternContains TextPatternModifier = iota
+	TextPatternNone TextPatternModifier = iota
+	TextPatternContains
 	TextPatternPrefix
 	TextPatternSuffix
 	TextPatternAll
