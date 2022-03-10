@@ -364,6 +364,33 @@ var detection11_negative = `
 }
 `
 
+var detection12 = `
+detection:
+  condition: "selection1 and selection2"
+  selection1:
+    SomeKey|contains|all:
+      - 'val1'
+      - 'val2'
+  selection2:
+    SomeKey2:
+      - 'mustMatch1'
+      - 'mustMatch2'
+`
+
+var detection12_positive = `
+{
+	"SomeKey":       "val1 val2",
+	"SomeKey2":      "mustMatch1"
+}
+`
+
+var detection12_negative = `
+{
+	"SomeKey":       "val1 val2",
+	"SomeKey2":      "mustMatch3"
+}
+`
+
 type parseTestCase struct {
 	Rule     string
 	Pos, Neg []string
@@ -424,6 +451,11 @@ var parseTestCases = []parseTestCase{
 		Rule: detection11,
 		Pos:  []string{detection11_positive},
 		Neg:  []string{detection11_negative},
+	},
+	{
+		Rule: detection12,
+		Pos:  []string{detection12_positive},
+		Neg:  []string{detection12_negative},
 	},
 }
 

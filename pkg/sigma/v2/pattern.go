@@ -76,34 +76,36 @@ func NewStringMatcher(
 	}
 	matcher := make([]StringMatcher, 0)
 	for _, p := range patterns {
-		if mod != TextPatternRegex && (strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/")) {
-			re, err := regexp.Compile(strings.TrimLeft(strings.TrimRight(p, "/"), "/"))
+		//process modifiers first
+		switch mod {
+		case TextPatternRegex: //regex per spec
+			re, err := regexp.Compile(p)
 			if err != nil {
 				return nil, err
 			}
 			matcher = append(matcher, RegexPattern{Re: re})
-		} else if mod != TextPatternRegex && strings.Contains(p, "*") {
-			//I think there may be a bug here with GlobPatterns - the sigma spec says you can escape * as \*,
-			//however, I don't think the underlying GlobPattern matcher respects this...
-			//may need to switch to something like glob.go (github.com/gobwas/glob) that /seems/ to support escaping
-			//and is MIT licensed as well
+		case TextPatternContains: //contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
+			p = "*" + p + "*"
 			matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
-		} else {
-			switch mod {
-			case TextPatternRegex: //regex per spec
-				re, err := regexp.Compile(p)
+		case TextPatternSuffix:
+			matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
+		case TextPatternPrefix:
+			matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower})
+		default:
+			//no (supported) modifiers, handle non-spec regex, globs and regular values
+			if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
+				re, err := regexp.Compile(strings.TrimLeft(strings.TrimRight(p, "/"), "/"))
 				if err != nil {
 					return nil, err
 				}
 				matcher = append(matcher, RegexPattern{Re: re})
-			case TextPatternContains: //contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
-				p = "*" + p + "*"
+			} else if strings.Contains(p, "*") {
+				//I think there may be a bug here with GlobPatterns - the sigma spec says you can escape * as \*,
+				//however, I don't think the underlying GlobPattern matcher respects this...
+				//may need to switch to something like glob.go (github.com/gobwas/glob) that /seems/ to support escaping
+				//and is MIT licensed as well
 				matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
-			case TextPatternSuffix:
-				matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
-			case TextPatternPrefix:
-				matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower})
-			default:
+			} else {
 				matcher = append(matcher, ContentPattern{Token: p, Lowercase: lower})
 			}
 		}
