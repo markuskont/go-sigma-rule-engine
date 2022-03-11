@@ -204,6 +204,7 @@ func extractAndBuildBranches(d Detection, g string) ([]Branch, error) {
 func extractWildcardIdents(d Detection, g string) ([]interface{}, error) {
 	rules := make([]interface{}, 0)
 	for k, v := range d {
+		//I don't think this needs to use the other glob library?
 		if glob.Glob(g, k) {
 			rules = append(rules, v)
 		}

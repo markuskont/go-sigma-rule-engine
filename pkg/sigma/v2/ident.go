@@ -92,7 +92,7 @@ func (k Keyword) Match(msg Event) (bool, bool) {
 func NewKeyword(expr interface{}) (*Keyword, error) {
 	switch val := expr.(type) {
 	case []string:
-		return newStringKeyword(TextPatternContains, false, val...)
+		return newStringKeyword(TextPatternKeyword, false, val...)
 	case []interface{}:
 		k, ok := isSameKind(val)
 		if !ok {
@@ -105,7 +105,7 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 		}
 		switch v := k; {
 		case v == reflect.String:
-			return newStringKeyword(TextPatternContains, false, castIfaceToString(val)...)
+			return newStringKeyword(TextPatternKeyword, false, castIfaceToString(val)...)
 		default:
 			return nil, ErrInvalidKind{
 				Kind:     v,

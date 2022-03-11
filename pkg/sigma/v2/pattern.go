@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ryanuber/go-glob"
+	globng "github.com/gobwas/glob"
 )
 
 type TextPatternModifier int
@@ -17,6 +17,7 @@ const (
 	TextPatternSuffix
 	TextPatternAll
 	TextPatternRegex
+	TextPatternKeyword
 )
 
 // func isValidSpecifier(in string) bool {
@@ -87,7 +88,11 @@ func NewStringMatcher(
 			matcher = append(matcher, RegexPattern{Re: re})
 		case TextPatternContains: //contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
 			p = "*" + p + "*"
-			matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
+			globNG, err := globng.Compile(p)
+			if err != nil {
+				return nil, err
+			}
+			matcher = append(matcher, GlobPattern{Glob: &globNG})
 		case TextPatternSuffix:
 			matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
 		case TextPatternPrefix:
@@ -100,12 +105,23 @@ func NewStringMatcher(
 					return nil, err
 				}
 				matcher = append(matcher, RegexPattern{Re: re})
+			} else if mod == TextPatternKeyword {
+				//this is a bit hacky, basically if the pattern coming in is a keyword and did not appear
+				//to be a regex, always process it as a 'contains' style glob (can appear anywhere...)
+				//this is due, I believe, on how keywords are generally handled, where it is likely a random
+				//string or event long message that may have additional detail/etc...
+				p = "*" + p + "*"
+				globNG, err := globng.Compile(p)
+				if err != nil {
+					return nil, err
+				}
+				matcher = append(matcher, GlobPattern{Glob: &globNG})
 			} else if strings.Contains(p, "*") {
-				//I think there may be a bug here with GlobPatterns - the sigma spec says you can escape * as \*,
-				//however, I don't think the underlying GlobPattern matcher respects this...
-				//may need to switch to something like glob.go (github.com/gobwas/glob) that /seems/ to support escaping
-				//and is MIT licensed as well
-				matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
+				globNG, err := globng.Compile(p)
+				if err != nil {
+					return nil, err
+				}
+				matcher = append(matcher, GlobPattern{Glob: &globNG})
 			} else {
 				matcher = append(matcher, ContentPattern{Token: p, Lowercase: lower})
 			}
@@ -234,16 +250,12 @@ func (r RegexPattern) StringMatch(msg string) bool {
 
 // GlobPattern is similar to ContentPattern but allows for asterisk wildcards
 type GlobPattern struct {
-	Token     string
-	Lowercase bool
+	Glob *globng.Glob
 }
 
 // StringMatch implements StringMatcher
 func (g GlobPattern) StringMatch(msg string) bool {
-	return glob.Glob(
-		lowerCaseIfNeeded(g.Token, g.Lowercase),
-		lowerCaseIfNeeded(msg, g.Lowercase),
-	)
+	return (*g.Glob).Match(msg)
 }
 
 // SimplePattern is a reference type to illustrate StringMatcher
