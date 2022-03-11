@@ -5,17 +5,19 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ryanuber/go-glob"
+	globng "github.com/gobwas/glob"
 )
 
 type TextPatternModifier int
 
 const (
-	TextPatternContains TextPatternModifier = iota
+	TextPatternNone TextPatternModifier = iota
+	TextPatternContains
 	TextPatternPrefix
 	TextPatternSuffix
 	TextPatternAll
 	TextPatternRegex
+	TextPatternKeyword
 )
 
 // func isValidSpecifier(in string) bool {
@@ -71,32 +73,56 @@ func NewStringMatcher(
 	lower, all bool,
 	patterns ...string,
 ) (StringMatcher, error) {
-	if patterns == nil || len(patterns) == 0 {
+	if len(patterns) == 0 {
 		return nil, fmt.Errorf("no patterns defined for matcher object")
 	}
 	matcher := make([]StringMatcher, 0)
 	for _, p := range patterns {
-		if mod != TextPatternRegex && (strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/")) {
-			re, err := regexp.Compile(strings.TrimLeft(strings.TrimRight(p, "/"), "/"))
+		//process modifiers first
+		switch mod {
+		case TextPatternRegex: //regex per spec
+			re, err := regexp.Compile(p)
 			if err != nil {
 				return nil, err
 			}
 			matcher = append(matcher, RegexPattern{Re: re})
-		} else if mod != TextPatternRegex && strings.Contains(p, "*") {
-			matcher = append(matcher, GlobPattern{Token: p, Lowercase: lower})
-		} else {
-			switch mod {
-			case TextPatternRegex: //regex per spec
-				re, err := regexp.Compile(p)
+		case TextPatternContains: //contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
+			p = "*" + p + "*"
+			globNG, err := globng.Compile(p)
+			if err != nil {
+				return nil, err
+			}
+			matcher = append(matcher, GlobPattern{Glob: &globNG})
+		case TextPatternSuffix:
+			matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
+		case TextPatternPrefix:
+			matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower})
+		default:
+			//no (supported) modifiers, handle non-spec regex, globs and regular values
+			if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
+				re, err := regexp.Compile(strings.TrimLeft(strings.TrimRight(p, "/"), "/"))
 				if err != nil {
 					return nil, err
 				}
 				matcher = append(matcher, RegexPattern{Re: re})
-			case TextPatternSuffix:
-				matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
-			case TextPatternPrefix:
-				matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower})
-			default:
+			} else if mod == TextPatternKeyword {
+				//this is a bit hacky, basically if the pattern coming in is a keyword and did not appear
+				//to be a regex, always process it as a 'contains' style glob (can appear anywhere...)
+				//this is due, I believe, on how keywords are generally handled, where it is likely a random
+				//string or event long message that may have additional detail/etc...
+				p = "*" + p + "*"
+				globNG, err := globng.Compile(p)
+				if err != nil {
+					return nil, err
+				}
+				matcher = append(matcher, GlobPattern{Glob: &globNG})
+			} else if strings.Contains(p, "*") {
+				globNG, err := globng.Compile(p)
+				if err != nil {
+					return nil, err
+				}
+				matcher = append(matcher, GlobPattern{Glob: &globNG})
+			} else {
 				matcher = append(matcher, ContentPattern{Token: p, Lowercase: lower})
 			}
 		}
@@ -181,10 +207,7 @@ type ContentPattern struct {
 
 // StringMatch implements StringMatcher
 func (c ContentPattern) StringMatch(msg string) bool {
-	return strings.Contains(
-		lowerCaseIfNeeded(msg, c.Lowercase),
-		lowerCaseIfNeeded(c.Token, c.Lowercase),
-	)
+	return lowerCaseIfNeeded(msg, c.Lowercase) == lowerCaseIfNeeded(c.Token, c.Lowercase)
 }
 
 // PrefixPattern is a token for literal content matching
@@ -227,16 +250,12 @@ func (r RegexPattern) StringMatch(msg string) bool {
 
 // GlobPattern is similar to ContentPattern but allows for asterisk wildcards
 type GlobPattern struct {
-	Token     string
-	Lowercase bool
+	Glob *globng.Glob
 }
 
 // StringMatch implements StringMatcher
 func (g GlobPattern) StringMatch(msg string) bool {
-	return glob.Glob(
-		lowerCaseIfNeeded(g.Token, g.Lowercase),
-		lowerCaseIfNeeded(msg, g.Lowercase),
-	)
+	return (*g.Glob).Match(msg)
 }
 
 // SimplePattern is a reference type to illustrate StringMatcher

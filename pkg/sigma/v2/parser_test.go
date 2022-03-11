@@ -364,6 +364,72 @@ var detection11_negative = `
 }
 `
 
+var detection12 = `
+detection:
+  condition: "selection1 and selection2"
+  selection1:
+    SomeKey|contains|all:
+      - 'val1'
+      - 'val2'
+  selection2:
+    SomeKey2:
+      - 'mustMatch1'
+      - 'mustMatch2'
+`
+
+var detection12_positive = `
+{
+	"SomeKey":       "val1 val2",
+	"SomeKey2":      "mustMatch1"
+}
+`
+
+var detection12_negative = `
+{
+	"SomeKey":       "val1 val2",
+	"SomeKey2":      "mustMatch3"
+}
+`
+
+//this test is a bit tricky; it all hinges on the bits*admin rule where the middle glob
+//is escaped, making it an asterisk instead of a glob
+var detection13 = `
+detection:
+  condition: "all of them"
+  selection_images:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bits\*admin.exe'
+    - '*\mshta.exe'
+  selection_parent_images:
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+`
+
+var detection13_positive = `
+{
+	"Image":       "C:\\test\\bits*admin.exe",
+	"ParentImage": "C:\\test\\wmiprvse.exe",
+	"Image":       "C:\\test\\bits*admin.exe",
+	"ParentImage": "C:\\test\\wmiprvse.exe"
+}
+`
+
+var detection13_negative = `
+{
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"ParentImage": "C:\\test\\mshta\\lll.exe"
+}
+`
+
 type parseTestCase struct {
 	Rule     string
 	Pos, Neg []string
@@ -424,6 +490,16 @@ var parseTestCases = []parseTestCase{
 		Rule: detection11,
 		Pos:  []string{detection11_positive},
 		Neg:  []string{detection11_negative},
+	},
+	{
+		Rule: detection12,
+		Pos:  []string{detection12_positive},
+		Neg:  []string{detection12_negative},
+	},
+	{
+		Rule: detection13,
+		Pos:  []string{detection13_positive},
+		Neg:  []string{detection13_negative},
 	},
 }
 

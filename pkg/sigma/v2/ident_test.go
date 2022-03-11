@@ -97,7 +97,7 @@ var identSelection1 = `
 detection:
   condition: selection
   selection:
-    winlog.event_data.ScriptBlockText:
+    winlog.event_data.ScriptBlockText|contains:
     - ' -FromBase64String'
     - '::FromBase64String'
 `
