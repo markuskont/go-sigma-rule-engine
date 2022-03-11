@@ -391,6 +391,45 @@ var detection12_negative = `
 }
 `
 
+//this test is a bit tricky; it all hinges on the bits*admin rule where the middle glob
+//is escaped, making it an asterisk instead of a glob
+var detection13 = `
+detection:
+  condition: "all of them"
+  selection_images:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bits\*admin.exe'
+    - '*\mshta.exe'
+  selection_parent_images:
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+`
+
+var detection13_positive = `
+{
+	"Image":       "C:\\test\\bits*admin.exe",
+	"ParentImage": "C:\\test\\wmiprvse.exe",
+	"Image":       "C:\\test\\bits*admin.exe",
+	"ParentImage": "C:\\test\\wmiprvse.exe"
+}
+`
+
+var detection13_negative = `
+{
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"ParentImage": "C:\\test\\mshta\\lll.exe"
+}
+`
+
 type parseTestCase struct {
 	Rule     string
 	Pos, Neg []string
@@ -456,6 +495,11 @@ var parseTestCases = []parseTestCase{
 		Rule: detection12,
 		Pos:  []string{detection12_positive},
 		Neg:  []string{detection12_negative},
+	},
+	{
+		Rule: detection13,
+		Pos:  []string{detection13_positive},
+		Neg:  []string{detection13_negative},
 	},
 }
 
