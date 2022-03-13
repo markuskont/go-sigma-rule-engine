@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	globng "github.com/gobwas/glob"
+	"github.com/gobwas/glob"
 )
 
 type TextPatternModifier int
@@ -46,7 +46,7 @@ func (n NumMatchers) NumMatch(val int) bool {
 }
 
 func NewNumMatcher(patterns ...int) (NumMatcher, error) {
-	if patterns == nil || len(patterns) == 0 {
+	if len(patterns) == 0 {
 		return nil, fmt.Errorf("no patterns defined for matcher object")
 	}
 	matcher := make(NumMatchers, 0)
@@ -88,7 +88,7 @@ func NewStringMatcher(
 			matcher = append(matcher, RegexPattern{Re: re})
 		case TextPatternContains: //contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
 			p = "*" + p + "*"
-			globNG, err := globng.Compile(p)
+			globNG, err := glob.Compile(p)
 			if err != nil {
 				return nil, err
 			}
@@ -111,13 +111,13 @@ func NewStringMatcher(
 				//this is due, I believe, on how keywords are generally handled, where it is likely a random
 				//string or event long message that may have additional detail/etc...
 				p = "*" + p + "*"
-				globNG, err := globng.Compile(p)
+				globNG, err := glob.Compile(p)
 				if err != nil {
 					return nil, err
 				}
 				matcher = append(matcher, GlobPattern{Glob: &globNG})
 			} else if strings.Contains(p, "*") {
-				globNG, err := globng.Compile(p)
+				globNG, err := glob.Compile(p)
 				if err != nil {
 					return nil, err
 				}
@@ -250,7 +250,7 @@ func (r RegexPattern) StringMatch(msg string) bool {
 
 // GlobPattern is similar to ContentPattern but allows for asterisk wildcards
 type GlobPattern struct {
-	Glob *globng.Glob
+	Glob *glob.Glob
 }
 
 // StringMatch implements StringMatcher

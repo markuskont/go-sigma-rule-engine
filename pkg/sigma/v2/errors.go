@@ -73,7 +73,7 @@ func (e ErrUnsupportedToken) Error() string { return fmt.Sprintf("UNSUPPORTED TO
 // Non-critical escape hatch while debugging
 type ErrWip struct{}
 
-func (e ErrWip) Error() string { return fmt.Sprintf("Work in progress") }
+func (e ErrWip) Error() string { return "work in progress" }
 
 // ErrParseYaml indicates YAML parsing error
 type ErrParseYaml struct {
@@ -95,7 +95,7 @@ type ErrBulkParseYaml struct {
 }
 
 func (e ErrBulkParseYaml) Error() string {
-	return fmt.Sprintf("Got %d broken yaml files", len(e.Errs))
+	return fmt.Sprintf("got %d broken yaml files", len(e.Errs))
 }
 
 // ErrInvalidTokenSeq indicates expression syntax error from rule writer
@@ -106,7 +106,7 @@ type ErrInvalidTokenSeq struct {
 }
 
 func (e ErrInvalidTokenSeq) Error() string {
-	return fmt.Sprintf(`Seq error after collecting %d elements.`+
+	return fmt.Sprintf(`seq error after collecting %d elements.`+
 		` Invalid token sequence %s -> %s. Values: %s -> %s.`,
 		len(e.Collected), e.Prev.T, e.Next.T, e.Prev.Val, e.Next.Val)
 }
@@ -133,7 +133,7 @@ type ErrInvalidKeywordConstruct struct {
 }
 
 func (e ErrInvalidKeywordConstruct) Error() string {
-	return fmt.Sprintf(`Invalid type for parsing keyword expression. `+
+	return fmt.Sprintf(`invalid type for parsing keyword expression. `+
 		`Should be slice of strings or a funky one element map where value is slice of strings. `+
 		`Or other stuff. Got |%+v| with type |%s|`,
 		e.Expr, reflect.TypeOf(e.Expr).String())
@@ -148,7 +148,7 @@ type ErrInvalidSelectionConstruct struct {
 }
 
 func (e ErrInvalidSelectionConstruct) Error() string {
-	return fmt.Sprintf("Invalid type for parsing selection expression. Got |%+v| with type |%s|",
+	return fmt.Sprintf("invalid type for parsing selection expression. Got |%+v| with type |%s|",
 		e.Expr, reflect.TypeOf(e.Expr).String())
 }
 
@@ -196,4 +196,4 @@ func (e ErrUnsupportedExpression) Error() string {
 // ErrUnableToReflect indicates that kind reflection could not be done, as
 // typeOf returned a nil value
 // likely a missing pattern
-var ErrUnableToReflect = errors.New("Unable to reflect on pattern kind")
+var ErrUnableToReflect = errors.New("unable to reflect on pattern kind")

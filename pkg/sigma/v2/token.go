@@ -2,6 +2,8 @@ package sigma
 
 import (
 	"context"
+
+	"github.com/gobwas/glob"
 )
 
 var eof = rune(0)
@@ -9,14 +11,31 @@ var eof = rune(0)
 // Item is lexical token along with respective plaintext value
 // Item is communicated between lexer and parser
 type Item struct {
-	T   Token
-	Val string
+	T            Token
+	Val          string
+	globVal      *glob.Glob //Do NOT access directly, us the Item.Glob() function instead
+	globCompFail bool       //prevents us from trying to re-compile a failed globVal over and over...
 }
 
 func (i Item) String() string { return i.Val }
 
+// Item.Glob() - Wraps getting the compiled glob of Item.Val to ensure it is compiled properly.
+// Do NOT access globVal directly as it won't be compiled until the first call to Item.Glob()
+func (i *Item) Glob() *glob.Glob {
+	if i.globVal == nil && !i.globCompFail {
+		newGlob, err := glob.Compile(i.Val)
+		if err != nil {
+			i.globCompFail = true
+			return nil
+		}
+		i.globVal = &newGlob
+	}
+
+	return i.globVal
+}
+
 func genItems(t []Item) <-chan Item {
-	tx := make(chan Item, 0)
+	tx := make(chan Item) //unbuffered
 	go func(ctx context.Context) {
 		defer close(tx)
 		for _, item := range t {

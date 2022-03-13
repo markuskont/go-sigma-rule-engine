@@ -14,7 +14,7 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/afero v1.8.1 // indirect
+	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.10.1
 	golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5 // indirect

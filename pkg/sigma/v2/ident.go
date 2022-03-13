@@ -66,7 +66,7 @@ func newRuleFromIdent(rule interface{}, kind identType) (Branch, error) {
 	case identSelection:
 		return NewSelectionBranch(rule)
 	}
-	return nil, fmt.Errorf("Unknown rule kind, should be keyword or selection")
+	return nil, fmt.Errorf("unknown rule kind, should be keyword or selection")
 }
 
 // Keyword is a container for patterns joined by logical disjunction
@@ -100,7 +100,7 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 				Kind:     reflect.Array,
 				T:        identKeyword,
 				Critical: false,
-				Msg:      "Mixed type slice",
+				Msg:      "mixed type slice",
 			}
 		}
 		switch v := k; {
@@ -111,7 +111,7 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 				Kind:     v,
 				T:        identKeyword,
 				Critical: false,
-				Msg:      "Unsupported data type",
+				Msg:      "unsupported data type",
 			}
 		}
 
@@ -286,7 +286,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 					Kind:     reflect.Array,
 					T:        identKeyword,
 					Critical: false,
-					Msg:      "Mixed type slice",
+					Msg:      "mixed type slice",
 				}
 			}
 			switch k {
@@ -315,7 +315,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 					Kind:     k,
 					T:        identKeyword,
 					Critical: false,
-					Msg:      "Unsupported data type",
+					Msg:      "unsupported data type",
 				}
 			}
 		default:
@@ -324,7 +324,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 					Kind:     t.Kind(),
 					T:        identSelection,
 					Critical: true,
-					Msg:      "Unsupported selection value",
+					Msg:      "unsupported selection value",
 				}
 			}
 			return nil, ErrUnableToReflect
@@ -352,7 +352,7 @@ func NewSelectionBranch(expr interface{}) (Branch, error) {
 			Kind:     reflect.TypeOf(expr).Kind(),
 			T:        identSelection,
 			Critical: true,
-			Msg:      "Unsupported selection root container",
+			Msg:      "unsupported selection root container",
 		}
 	}
 }
