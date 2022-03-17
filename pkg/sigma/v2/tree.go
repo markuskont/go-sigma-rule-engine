@@ -3,7 +3,7 @@ package sigma
 import (
 	"fmt"
 
-	"github.com/ryanuber/go-glob"
+	"github.com/gobwas/glob"
 )
 
 // Tree represents the full AST for a sigma rule
@@ -119,29 +119,29 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 				and = append(and, newNodeNotIfNegated(NodeSimpleOr(rules), negated))
 				negated = false
 			default:
-				return nil, fmt.Errorf("Invalid wildcard ident, missing 1 of/ all of prefix")
+				return nil, fmt.Errorf("invalid wildcard ident, missing 1 of/ all of prefix")
 			}
 		case TokIdentifierWithWildcard:
 			switch wildcard {
 			case TokStAll:
 				// build logical conjunction
-				rules, err := extractAndBuildBranches(d, item.Val)
+				rules, err := extractAndBuildBranches(d, item.Glob())
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("failed to extract and build branch for '%s': %s", item, err)
 				}
 				and = append(and, newNodeNotIfNegated(NodeSimpleAnd(rules), negated))
 				negated = false
 			case TokStOne:
 				// build logical disjunction
-				rules, err := extractAndBuildBranches(d, item.Val)
+				rules, err := extractAndBuildBranches(d, item.Glob())
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("failed to extract and build branch for '%s': %s", item, err)
 				}
 				and = append(and, newNodeNotIfNegated(NodeSimpleOr(rules), negated))
 				negated = false
 			default:
 				// invalid case, did not see 1of/allof statement before wildcard ident
-				return nil, fmt.Errorf("Invalid wildcard ident, missing 1 of/ all of prefix")
+				return nil, fmt.Errorf("invalid wildcard ident, missing 1 of/ all of prefix")
 			}
 			wildcard = TokBegin
 		case TokStAll:
@@ -185,7 +185,7 @@ func extractGroup(rx <-chan Item) []Item {
 	return group
 }
 
-func extractAndBuildBranches(d Detection, g string) ([]Branch, error) {
+func extractAndBuildBranches(d Detection, g *glob.Glob) ([]Branch, error) {
 	vals, err := extractWildcardIdents(d, g)
 	if err != nil {
 		return nil, err
@@ -201,15 +201,18 @@ func extractAndBuildBranches(d Detection, g string) ([]Branch, error) {
 	return rules, nil
 }
 
-func extractWildcardIdents(d Detection, g string) ([]interface{}, error) {
+func extractWildcardIdents(d Detection, g *glob.Glob) ([]interface{}, error) {
+	if g == nil {
+		return nil, fmt.Errorf("passed glob was nil (failed to compile)")
+	}
 	rules := make([]interface{}, 0)
 	for k, v := range d {
-		if glob.Glob(g, k) {
+		if (*g).Match(k) {
 			rules = append(rules, v)
 		}
 	}
 	if len(rules) == 0 {
-		return nil, fmt.Errorf("ident %s did not match any values", g)
+		return nil, fmt.Errorf("ident did not match any values")
 	}
 	return rules, nil
 }

@@ -18,7 +18,7 @@ type Config struct {
 
 func (c Config) validate() error {
 	if c.Directory == nil || len(c.Directory) == 0 {
-		return fmt.Errorf("Missing root directory for sigma rules")
+		return fmt.Errorf("missing root directory for sigma rules")
 	}
 	for _, dir := range c.Directory {
 		info, err := os.Stat(dir)

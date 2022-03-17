@@ -66,7 +66,7 @@ func newRuleFromIdent(rule interface{}, kind identType) (Branch, error) {
 	case identSelection:
 		return NewSelectionBranch(rule)
 	}
-	return nil, fmt.Errorf("Unknown rule kind, should be keyword or selection")
+	return nil, fmt.Errorf("unknown rule kind, should be keyword or selection")
 }
 
 // Keyword is a container for patterns joined by logical disjunction
@@ -92,7 +92,7 @@ func (k Keyword) Match(msg Event) (bool, bool) {
 func NewKeyword(expr interface{}) (*Keyword, error) {
 	switch val := expr.(type) {
 	case []string:
-		return newStringKeyword(TextPatternContains, false, val...)
+		return newStringKeyword(TextPatternKeyword, false, val...)
 	case []interface{}:
 		k, ok := isSameKind(val)
 		if !ok {
@@ -100,18 +100,18 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 				Kind:     reflect.Array,
 				T:        identKeyword,
 				Critical: false,
-				Msg:      "Mixed type slice",
+				Msg:      "mixed type slice",
 			}
 		}
 		switch v := k; {
 		case v == reflect.String:
-			return newStringKeyword(TextPatternContains, false, castIfaceToString(val)...)
+			return newStringKeyword(TextPatternKeyword, false, castIfaceToString(val)...)
 		default:
 			return nil, ErrInvalidKind{
 				Kind:     v,
 				T:        identKeyword,
 				Critical: false,
-				Msg:      "Unsupported data type",
+				Msg:      "unsupported data type",
 			}
 		}
 
@@ -286,7 +286,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 					Kind:     reflect.Array,
 					T:        identKeyword,
 					Critical: false,
-					Msg:      "Mixed type slice",
+					Msg:      "mixed type slice",
 				}
 			}
 			switch k {
@@ -315,7 +315,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 					Kind:     k,
 					T:        identKeyword,
 					Critical: false,
-					Msg:      "Unsupported data type",
+					Msg:      "unsupported data type",
 				}
 			}
 		default:
@@ -324,7 +324,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 					Kind:     t.Kind(),
 					T:        identSelection,
 					Critical: true,
-					Msg:      "Unsupported selection value",
+					Msg:      "unsupported selection value",
 				}
 			}
 			return nil, ErrUnableToReflect
@@ -352,7 +352,7 @@ func NewSelectionBranch(expr interface{}) (Branch, error) {
 			Kind:     reflect.TypeOf(expr).Kind(),
 			T:        identSelection,
 			Critical: true,
-			Msg:      "Unsupported selection root container",
+			Msg:      "unsupported selection root container",
 		}
 	}
 }

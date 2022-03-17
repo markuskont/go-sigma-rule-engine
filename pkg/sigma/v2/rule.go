@@ -41,7 +41,7 @@ type Rule struct {
 
 // NewRuleList reads a list of sigma rule paths and parses them to rule objects
 func NewRuleList(files []string, skip bool) ([]RuleHandle, error) {
-	if files == nil || len(files) == 0 {
+	if len(files) == 0 {
 		return nil, fmt.Errorf("missing rule file list")
 	}
 	errs := make([]ErrParseYaml, 0)

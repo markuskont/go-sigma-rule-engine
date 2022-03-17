@@ -19,7 +19,7 @@ type lexer struct {
 func lex(input string) *lexer {
 	l := &lexer{
 		input: input,
-		items: make(chan Item, 0),
+		items: make(chan Item), //unbuffered
 	}
 	go l.scan()
 	return l

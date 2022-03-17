@@ -301,18 +301,20 @@ detection:
   condition: "selection"
   selection:
     - PipeName|re: '\\\\SomePipeName[0-9a-f]{2}'
-    - PipeName|re: '\\\\AnotherPipeName[a-z0-9]{2}'
+    - PipeName2|re: '\\\\AnotherPipe[0-9a-f]*Name'
 `
 
 var detection9_positive = `
 {
-	"PipeName":       "\\\\SomePipeNamea4"
+	"PipeName":       "\\\\SomePipeNamea4",
+	"PipeName2":       "\\\\AnotherPipe0af3Name"
 }
 `
 
 var detection9_negative = `
 {
-	"PipeName":       "\\\\SomePipeNameZZ"
+	"PipeName":       "\\\\SomePipeNameZZ",
+	"PipeName2":       "\\\\AnotherPipe01zzName"
 }
 `
 
@@ -359,6 +361,72 @@ var detection11_positive = `
 var detection11_negative = `
 {
 	"SomeName":       "mark1 mark2 mark3 non-matching string"
+}
+`
+
+var detection12 = `
+detection:
+  condition: "selection1 and selection2"
+  selection1:
+    SomeKey|contains|all:
+      - 'val1'
+      - 'val2'
+  selection2:
+    SomeKey2:
+      - 'mustMatch1'
+      - 'mustMatch2'
+`
+
+var detection12_positive = `
+{
+	"SomeKey":       "val1 val2",
+	"SomeKey2":      "mustMatch1"
+}
+`
+
+var detection12_negative = `
+{
+	"SomeKey":       "val1 val2",
+	"SomeKey2":      "mustMatch3"
+}
+`
+
+//this test is a bit tricky; it all hinges on the bits*admin rule where the middle glob
+//is escaped, making it an asterisk instead of a glob
+var detection13 = `
+detection:
+  condition: "all of them"
+  selection_images:
+    Image:
+    - '*\schtasks.exe'
+    - '*\nslookup.exe'
+    - '*\certutil.exe'
+    - '*\bits\*admin.exe'
+    - '*\mshta.exe'
+  selection_parent_images:
+    ParentImage:
+    - '*\mshta.exe'
+    - '*\powershell.exe'
+    - '*\cmd.exe'
+    - '*\rundll32.exe'
+    - '*\cscript.exe'
+    - '*\wscript.exe'
+    - '*\wmiprvse.exe'
+`
+
+var detection13_positive = `
+{
+	"Image":       "C:\\test\\bits*admin.exe",
+	"ParentImage": "C:\\test\\wmiprvse.exe",
+	"Image":       "C:\\test\\bits*admin.exe",
+	"ParentImage": "C:\\test\\wmiprvse.exe"
+}
+`
+
+var detection13_negative = `
+{
+	"Image":       "C:\\test\\bitsadmin.exe",
+	"ParentImage": "C:\\test\\mshta\\lll.exe"
 }
 `
 
@@ -422,6 +490,16 @@ var parseTestCases = []parseTestCase{
 		Rule: detection11,
 		Pos:  []string{detection11_positive},
 		Neg:  []string{detection11_negative},
+	},
+	{
+		Rule: detection12,
+		Pos:  []string{detection12_positive},
+		Neg:  []string{detection12_negative},
+	},
+	{
+		Rule: detection13,
+		Pos:  []string{detection13_positive},
+		Neg:  []string{detection13_negative},
 	},
 }
 
