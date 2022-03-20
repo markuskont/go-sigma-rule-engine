@@ -16,8 +16,9 @@ import (
 type RuleHandle struct {
 	Rule
 
-	Path      string `json:"path"`
-	Multipart bool   `json:"multipart"`
+	Path         string `json:"path"`
+	Multipart    bool   `json:"multipart"`
+	NoCollapseWS bool   `json:"noCollapseWS"`
 }
 
 // Rule defines raw rule conforming to sigma rule specification

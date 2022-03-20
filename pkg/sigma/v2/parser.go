@@ -23,6 +23,11 @@ type parser struct {
 
 	// resulting rule that can be collected later
 	result Branch
+
+	// if true, stops the parser from collapsing whitespace in non-regex rules (default is false to collapse)
+	// and the data that will be matched against them; default is to collapse whitespace to allow for better
+	// matching in the event that a bad actor attempts to pad whitespace inot a command to fool the engine
+	noCollapseWS bool
 }
 
 func (p *parser) run() error {
@@ -41,7 +46,7 @@ func (p *parser) run() error {
 }
 
 func (p *parser) parse() error {
-	res, err := newBranch(p.sigma, p.tokens, 0)
+	res, err := newBranch(p.sigma, p.tokens, 0, p.noCollapseWS)
 	if err != nil {
 		return err
 	}

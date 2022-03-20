@@ -13,7 +13,7 @@ func TestTreeParse(t *testing.T) {
 		if err := yaml.Unmarshal([]byte(c.Rule), &rule); err != nil {
 			t.Fatalf("tree parse case %d failed to unmarshal yaml, %s", i+1, err)
 		}
-		p, err := NewTree(RuleHandle{Rule: rule})
+		p, err := NewTree(RuleHandle{Rule: rule, NoCollapseWS: c.noCollapseWSNeg})
 		if err != nil {
 			t.Fatal(err)
 		}

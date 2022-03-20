@@ -59,12 +59,12 @@ func reflectIdentKind(data interface{}) identType {
 	}
 }
 
-func newRuleFromIdent(rule interface{}, kind identType) (Branch, error) {
+func newRuleFromIdent(rule interface{}, kind identType, noCollapseWS bool) (Branch, error) {
 	switch kind {
 	case identKeyword:
-		return NewKeyword(rule)
+		return NewKeyword(rule, noCollapseWS)
 	case identSelection:
-		return NewSelectionBranch(rule)
+		return NewSelectionBranch(rule, noCollapseWS)
 	}
 	return nil, fmt.Errorf("unknown rule kind, should be keyword or selection")
 }
@@ -89,10 +89,10 @@ func (k Keyword) Match(msg Event) (bool, bool) {
 	return false, true
 }
 
-func NewKeyword(expr interface{}) (*Keyword, error) {
+func NewKeyword(expr interface{}, noCollapseWS bool) (*Keyword, error) {
 	switch val := expr.(type) {
 	case []string:
-		return newStringKeyword(TextPatternKeyword, false, val...)
+		return newStringKeyword(TextPatternKeyword, false, noCollapseWS, val...)
 	case []interface{}:
 		k, ok := isSameKind(val)
 		if !ok {
@@ -105,7 +105,7 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 		}
 		switch v := k; {
 		case v == reflect.String:
-			return newStringKeyword(TextPatternKeyword, false, castIfaceToString(val)...)
+			return newStringKeyword(TextPatternKeyword, false, noCollapseWS, castIfaceToString(val)...)
 		default:
 			return nil, ErrInvalidKind{
 				Kind:     v,
@@ -121,8 +121,8 @@ func NewKeyword(expr interface{}) (*Keyword, error) {
 	}
 }
 
-func newStringKeyword(mod TextPatternModifier, lower bool, patterns ...string) (*Keyword, error) {
-	matcher, err := NewStringMatcher(mod, lower, false, patterns...)
+func newStringKeyword(mod TextPatternModifier, lower, noCollapseWS bool, patterns ...string) (*Keyword, error) {
+	matcher, err := NewStringMatcher(mod, lower, false, noCollapseWS, patterns...)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ func (s *Selection) incrementMismatchCount() *Selection {
 	return s
 }
 
-func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
+func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool) (*Selection, error) {
 	sel := &Selection{S: make([]SelectionStringItem, 0)}
 	for key, pattern := range expr {
 		var mod TextPatternModifier
@@ -259,7 +259,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 		}
 		switch pat := pattern.(type) {
 		case string:
-			m, err := NewStringMatcher(mod, false, all, pat)
+			m, err := NewStringMatcher(mod, false, all, noCollapseWS, pat)
 			if err != nil {
 				return nil, err
 			}
@@ -291,7 +291,7 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 			}
 			switch k {
 			case reflect.String:
-				m, err := NewStringMatcher(mod, false, all, castIfaceToString(pat)...)
+				m, err := NewStringMatcher(mod, false, all, noCollapseWS, castIfaceToString(pat)...)
 				if err != nil {
 					return nil, err
 				}
@@ -333,12 +333,12 @@ func newSelectionFromMap(expr map[string]interface{}) (*Selection, error) {
 	return sel, nil
 }
 
-func NewSelectionBranch(expr interface{}) (Branch, error) {
+func NewSelectionBranch(expr interface{}, noCollapseWS bool) (Branch, error) {
 	switch v := expr.(type) {
 	case []interface{}:
 		selections := make([]Branch, 0)
 		for _, item := range v {
-			b, err := NewSelectionBranch(item)
+			b, err := NewSelectionBranch(item, noCollapseWS)
 			if err != nil {
 				return nil, err
 			}
@@ -346,7 +346,7 @@ func NewSelectionBranch(expr interface{}) (Branch, error) {
 		}
 		return NodeSimpleOr(selections).Reduce(), nil
 	case map[interface{}]interface{}:
-		return newSelectionFromMap(cleanUpInterfaceMap(v))
+		return newSelectionFromMap(cleanUpInterfaceMap(v), noCollapseWS)
 	default:
 		return nil, ErrInvalidKind{
 			Kind:     reflect.TypeOf(expr).Kind(),
