@@ -14,6 +14,9 @@ type Config struct {
 	// parse yaml or rule AST
 	// this parameter will cause an early error return instead
 	FailOnRuleParse, FailOnYamlParse bool
+	// by default, we will collapse whitespace for both rules and data of non-regex rules and non-regex compared data
+	//setthig this to true turns that behavior off
+	NoCollapseWS bool
 }
 
 func (c Config) validate() error {
@@ -50,7 +53,7 @@ func NewRuleset(c Config) (*Ruleset, error) {
 		return nil, err
 	}
 	var fail, unsupp int
-	rules, err := NewRuleList(files, !c.FailOnYamlParse)
+	rules, err := NewRuleList(files, !c.FailOnYamlParse, c.NoCollapseWS)
 	if err != nil {
 		switch e := err.(type) {
 		case ErrBulkParseYaml:

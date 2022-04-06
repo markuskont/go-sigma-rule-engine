@@ -68,9 +68,21 @@ type StringMatcher interface {
 	StringMatch(string) bool
 }
 
+var gWSCollapse = regexp.MustCompile(`\s+`)
+
+// handleWhitespace takes str and if the global configuration for collapsing whitespace is NOT turned off
+// returns the string with whitespace collapsed (1+ spaces, tabs, etc... become single space); otherwise
+//just returns the unmodified str; this only applies to non-regex rules and data hitting non-regex rules
+func handleWhitespace(str string, noCollapseWS bool) string {
+	if noCollapseWS { //do we collapse whitespace or not?  See config.NoCollapseWS (we collapse by default)
+		return str
+	}
+	return gWSCollapse.ReplaceAllString(str, " ")
+}
+
 func NewStringMatcher(
 	mod TextPatternModifier,
-	lower, all bool,
+	lower, all, noCollapseWS bool,
 	patterns ...string,
 ) (StringMatcher, error) {
 	if len(patterns) == 0 {
@@ -87,16 +99,19 @@ func NewStringMatcher(
 			}
 			matcher = append(matcher, RegexPattern{Re: re})
 		case TextPatternContains: //contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
+			p = handleWhitespace(p, noCollapseWS)
 			p = "*" + p + "*"
 			globNG, err := glob.Compile(p)
 			if err != nil {
 				return nil, err
 			}
-			matcher = append(matcher, GlobPattern{Glob: &globNG})
+			matcher = append(matcher, GlobPattern{Glob: &globNG, NoCollapseWS: noCollapseWS})
 		case TextPatternSuffix:
-			matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower})
+			p = handleWhitespace(p, noCollapseWS)
+			matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower, NoCollapseWS: noCollapseWS})
 		case TextPatternPrefix:
-			matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower})
+			p = handleWhitespace(p, noCollapseWS)
+			matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower, NoCollapseWS: noCollapseWS})
 		default:
 			//no (supported) modifiers, handle non-spec regex, globs and regular values
 			if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
@@ -110,20 +125,23 @@ func NewStringMatcher(
 				//to be a regex, always process it as a 'contains' style glob (can appear anywhere...)
 				//this is due, I believe, on how keywords are generally handled, where it is likely a random
 				//string or event long message that may have additional detail/etc...
+				p = handleWhitespace(p, noCollapseWS)
 				p = "*" + p + "*"
 				globNG, err := glob.Compile(p)
 				if err != nil {
 					return nil, err
 				}
-				matcher = append(matcher, GlobPattern{Glob: &globNG})
+				matcher = append(matcher, GlobPattern{Glob: &globNG, NoCollapseWS: noCollapseWS})
 			} else if strings.Contains(p, "*") {
+				p = handleWhitespace(p, noCollapseWS)
 				globNG, err := glob.Compile(p)
 				if err != nil {
 					return nil, err
 				}
-				matcher = append(matcher, GlobPattern{Glob: &globNG})
+				matcher = append(matcher, GlobPattern{Glob: &globNG, NoCollapseWS: noCollapseWS})
 			} else {
-				matcher = append(matcher, ContentPattern{Token: p, Lowercase: lower})
+				p = handleWhitespace(p, noCollapseWS)
+				matcher = append(matcher, ContentPattern{Token: p, Lowercase: lower, NoCollapseWS: noCollapseWS})
 			}
 		}
 	}
@@ -146,6 +164,9 @@ type StringMatchers []StringMatcher
 // StringMatch implements StringMatcher
 func (s StringMatchers) StringMatch(msg string) bool {
 	for _, m := range s {
+		//I thought about a type assertion here for handling whitespace
+		//however, as we're dealing with non-pointer types, that may cause
+		//some added overhead that we can avoid by just implementing where need to
 		if m.StringMatch(msg) {
 			return true
 		}
@@ -201,23 +222,27 @@ func optimizeStringMatchers(s []StringMatcher) []StringMatcher {
 
 // ContentPattern is a token for literal content matching
 type ContentPattern struct {
-	Token     string
-	Lowercase bool
+	Token        string
+	Lowercase    bool
+	NoCollapseWS bool
 }
 
 // StringMatch implements StringMatcher
 func (c ContentPattern) StringMatch(msg string) bool {
+	msg = handleWhitespace(msg, c.NoCollapseWS)
 	return lowerCaseIfNeeded(msg, c.Lowercase) == lowerCaseIfNeeded(c.Token, c.Lowercase)
 }
 
 // PrefixPattern is a token for literal content matching
 type PrefixPattern struct {
-	Token     string
-	Lowercase bool
+	Token        string
+	Lowercase    bool
+	NoCollapseWS bool
 }
 
 // StringMatch implements StringMatcher
 func (c PrefixPattern) StringMatch(msg string) bool {
+	msg = handleWhitespace(msg, c.NoCollapseWS)
 	return strings.HasPrefix(
 		lowerCaseIfNeeded(msg, c.Lowercase),
 		lowerCaseIfNeeded(c.Token, c.Lowercase),
@@ -226,12 +251,14 @@ func (c PrefixPattern) StringMatch(msg string) bool {
 
 // SuffixPattern is a token for literal content matching
 type SuffixPattern struct {
-	Token     string
-	Lowercase bool
+	Token        string
+	Lowercase    bool
+	NoCollapseWS bool
 }
 
 // StringMatch implements StringMatcher
 func (c SuffixPattern) StringMatch(msg string) bool {
+	msg = handleWhitespace(msg, c.NoCollapseWS)
 	return strings.HasSuffix(
 		lowerCaseIfNeeded(msg, c.Lowercase),
 		lowerCaseIfNeeded(c.Token, c.Lowercase),
@@ -250,21 +277,25 @@ func (r RegexPattern) StringMatch(msg string) bool {
 
 // GlobPattern is similar to ContentPattern but allows for asterisk wildcards
 type GlobPattern struct {
-	Glob *glob.Glob
+	Glob         *glob.Glob
+	NoCollapseWS bool
 }
 
 // StringMatch implements StringMatcher
 func (g GlobPattern) StringMatch(msg string) bool {
+	msg = handleWhitespace(msg, g.NoCollapseWS)
 	return (*g.Glob).Match(msg)
 }
 
 // SimplePattern is a reference type to illustrate StringMatcher
 type SimplePattern struct {
-	Token string
+	Token        string
+	NoCollapseWS bool
 }
 
 // StringMatch implements StringMatcher
 func (s SimplePattern) StringMatch(msg string) bool {
+	msg = handleWhitespace(msg, s.NoCollapseWS)
 	return strings.Contains(msg, s.Token)
 }
 

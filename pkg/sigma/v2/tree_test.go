@@ -13,7 +13,7 @@ func TestTreeParse(t *testing.T) {
 		if err := yaml.Unmarshal([]byte(c.Rule), &rule); err != nil {
 			t.Fatalf("tree parse case %d failed to unmarshal yaml, %s", i+1, err)
 		}
-		p, err := NewTree(RuleHandle{Rule: rule})
+		p, err := NewTree(RuleHandle{Rule: rule, NoCollapseWS: c.noCollapseWSNeg})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -42,6 +42,7 @@ func TestTreeParse(t *testing.T) {
 	}
 }
 
+//we should probably add an alternative to this benchmark to include noCollapseWS on or off (we collapse by default now)
 func benchmarkCase(b *testing.B, rawRule, rawEvent string) {
 	var rule Rule
 	if err := yaml.Unmarshal([]byte(parseTestCases[0].Rule), &rule); err != nil {

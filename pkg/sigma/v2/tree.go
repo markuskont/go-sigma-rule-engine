@@ -46,9 +46,10 @@ func NewTree(r RuleHandle) (*Tree, error) {
 	}
 
 	p := &parser{
-		lex:       lex(expr),
-		condition: expr,
-		sigma:     r.Detection,
+		lex:          lex(expr),
+		condition:    expr,
+		sigma:        r.Detection,
+		noCollapseWS: r.NoCollapseWS,
 	}
 	if err := p.run(); err != nil {
 		return nil, err
@@ -62,7 +63,7 @@ func NewTree(r RuleHandle) (*Tree, error) {
 
 // newBranch builds a binary tree from token list
 // sequence and group validation should be done before invoking newBranch
-func newBranch(d Detection, t []Item, depth int) (Branch, error) {
+func newBranch(d Detection, t []Item, depth int, noCollapseWS bool) (Branch, error) {
 	rx := genItems(t)
 
 	and := make(NodeSimpleAnd, 0)
@@ -77,7 +78,7 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 			if !ok {
 				return nil, ErrMissingConditionItem{Key: item.Val}
 			}
-			b, err := newRuleFromIdent(val, checkIdentType(item.Val, val))
+			b, err := newRuleFromIdent(val, checkIdentType(item.Val, val), noCollapseWS)
 			if err != nil {
 				return nil, err
 			}
@@ -96,7 +97,7 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 		case TokSepLpar:
 			// recursively create new branch and append to existing list
 			// then skip to next token after grouping
-			b, err := newBranch(d, extractGroup(rx), depth+1)
+			b, err := newBranch(d, extractGroup(rx), depth+1, noCollapseWS)
 			if err != nil {
 				return nil, err
 			}
@@ -105,14 +106,14 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 		case TokIdentifierAll:
 			switch wildcard {
 			case TokStAll:
-				rules, err := extractAllToRules(d)
+				rules, err := extractAllToRules(d, noCollapseWS)
 				if err != nil {
 					return nil, err
 				}
 				and = append(and, newNodeNotIfNegated(NodeSimpleAnd(rules), negated))
 				negated = false
 			case TokStOne:
-				rules, err := extractAllToRules(d)
+				rules, err := extractAllToRules(d, noCollapseWS)
 				if err != nil {
 					return nil, err
 				}
@@ -125,7 +126,7 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 			switch wildcard {
 			case TokStAll:
 				// build logical conjunction
-				rules, err := extractAndBuildBranches(d, item.Glob())
+				rules, err := extractAndBuildBranches(d, item.Glob(), noCollapseWS)
 				if err != nil {
 					return nil, fmt.Errorf("failed to extract and build branch for '%s': %s", item, err)
 				}
@@ -133,7 +134,7 @@ func newBranch(d Detection, t []Item, depth int) (Branch, error) {
 				negated = false
 			case TokStOne:
 				// build logical disjunction
-				rules, err := extractAndBuildBranches(d, item.Glob())
+				rules, err := extractAndBuildBranches(d, item.Glob(), noCollapseWS)
 				if err != nil {
 					return nil, fmt.Errorf("failed to extract and build branch for '%s': %s", item, err)
 				}
@@ -185,14 +186,14 @@ func extractGroup(rx <-chan Item) []Item {
 	return group
 }
 
-func extractAndBuildBranches(d Detection, g *glob.Glob) ([]Branch, error) {
+func extractAndBuildBranches(d Detection, g *glob.Glob, noCollapseWS bool) ([]Branch, error) {
 	vals, err := extractWildcardIdents(d, g)
 	if err != nil {
 		return nil, err
 	}
 	rules := make(NodeSimpleAnd, len(vals))
 	for i, v := range vals {
-		b, err := newRuleFromIdent(v, identSelection)
+		b, err := newRuleFromIdent(v, identSelection, noCollapseWS)
 		if err != nil {
 			return nil, err
 		}
@@ -217,10 +218,10 @@ func extractWildcardIdents(d Detection, g *glob.Glob) ([]interface{}, error) {
 	return rules, nil
 }
 
-func extractAllToRules(d Detection) ([]Branch, error) {
+func extractAllToRules(d Detection, noCollapseWS bool) ([]Branch, error) {
 	rules := make([]Branch, 0)
 	for k, v := range d.Extract() {
-		b, err := newRuleFromIdent(v, checkIdentType(k, v))
+		b, err := newRuleFromIdent(v, checkIdentType(k, v), noCollapseWS)
 		if err != nil {
 			return nil, err
 		}
