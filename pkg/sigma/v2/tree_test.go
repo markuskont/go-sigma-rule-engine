@@ -42,6 +42,7 @@ func TestTreeParse(t *testing.T) {
 	}
 }
 
+//we should probably add an alternative to this benchmark to include noCollapseWS on or off (we collapse by default now)
 func benchmarkCase(b *testing.B, rawRule, rawEvent string) {
 	var rule Rule
 	if err := yaml.Unmarshal([]byte(parseTestCases[0].Rule), &rule); err != nil {
