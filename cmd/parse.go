@@ -44,7 +44,7 @@ func parse(cmd *cobra.Command, args []string) {
 		logrus.Info(f)
 	}
 	logrus.Info("Parsing rule yaml files")
-	rules, err := sigma.NewRuleList(files, true)
+	rules, err := sigma.NewRuleList(files, true, false)
 	if err != nil {
 		switch err.(type) {
 		case sigma.ErrBulkParseYaml:
