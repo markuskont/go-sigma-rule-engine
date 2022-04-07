@@ -18,5 +18,8 @@ jobs:
       with:
         go-version: 1.18
 
+    - name: Build
+      run: go build -v ./...
+
     - name: Test Sigma v2 package
       run: go test -v ./pkg/sigma/v2/...
