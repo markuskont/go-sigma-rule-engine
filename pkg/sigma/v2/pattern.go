@@ -81,9 +81,13 @@ func handleWhitespace(str string, noCollapseWS bool) string {
 }
 
 const (
-	SIGMA_SPECIAL_WILDCARD = byte('*')
-	SIGMA_SPECIAL_SINGLE   = byte('?')
-	SIGMA_SPECIAL_ESCAPE   = byte('\\')
+	SIGMA_SPECIAL_WILDCARD      = byte('*')
+	SIGMA_SPECIAL_SINGLE        = byte('?')
+	SIGMA_SPECIAL_ESCAPE        = byte('\\')
+	GLOB_SPECIAL_SQRBRKT_LEFT   = byte('[')
+	GLOB_SPECIAL_SQRBRKT_RIGHT  = byte(']')
+	GLOB_SPECIAL_CURLBRKT_LEFT  = byte('{')
+	GLOB_SPECIAL_CURLBRKT_RIGHT = byte('}')
 )
 
 // Sigma has a different set of rules than the Glob library for escaping, so this function attempts to
@@ -105,6 +109,12 @@ const (
 func escapeSigmaForGlob(str string) string {
 	if str == "" { //quick out if empty
 		return ""
+	}
+
+	//special "quotemeta"-like functionality for brackets in glob (they should be treated as plaintext)
+	isBracket := func(b byte) bool {
+		return b == GLOB_SPECIAL_SQRBRKT_LEFT || b == GLOB_SPECIAL_SQRBRKT_RIGHT ||
+			b == GLOB_SPECIAL_CURLBRKT_LEFT || b == GLOB_SPECIAL_CURLBRKT_RIGHT
 	}
 
 	sLen := len(str)
@@ -136,6 +146,13 @@ func escapeSigmaForGlob(str string) string {
 
 		replStr[x] = str[i] //copy our current character to the output
 		x--
+
+		// special escape case for square/curly brackets; we need to escape these for glob
+		// as they have a special meaning in the glob library but not in Sigma
+		if isBracket(str[i]) {
+			replStr[x] = SIGMA_SPECIAL_ESCAPE
+			x-- //decrement x again as we're adding an extra char
+		}
 	}
 
 	//one last slash count before exiting to catch leading backslashes

@@ -404,10 +404,12 @@ detection:
     Image:
     - '*\bits\*admin.exe'
     - '\\\\DoubleBackslash\\some*.exe'
+    - '[Windows-*]\image.???'
   selection_parent_images:
     ParentImage:
     - '\leadingBackslash\\*.exe'
     - 'full\\\*plaintext.exe'
+    - '{000-aaa-*}\\*.exe'
 `
 
 var detection13_positive = `
@@ -427,6 +429,13 @@ var detection13_positive3 = `
 {
 	"Image":       "C:\\test\\bits*admin.exe",
 	"ParentImage": "full\\*plaintext.exe"
+}
+`
+
+var detection13_positive4 = `
+{
+	"Image":       "[Windows-Security]\\image.cmd",
+	"ParentImage": "{000-aaa-123}\\evil.exe"
 }
 `
 
@@ -454,6 +463,15 @@ var detection13_negative3 = `
 {
 	"Image":       "C:\\test\\bits*admin.exe",
 	"ParentImage": "full\\\\*plaintext"
+}
+`
+
+//shouldn't match on either of these (Image is missing 'Windows' in the bracket, ParentImage is missing the
+//a vaule of 000-aaa in the brackets)
+var detection13_negative4 = `
+{
+	"Image":       "[-Security]\\image.cmd",
+	"ParentImage": "{000-aaa}\\evil.exe"
 }
 `
 
@@ -542,8 +560,8 @@ var parseTestCases = []parseTestCase{
 	},
 	{
 		Rule: detection13,
-		Pos:  []string{detection13_positive, detection13_positive2, detection13_positive3},
-		Neg:  []string{detection13_negative, detection13_negative2, detection13_negative3},
+		Pos:  []string{detection13_positive, detection13_positive2, detection13_positive3, detection13_positive4},
+		Neg:  []string{detection13_negative, detection13_negative2, detection13_negative3, detection13_negative4},
 	},
 	{
 		Rule:            detection14,
@@ -662,6 +680,12 @@ func TestSigmaEscape(t *testing.T) {
 			input:      `\\\\DoubleBackslash\?\some*Other\\*test.\\???`,
 			expected:   `\\\\DoubleBackslash\?\\some*Other\\*test.\\???`,
 			validMatch: `\\DoubleBackslash?\someMixOther\wildcardtest.\cmd`,
+		},
+		{
+			name:       "Mixed_Wildcards_Single_Backslash_Brackets",
+			input:      `[*]\*\aSetof\\\sigma{rule?}here*`,
+			expected:   `\[*\]\*\\aSetof\\\\sigma\{rule?\}here*`,
+			validMatch: `[testing]*\aSetof\\sigma{rules}hereWeGo`,
 		},
 	}
 	for _, curTest := range tests {
