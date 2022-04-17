@@ -23,7 +23,8 @@ func (i Item) String() string { return i.Val }
 // Do NOT access globVal directly as it won't be compiled until the first call to Item.Glob()
 func (i *Item) Glob() *glob.Glob {
 	if i.globVal == nil && !i.globCompFail {
-		newGlob, err := glob.Compile(i.Val)
+		newVal := escapeSigmaForGlob(i.Val)
+		newGlob, err := glob.Compile(newVal)
 		if err != nil {
 			i.globCompFail = true
 			return nil

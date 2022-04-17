@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/gobwas/glob"
 	"gopkg.in/yaml.v2"
 )
 
@@ -391,42 +392,86 @@ var detection12_negative = `
 }
 `
 
-//this test is a bit tricky; it all hinges on the bits*admin rule where the middle glob
-//is escaped, making it an asterisk instead of a glob
+//this test is a bit tricky:
+//the '*\bits\*admin.exe' is looking to match '[wildCard]\bits*admin.exe' (one wildcard at head, one escaped wildcard)
+//the '\\\\DoubleBackslash\\some*.exe' is looking to match '\\DoubleBackslash\some[wildCard].exe' (multiple backslashes, one wildcard)
+//the '\leadingBackslash\\*.exe' is looking to match '\leadingBackslash\[wildCard].exe' (one wildcard and leading backslash)
+//the 'full\\\*plaintext.exe' is looking to match 'full\*plaintext.exe' (no wildcards exact match)
 var detection13 = `
 detection:
   condition: "all of them"
   selection_images:
     Image:
-    - '*\schtasks.exe'
-    - '*\nslookup.exe'
-    - '*\certutil.exe'
     - '*\bits\*admin.exe'
-    - '*\mshta.exe'
+    - '\\\\DoubleBackslash\\some*.exe'
+    - '[Windows-*]\image.???'
   selection_parent_images:
     ParentImage:
-    - '*\mshta.exe'
-    - '*\powershell.exe'
-    - '*\cmd.exe'
-    - '*\rundll32.exe'
-    - '*\cscript.exe'
-    - '*\wscript.exe'
-    - '*\wmiprvse.exe'
+    - '\leadingBackslash\\*.exe'
+    - 'full\\\*plaintext.exe'
+    - '{000-aaa-*}\\*.exe'
 `
 
 var detection13_positive = `
 {
 	"Image":       "C:\\test\\bits*admin.exe",
-	"ParentImage": "C:\\test\\wmiprvse.exe",
-	"Image":       "C:\\test\\bits*admin.exe",
-	"ParentImage": "C:\\test\\wmiprvse.exe"
+	"ParentImage": "\\leadingBackslash\\something.exe"
+}
+`
+var detection13_positive2 = `
+{
+	"Image":       "\\\\DoubleBackslash\\someOther.exe",
+	"ParentImage": "full\\*plaintext.exe"
 }
 `
 
+var detection13_positive3 = `
+{
+	"Image":       "C:\\test\\bits*admin.exe",
+	"ParentImage": "full\\*plaintext.exe"
+}
+`
+
+var detection13_positive4 = `
+{
+	"Image":       "[Windows-Security]\\image.cmd",
+	"ParentImage": "{000-aaa-123}\\evil.exe"
+}
+`
+
+//won't match as Image is looking for '*\bits*admin.exe' witha leading wildcard and an escaped '*' between bits and admin
+//this provides 'C:\test\bitsadmin.exe', which matches the leading wildcard but fails to present the escaped '*'
 var detection13_negative = `
 {
 	"Image":       "C:\\test\\bitsadmin.exe",
-	"ParentImage": "C:\\test\\mshta\\lll.exe"
+	"ParentImage": "\\leadingBackslash\\something.exe"
+}
+`
+
+//won't match as the ParentImage is looking for '\leadingBackslash\*.exe' with a wildcard
+//this provides 'leadingBackslash\something.exe', missing the leading backslash
+var detection13_negative2 = `
+{
+	"Image":       "C:\\test\\bits*admin.exe",
+	"ParentImage": "leadingBackslash\\something.exe"
+}
+`
+
+//won't match as the ParentImage is looking for an exact match (no wildcards) to 'full\*plaintext.exe'
+//this provides 'full\\*plaintext', the extra backslash kills it
+var detection13_negative3 = `
+{
+	"Image":       "C:\\test\\bits*admin.exe",
+	"ParentImage": "full\\\\*plaintext"
+}
+`
+
+//shouldn't match on either of these (Image is missing 'Windows' in the bracket, ParentImage is missing the
+//a vaule of 000-aaa in the brackets)
+var detection13_negative4 = `
+{
+	"Image":       "[-Security]\\image.cmd",
+	"ParentImage": "{000-aaa}\\evil.exe"
 }
 `
 
@@ -515,8 +560,8 @@ var parseTestCases = []parseTestCase{
 	},
 	{
 		Rule: detection13,
-		Pos:  []string{detection13_positive},
-		Neg:  []string{detection13_negative},
+		Pos:  []string{detection13_positive, detection13_positive2, detection13_positive3, detection13_positive4},
+		Neg:  []string{detection13_negative, detection13_negative2, detection13_negative3, detection13_negative4},
 	},
 	{
 		Rule:            detection14,
@@ -589,5 +634,79 @@ func TestParse(t *testing.T) {
 				t.Fatalf("rule parser case %d negative case matched", i+1)
 			}
 		}
+	}
+}
+
+func TestSigmaEscape(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      string
+		expected   string
+		validMatch string
+		skip       bool
+	}{
+		{
+			name:       "No_Change",
+			input:      `\\leadingBackslash\\*.exe`,
+			expected:   `\\leadingBackslash\\*.exe`,
+			validMatch: `\leadingBackslash\testing.exe`,
+		},
+		{
+			name:       "Leading_Single_Backslash_Wildcard_After_Slash",
+			input:      `\leadingBackslash\\*.exe`,
+			expected:   `\\leadingBackslash\\*.exe`,
+			validMatch: `\leadingBackslash\testing.exe`,
+		},
+		{
+			name:       "Leading_Wildcard_Single_Backslash_Esc_Wildcard",
+			input:      `*\bits\*admin.exe`,
+			expected:   `*\\bits\*admin.exe`,
+			validMatch: `leading\bits*admin.exe`,
+		},
+		{
+			name:       "Double_Leading_Backslash_Single_Backslash_Wildcard",
+			input:      `\\\\DoubleBackslash\some*.exe`,
+			expected:   `\\\\DoubleBackslash\\some*.exe`,
+			validMatch: `\\DoubleBackslash\sometMatch.exe`,
+		},
+		{
+			name:       "Plaintext_Only_Esc_Wildcard",
+			input:      `some\full\\\*plaintext.exe`,
+			expected:   `some\\full\\\*plaintext.exe`,
+			validMatch: `some\full\*plaintext.exe`,
+		},
+		{
+			name:       "Double_Leading_Backslash_Complex_Mix_Esc",
+			input:      `\\\\DoubleBackslash\?\some*Other\\*test.\\???`,
+			expected:   `\\\\DoubleBackslash\?\\some*Other\\*test.\\???`,
+			validMatch: `\\DoubleBackslash?\someMixOther\wildcardtest.\cmd`,
+		},
+		{
+			name:       "Mixed_Wildcards_Single_Backslash_Brackets",
+			input:      `[*]\*\aSetof\\\sigma{rule?}here*`,
+			expected:   `\[*\]\*\\aSetof\\\\sigma\{rule?\}here*`,
+			validMatch: `[testing]*\aSetof\\sigma{rules}hereWeGo`,
+		},
+	}
+	for _, curTest := range tests {
+		t.Run(curTest.name, func(t *testing.T) {
+			if curTest.skip {
+				t.Skip("test marked as skip")
+			}
+
+			escStr := escapeSigmaForGlob(curTest.input)
+			if escStr != curTest.expected {
+				t.Errorf("failed to validate escaped input; got: %s - expected: %s", escStr, curTest.expected)
+			}
+
+			//test as a glob to be sure
+			globT, err := glob.Compile(escStr)
+			if err != nil {
+				t.Fatalf("failed to compile glob: %+v", err)
+			}
+			if !globT.Match(curTest.validMatch) {
+				t.Errorf("compiled glob did NOT match valid input; glob: %s -- data: %s", escStr, curTest.validMatch)
+			}
+		})
 	}
 }
