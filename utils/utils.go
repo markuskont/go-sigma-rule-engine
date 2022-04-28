@@ -1,4 +1,4 @@
-package sigma
+package utils
 
 import "strings"
 
@@ -22,15 +22,15 @@ func GetField(key string, data map[string]interface{}) (interface{}, bool) {
 	return nil, false
 }
 
-// DynamicMap is a reference type for implementing sigma Matcher
-type DynamicMap map[string]interface{}
+// Map is a reference type for implementing sigma Matcher
+type Map map[string]interface{}
 
 // Keywords implements Keyworder
-func (s DynamicMap) Keywords() ([]string, bool) {
+func (s Map) Keywords() ([]string, bool) {
 	return nil, false
 }
 
 // Select implements Selector
-func (s DynamicMap) Select(key string) (interface{}, bool) {
+func (s Map) Select(key string) (interface{}, bool) {
 	return GetField(key, s)
 }
