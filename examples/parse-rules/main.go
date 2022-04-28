@@ -17,11 +17,10 @@ package main
 
 import (
 	"flag"
+	"log"
 	"strings"
 
 	"github.com/markuskont/go-sigma-rule-engine"
-
-	"github.com/sirupsen/logrus"
 )
 
 type counts struct {
@@ -36,27 +35,27 @@ func main() {
 	flag.Parse()
 	files, err := sigma.NewRuleFileList(strings.Split(*flagRuleDir, ";"))
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 	for _, f := range files {
-		logrus.Info(f)
+		log.Println(f)
 	}
-	logrus.Info("Parsing rule yaml files")
+	log.Println("Parsing rule yaml files")
 	rules, err := sigma.NewRuleList(files, true, false)
 	if err != nil {
 		switch err.(type) {
 		case sigma.ErrBulkParseYaml:
-			logrus.Error(err)
+			log.Println(err)
 		default:
-			logrus.Fatal(err)
+			log.Fatal(err)
 		}
 	}
-	logrus.Infof("Got %d rules from yaml", len(rules))
-	logrus.Info("Parsing rules into AST")
+	log.Printf("Got %d rules from yaml\n", len(rules))
+	log.Println("Parsing rules into AST")
 	c := &counts{}
 loop:
 	for _, raw := range rules {
-		logrus.Trace(raw.Path)
+		log.Print(raw.Path)
 		if raw.Multipart {
 			c.unsupported++
 			continue loop
@@ -66,15 +65,15 @@ loop:
 			switch err.(type) {
 			case sigma.ErrUnsupportedToken:
 				c.unsupported++
-				logrus.Warnf("%s: %s", err, raw.Path)
+				log.Printf("%s: %s\n", err, raw.Path)
 			default:
 				c.fail++
-				logrus.Errorf("%s", err)
+				log.Printf("%s\n", err)
 			}
 		} else {
-			logrus.Infof("%s: ok", raw.Path)
+			log.Printf("%s: ok\n", raw.Path)
 			c.ok++
 		}
 	}
-	logrus.Infof("OK: %d; FAIL: %d; UNSUPPORTED: %d", c.ok, c.fail, c.unsupported)
+	log.Printf("OK: %d; FAIL: %d; UNSUPPORTED: %d\n", c.ok, c.fail, c.unsupported)
 }
