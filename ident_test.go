@@ -12,8 +12,7 @@ import (
 type identExampleType int
 
 const (
-	identNA identExampleType = iota
-	ident1
+	ident1 identExampleType = iota
 	ident2
 )
 
