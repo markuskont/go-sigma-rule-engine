@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/markuskont/go-sigma-rule-engine/utils"
+	"github.com/markuskont/datamodels"
 	"gopkg.in/yaml.v2"
 )
 
@@ -19,7 +19,7 @@ func TestTreeParse(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var obj utils.Map
+		var obj datamodels.Map
 		// Positive cases
 		for _, c := range c.Pos {
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
@@ -53,7 +53,7 @@ func benchmarkCase(b *testing.B, rawRule, rawEvent string) {
 	if err != nil {
 		b.Fail()
 	}
-	var event utils.Map
+	var event datamodels.Map
 	if err := json.Unmarshal([]byte(parseTestCases[0].Pos[0]), &event); err != nil {
 		b.Fail()
 	}

@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/markuskont/datamodels"
 	"github.com/markuskont/go-sigma-rule-engine"
-	"github.com/markuskont/go-sigma-rule-engine/utils"
 )
 
 var (
@@ -34,7 +34,7 @@ func main() {
 	output := os.Stdout
 loop:
 	for scanner.Scan() {
-		var obj utils.Map
+		var obj datamodels.Map
 		if err := json.Unmarshal(scanner.Bytes(), &obj); err != nil {
 			log.Println(err)
 			continue loop

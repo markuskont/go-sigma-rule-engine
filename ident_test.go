@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/markuskont/go-sigma-rule-engine/utils"
+	"github.com/markuskont/datamodels"
 	"gopkg.in/yaml.v2"
 )
 
@@ -57,7 +57,7 @@ func (i identTestCase) sigma() (*identPosNegCases, error) {
 			return nil, fmt.Errorf("missing positive test cases")
 		}
 		for _, c := range i.Pos {
-			var obj utils.Map
+			var obj datamodels.Map
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
 				return nil, err
 			}
@@ -67,7 +67,7 @@ func (i identTestCase) sigma() (*identPosNegCases, error) {
 			return nil, fmt.Errorf("missing negative test cases")
 		}
 		for _, c := range i.Neg {
-			var obj utils.Map
+			var obj datamodels.Map
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
 				return nil, err
 			}
