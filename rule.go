@@ -2,6 +2,7 @@ package sigma
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -123,6 +124,9 @@ type Results []Result
 // Subtree is scanned recursively
 // No file validation, other than suffix matching
 func NewRuleFileList(dirs []string) ([]string, error) {
+	if len(dirs) == 0 {
+		return nil, errors.New("rule directories undefined")
+	}
 	out := make([]string, 0)
 	for _, dir := range dirs {
 		if err := filepath.Walk(dir, func(

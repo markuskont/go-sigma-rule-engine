@@ -16,11 +16,11 @@ Simply pull the code using `go get`.
 go get -u github.com/markuskont/go-sigma-rule-engine/
 ```
 
-Then import the library into your project.
+Then import the library into your project. **PS** - this path was refactored to project root in `0.3`, as initial layout was not suitable to library project. Please update your imports accordingly when upgrading from `0.2`.
 
 ```go
 import (
-	"github.com/markuskont/go-sigma-rule-engine/pkg/sigma/v2"
+	"github.com/markuskont/go-sigma-rule-engine"
 )
 ```
 

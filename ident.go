@@ -72,7 +72,7 @@ func newRuleFromIdent(rule interface{}, kind identType, noCollapseWS bool) (Bran
 // Keyword is a container for patterns joined by logical disjunction
 type Keyword struct {
 	S StringMatcher
-	Stats
+	stats
 }
 
 // Match implements Matcher
@@ -142,7 +142,7 @@ type SelectionStringItem struct {
 type Selection struct {
 	N []SelectionNumItem
 	S []SelectionStringItem
-	Stats
+	stats
 }
 
 // Match implements Matcher
@@ -224,7 +224,7 @@ func (s Selection) Match(msg Event) (bool, bool) {
 }
 
 func (s *Selection) incrementMismatchCount() *Selection {
-	s.Stats.TypeMismatchCount++
+	s.stats.TypeMismatchCount++
 	return s
 }
 
@@ -401,4 +401,9 @@ func cleanUpInterfaceMap(rx map[interface{}]interface{}) map[string]interface{} 
 		tx[fmt.Sprintf("%v", k)] = v
 	}
 	return tx
+}
+
+// stats holds various rule statistics
+type stats struct {
+	TypeMismatchCount uint64
 }

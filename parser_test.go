@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/gobwas/glob"
+	"github.com/markuskont/datamodels"
 	"gopkg.in/yaml.v2"
 )
 
@@ -613,7 +614,7 @@ func TestParse(t *testing.T) {
 				t.Fatalf("rule parser case %d failed to parse lexical tokens, %s", i+1, err)
 			}
 		}
-		var obj DynamicMap
+		var obj datamodels.Map
 		// Positive cases
 		for _, c := range c.Pos {
 			if err := json.Unmarshal([]byte(c), &obj); err != nil {
