@@ -3,6 +3,7 @@ package sigma
 import (
 	"fmt"
 	"os"
+	"sync"
 )
 
 // Config is used as argument to creating a new ruleset
@@ -37,6 +38,8 @@ func (c Config) validate() error {
 
 // Ruleset is a collection of rules
 type Ruleset struct {
+	mu *sync.RWMutex
+
 	Rules []*Tree
 	root  []string
 
@@ -82,6 +85,7 @@ loop:
 		set = append(set, tree)
 	}
 	return &Ruleset{
+		mu:          &sync.RWMutex{},
 		root:        c.Directory,
 		Rules:       set,
 		Failed:      fail,
@@ -91,7 +95,9 @@ loop:
 	}, nil
 }
 
-func (r Ruleset) EvalAll(e Event) (Results, bool) {
+func (r *Ruleset) EvalAll(e Event) (Results, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	results := make(Results, 0)
 	for _, rule := range r.Rules {
 		if res, match := rule.Eval(e); match {
