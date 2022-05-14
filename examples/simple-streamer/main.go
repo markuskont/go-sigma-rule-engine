@@ -46,7 +46,7 @@ loop:
 				log.Println(err)
 				continue loop
 			}
-			output.Write(encoded)
+			output.Write(append(encoded, []byte("\n")...))
 		}
 	}
 }
