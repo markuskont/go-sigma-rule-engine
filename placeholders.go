@@ -1,8 +1,11 @@
 package sigma
 
 import (
+	"context"
+	"errors"
 	"os"
 	"sync"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -25,6 +28,28 @@ func (p *placeholderHandle) load() error {
 	}
 	defer f.Close()
 	return yaml.NewDecoder(f).Decode(&p.data)
+}
+
+func (p *placeholderHandle) runLoader(ctx context.Context, d time.Duration, errFn func(error)) error {
+	if d == 0 {
+		return errors.New("placeholder reloader requires a tick interval")
+	}
+	go func(ctx context.Context) {
+		tick := time.NewTicker(d)
+		defer tick.Stop()
+	loop:
+		for {
+			select {
+			case <-tick.C:
+				if err := p.load(); err != nil && errFn != nil {
+					errFn(err)
+				}
+			case <-ctx.Done():
+				break loop
+			}
+		}
+	}(ctx)
+	return nil
 }
 
 func (p *placeholderHandle) matcher(key string) StringMatchers {
