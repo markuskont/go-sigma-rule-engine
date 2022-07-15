@@ -1,6 +1,7 @@
 package sigma
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -135,8 +136,9 @@ type SelectionNumItem struct {
 }
 
 type SelectionStringItem struct {
-	Key     string
-	Pattern StringMatcher
+	Key         string
+	Pattern     StringMatcher
+	Placeholder bool
 }
 
 type Selection struct {
@@ -228,7 +230,7 @@ func (s *Selection) incrementMismatchCount() *Selection {
 	return s
 }
 
-func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool) (*Selection, error) {
+func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool, ph *placeholderHandle) (*Selection, error) {
 	sel := &Selection{S: make([]SelectionStringItem, 0)}
 	for key, pattern := range expr {
 		var mod TextPatternModifier
@@ -259,11 +261,26 @@ func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool) (*Selec
 		}
 		switch pat := pattern.(type) {
 		case string:
-			m, err := NewStringMatcher(mod, false, all, noCollapseWS, pat)
-			if err != nil {
-				return nil, err
+			// string type can be a value or a placeholder
+			if strings.HasPrefix(pat, "%") && strings.HasSuffix(pat, "%") {
+				if ph == nil {
+					return nil, errors.New("placeholder handler missing")
+				}
+				// https://github.com/SigmaHQ/sigma/wiki/Specification#placeholders
+				// we expect a string key-val pair like AccountName: %Administrators%
+				m := ph.matcher(key)
+				if len(m) > 1 {
+					sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m, Placeholder: true})
+				} else if len(m) == 1 {
+					sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m[0], Placeholder: true})
+				}
+			} else {
+				m, err := NewStringMatcher(mod, false, all, noCollapseWS, pat)
+				if err != nil {
+					return nil, err
+				}
+				sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
 			}
-			sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m})
 		case int:
 			m, err := NewNumMatcher(pat)
 			if err != nil {
@@ -346,7 +363,7 @@ func NewSelectionBranch(expr interface{}, noCollapseWS bool) (Branch, error) {
 		}
 		return NodeSimpleOr(selections).Reduce(), nil
 	case map[interface{}]interface{}:
-		return newSelectionFromMap(cleanUpInterfaceMap(v), noCollapseWS)
+		return newSelectionFromMap(cleanUpInterfaceMap(v), noCollapseWS, nil)
 	default:
 		return nil, ErrInvalidKind{
 			Kind:     reflect.TypeOf(expr).Kind(),
