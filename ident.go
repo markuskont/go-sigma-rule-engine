@@ -141,6 +141,12 @@ type SelectionStringItem struct {
 	Placeholder bool
 }
 
+func (s *SelectionStringItem) update(p StringMatchers) {
+	if p != nil {
+		s.Pattern = p
+	}
+}
+
 type Selection struct {
 	N []SelectionNumItem
 	S []SelectionStringItem
