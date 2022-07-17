@@ -1,9 +1,12 @@
 package sigma
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
+	"time"
 )
 
 // Config is used as argument to creating a new ruleset
@@ -18,6 +21,8 @@ type Config struct {
 	// by default, we will collapse whitespace for both rules and data of non-regex rules and non-regex compared data
 	//setthig this to true turns that behavior off
 	NoCollapseWS bool
+	// filesystem path to YAML file containing placeholders
+	PlaceholderYAML string
 }
 
 func (c Config) validate() error {
@@ -43,6 +48,8 @@ type Ruleset struct {
 	Rules []*Tree
 	root  []string
 
+	placeholders *placeholderHandle
+
 	Total, Ok, Failed, Unsupported int
 }
 
@@ -65,6 +72,13 @@ func NewRuleset(c Config) (*Ruleset, error) {
 			return nil, err
 		}
 	}
+	rs := &Ruleset{
+		mu:          &sync.RWMutex{},
+		root:        c.Directory,
+		Failed:      fail,
+		Unsupported: unsupp,
+		Total:       len(files),
+	}
 	set := make([]*Tree, 0)
 loop:
 	for _, raw := range rules {
@@ -84,15 +98,17 @@ loop:
 		}
 		set = append(set, tree)
 	}
-	return &Ruleset{
-		mu:          &sync.RWMutex{},
-		root:        c.Directory,
-		Rules:       set,
-		Failed:      fail,
-		Ok:          len(set),
-		Unsupported: unsupp,
-		Total:       len(files),
-	}, nil
+
+	rs.Rules = set
+	rs.Ok = len(set)
+
+	if c.PlaceholderYAML != "" {
+		rs.placeholders = newPlaceholderHandle(c.PlaceholderYAML)
+		if err := rs.ReloadPlaceholders(); err != nil {
+			return rs, err
+		}
+	}
+	return rs, nil
 }
 
 func (r *Ruleset) EvalAll(e Event) (Results, bool) {
@@ -108,4 +124,19 @@ func (r *Ruleset) EvalAll(e Event) (Results, bool) {
 		return results, true
 	}
 	return nil, false
+}
+
+func (r *Ruleset) ReloadPlaceholders() error {
+	if err := r.placeholders.load(); err != nil {
+		return err
+	}
+	updateRulesetPlaceholders(r)
+	return nil
+}
+
+func (r *Ruleset) RunPlaceholderReload(ctx context.Context, d time.Duration, errFn func(error)) error {
+	if r.placeholders == nil {
+		return errors.New("cannot initialize placeholder reload, not initialized")
+	}
+	return r.placeholders.runLoader(ctx, d, errFn)
 }

@@ -51,6 +51,7 @@ func NewTree(r RuleHandle) (*Tree, error) {
 		sigma:        r.Detection,
 		noCollapseWS: r.NoCollapseWS,
 	}
+
 	if err := p.run(); err != nil {
 		return nil, err
 	}

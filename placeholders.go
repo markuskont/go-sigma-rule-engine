@@ -102,3 +102,9 @@ func updatePlaceholders(b Branch, ph *placeholderHandle) {
 		updatePlaceholders(t.R, ph)
 	}
 }
+
+func updateRulesetPlaceholders(rs *Ruleset) {
+	for _, rule := range rs.Rules {
+		updatePlaceholders(rule.Root, rs.placeholders)
+	}
+}

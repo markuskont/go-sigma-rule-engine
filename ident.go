@@ -1,7 +1,6 @@
 package sigma
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -236,7 +235,7 @@ func (s *Selection) incrementMismatchCount() *Selection {
 	return s
 }
 
-func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool, ph *placeholderHandle) (*Selection, error) {
+func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool) (*Selection, error) {
 	sel := &Selection{S: make([]SelectionStringItem, 0)}
 	for key, pattern := range expr {
 		var mod TextPatternModifier
@@ -269,14 +268,15 @@ func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool, ph *pla
 		case string:
 			// string type can be a value or a placeholder
 			if strings.HasPrefix(pat, "%") && strings.HasSuffix(pat, "%") {
-				if ph == nil {
-					return nil, errors.New("placeholder handler missing")
-				}
 				// https://github.com/SigmaHQ/sigma/wiki/Specification#placeholders
 				// we expect a string key-val pair like AccountName: %Administrators%
-				m := ph.matcher(key)
+				// Since they are literally called *placeholders*, then they will be initialized by update procedure
+				sel.S = append(sel.S, SelectionStringItem{
+					Key:         key,
+					Pattern:     make(StringMatchers, 0),
+					Placeholder: true,
+				})
 				// FIXME - this will currently ignore modifier
-				sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m, Placeholder: true})
 			} else {
 				m, err := NewStringMatcher(mod, false, all, noCollapseWS, pat)
 				if err != nil {
@@ -366,7 +366,7 @@ func NewSelectionBranch(expr interface{}, noCollapseWS bool) (Branch, error) {
 		}
 		return NodeSimpleOr(selections).Reduce(), nil
 	case map[interface{}]interface{}:
-		return newSelectionFromMap(cleanUpInterfaceMap(v), noCollapseWS, nil)
+		return newSelectionFromMap(cleanUpInterfaceMap(v), noCollapseWS)
 	default:
 		return nil, ErrInvalidKind{
 			Kind:     reflect.TypeOf(expr).Kind(),
