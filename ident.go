@@ -269,11 +269,8 @@ func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool, ph *pla
 				// https://github.com/SigmaHQ/sigma/wiki/Specification#placeholders
 				// we expect a string key-val pair like AccountName: %Administrators%
 				m := ph.matcher(key)
-				if len(m) > 1 {
-					sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m, Placeholder: true})
-				} else if len(m) == 1 {
-					sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m[0], Placeholder: true})
-				}
+				// FIXME - this will currently ignore modifier
+				sel.S = append(sel.S, SelectionStringItem{Key: key, Pattern: m, Placeholder: true})
 			} else {
 				m, err := NewStringMatcher(mod, false, all, noCollapseWS, pat)
 				if err != nil {
