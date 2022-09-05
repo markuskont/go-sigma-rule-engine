@@ -137,7 +137,11 @@ type SelectionNumItem struct {
 type SelectionStringItem struct {
 	Key         string
 	Pattern     StringMatcher
-	Placeholder bool
+	Placeholder string
+}
+
+func (s SelectionStringItem) cleanPlaceholderKey() string {
+	return strings.Trim(s.Placeholder, "%")
 }
 
 func (s *SelectionStringItem) update(p StringMatchers) {
@@ -274,7 +278,7 @@ func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool) (*Selec
 				sel.S = append(sel.S, SelectionStringItem{
 					Key:         key,
 					Pattern:     make(StringMatchers, 0),
-					Placeholder: true,
+					Placeholder: pat,
 				})
 				// FIXME - this will currently ignore modifier
 			} else {
