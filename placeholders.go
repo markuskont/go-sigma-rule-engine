@@ -30,7 +30,11 @@ func (p *placeholderHandle) load() error {
 	return yaml.NewDecoder(f).Decode(&p.data)
 }
 
-func (p *placeholderHandle) runLoader(ctx context.Context, d time.Duration, errFn func(error)) error {
+func (p *placeholderHandle) runLoader(
+	ctx context.Context,
+	d time.Duration,
+	errFn func(error),
+) error {
 	if d == 0 {
 		return errors.New("placeholder reloader requires a tick interval")
 	}
@@ -78,13 +82,13 @@ func newPlaceholderHandle(confPath string) *placeholderHandle {
 // updatePlaceholders walks the rule tree updates selection items that have placeholders defined
 func updatePlaceholders(b Branch, ph *placeholderHandle) {
 	switch t := b.(type) {
-	case Selection:
+	case *Selection:
 		for _, item := range t.S {
-			if item.Placeholder {
-				item.update(ph.matcher(item.Key))
+			if item.Placeholder != "" {
+				item.update(ph.matcher(item.cleanPlaceholderKey()))
 			}
 		}
-	case NodeNot:
+	case *NodeNot:
 		updatePlaceholders(t.B, ph)
 	case NodeSimpleAnd:
 		for _, b2 := range t {
@@ -94,10 +98,10 @@ func updatePlaceholders(b Branch, ph *placeholderHandle) {
 		for _, b2 := range t {
 			updatePlaceholders(b2, ph)
 		}
-	case NodeAnd:
+	case *NodeAnd:
 		updatePlaceholders(t.L, ph)
 		updatePlaceholders(t.R, ph)
-	case NodeOr:
+	case *NodeOr:
 		updatePlaceholders(t.L, ph)
 		updatePlaceholders(t.R, ph)
 	}
