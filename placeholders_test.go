@@ -2,6 +2,7 @@ package sigma
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -12,26 +13,23 @@ import (
 
 var placeholderTestYAML = `
 ---
-%administrators%:
+administrators:
   - Admin1
   - superadmin91
   - rocky
-%regular_users%:
+regular_users:
   - maali
 `
 
-var placeholderRules = []string{
-	`
----
+var placeholderRules = []string{`---
 detection:
   condition: "(selection1 or selection2) and selection3"
   selection1:
-    EventID: 666,
-  selection2
+    EventID: 666
+  selection2:
     EventID: 42
   selection3:
-    UserName: %administrators%
-`,
+    UserName: "%administrators%"`,
 }
 
 var placeholderTestCases = []struct {
@@ -72,19 +70,19 @@ func TestPlaceholders(t *testing.T) {
 	}
 	updateRulesetPlaceholders(rs)
 
-	for _, tt := range placeholderTestCases {
+	for i, tt := range placeholderTestCases {
 		t.Run(tt.Name, func(t *testing.T) {
 			for _, event := range tt.Pos {
 				var obj datamodels.Map
 				assert.Nil(t, json.Unmarshal([]byte(event), &obj))
 				_, ok := rs.EvalAll(obj)
-				assert.True(t, ok)
+				assert.True(t, ok, fmt.Sprintf("case %d", i))
 			}
 			for _, event := range tt.Neg {
 				var obj datamodels.Map
 				assert.Nil(t, json.Unmarshal([]byte(event), &obj))
 				_, ok := rs.EvalAll(obj)
-				assert.False(t, ok)
+				assert.False(t, ok, fmt.Sprintf("case %d", i))
 			}
 		})
 	}
