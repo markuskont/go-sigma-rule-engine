@@ -112,9 +112,11 @@ type Tags []string
 
 // Result is an object returned on positive sigma match
 type Result struct {
-	Tags
+	Tags `json:"tags"`
 
-	ID, Title string
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
 // Results should be returned when single event matches multiple rules

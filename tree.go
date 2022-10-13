@@ -27,9 +27,10 @@ func (t Tree) Eval(e Event) (*Result, bool) {
 	}
 	if match {
 		return &Result{
-			ID:    t.Rule.ID,
-			Title: t.Rule.Title,
-			Tags:  t.Rule.Tags,
+			ID:          t.Rule.ID,
+			Title:       t.Rule.Title,
+			Tags:        t.Rule.Tags,
+			Description: t.Rule.Description,
 		}, true
 	}
 	return nil, false
