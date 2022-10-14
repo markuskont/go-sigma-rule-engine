@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/markuskont/datamodels"
 	"github.com/markuskont/go-sigma-rule-engine"
@@ -48,6 +49,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+
 			output := os.Stdout
 		loop:
 			for data := range ch {
@@ -65,21 +67,34 @@ func main() {
 					}
 					output.Write(append(encoded, []byte("\n")...))
 				}
+
 			}
 		}()
 	}
-
 	// scanner setup
 	wg.Add(1)
 	go func() {
+		var count float64
+		start := time.Now()
+		log.SetOutput(os.Stderr)
+
+		tick := time.NewTicker(5 * time.Second)
+		defer tick.Stop()
+
 		defer wg.Done()
 		defer close(ch)
 		scanner := bufio.NewScanner(bufio.NewReader(os.Stdin))
 		for scanner.Scan() {
-			// need to copy the bytes as scanner.Bytes is modified in place
-			cpy := make([]byte, len(scanner.Bytes()))
-			copy(cpy, scanner.Bytes())
-			ch <- cpy
+			select {
+			case <-tick.C:
+				log.Printf("Rate: %.2f EPS\n", count/time.Since(start).Seconds())
+			default:
+				// need to copy the bytes as scanner.Bytes is modified in place
+				cpy := make([]byte, len(scanner.Bytes()))
+				copy(cpy, scanner.Bytes())
+				ch <- cpy
+				count++
+			}
 		}
 	}()
 }
