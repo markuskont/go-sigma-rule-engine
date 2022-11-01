@@ -573,6 +573,7 @@ var detection15_negative4 = `
 `
 
 type parseTestCase struct {
+	ID              int
 	Rule            string
 	Pos, Neg        []string
 	noCollapseWSNeg bool
@@ -580,81 +581,97 @@ type parseTestCase struct {
 
 var parseTestCases = []parseTestCase{
 	{
+		ID:   1,
 		Rule: detection1,
 		Pos:  []string{detection1_positive},
 		Neg:  []string{detection1_negative1, detection1_negative2},
 	},
 	{
+		ID:   2,
 		Rule: detection2,
 		Pos:  []string{detection1_positive},
 		Neg:  []string{detection1_negative1, detection1_negative2},
 	},
 	{
+		ID:   3,
 		Rule: detection3,
 		Pos:  []string{detection3_positive1, detection3_positive2},
 		Neg:  []string{detection3_negative},
 	},
 	{
+		ID:   4,
 		Rule: detection4,
 		Pos:  []string{detection1_positive},
 		Neg:  []string{detection1_negative1, detection1_negative2},
 	},
 	{
+		ID:   5,
 		Rule: detection5,
 		Pos:  []string{detection3_positive1, detection3_positive2},
 		Neg:  []string{detection3_negative},
 	},
 	{
+		ID:   6,
 		Rule: detection6,
 		Pos:  []string{detection6_positive},
 		Neg:  []string{detection6_negative},
 	},
 	{
+		ID:   7,
 		Rule: detection7,
 		Pos:  []string{detection3_positive1, detection3_positive2},
 		Neg:  []string{detection7_negative1, detection7_negative2},
 	},
 	{
+		ID:   8,
 		Rule: detection8,
 		Pos:  []string{detection8_positive},
 		Neg:  []string{detection8_negative1, detection8_negative2},
 	},
 	{
+		ID:   9,
 		Rule: detection9,
 		Pos:  []string{detection9_positive},
 		Neg:  []string{detection9_negative},
 	},
 	{
+		ID:   10,
 		Rule: detection10,
 		Pos:  []string{detection10_positive},
 		Neg:  []string{detection10_negative},
 	},
 	{
+		ID:   11,
 		Rule: detection11,
 		Pos:  []string{detection11_positive},
 		Neg:  []string{detection11_negative},
 	},
 	{
+		ID:   12,
 		Rule: detection12,
 		Pos:  []string{detection12_positive},
 		Neg:  []string{detection12_negative},
 	},
 	{
+		ID:   13,
 		Rule: detection13,
 		Pos:  []string{detection13_positive, detection13_positive2, detection13_positive3, detection13_positive4},
 		Neg:  []string{detection13_negative, detection13_negative2, detection13_negative3, detection13_negative4},
 	},
 	{
+		ID:              14,
 		Rule:            detection14,
 		Pos:             []string{detection14_case},
 		noCollapseWSNeg: false, // ensures whitespace is collapsed and everything matches
 	},
 	{
+		ID:              14,
 		Rule:            detection14,
 		Neg:             []string{detection14_case},
 		noCollapseWSNeg: true, // turns off whitespace collapsing and causing a non-match
 	},
 	{
+		ID:   15,
 		Rule: detection15,
 		Pos:  []string{detection15_positive1, detection15_positive2},
 		Neg:  []string{detection15_negative1, detection15_negative2, detection15_negative3, detection15_negative4},
@@ -677,10 +694,10 @@ func TestTokenCollect(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
-	for i, c := range parseTestCases {
+	for _, c := range parseTestCases {
 		var rule Rule
 		if err := yaml.Unmarshal([]byte(c.Rule), &rule); err != nil {
-			t.Fatalf("rule parse case %d failed to unmarshal yaml, %s", i+1, err)
+			t.Fatalf("rule parse case %d failed to unmarshal yaml, %s", c.ID, err)
 		}
 		expr := rule.Detection["condition"].(string)
 		p := &parser{
@@ -689,35 +706,35 @@ func TestParse(t *testing.T) {
 			noCollapseWS: c.noCollapseWSNeg,
 		}
 		if err := p.collect(); err != nil {
-			t.Fatalf("rule parser case %d failed to collect lexical tokens, %s", i+1, err)
+			t.Fatalf("rule parser case %d failed to collect lexical tokens, %s", c.ID, err)
 		}
 		if err := p.parse(); err != nil {
 			switch err.(type) {
 			case ErrWip:
 				t.Fatalf("WIP")
 			default:
-				t.Fatalf("rule parser case %d failed to parse lexical tokens, %s", i+1, err)
+				t.Fatalf("rule parser case %d failed to parse lexical tokens, %s", c.ID, err)
 			}
 		}
 		var obj datamodels.Map
 		// Positive cases
-		for _, c := range c.Pos {
-			if err := json.Unmarshal([]byte(c), &obj); err != nil {
-				t.Fatalf("rule parser case %d positive case json unmarshal error %s", i+1, err)
+		for i, c2 := range c.Pos {
+			if err := json.Unmarshal([]byte(c2), &obj); err != nil {
+				t.Fatalf("rule parser case %d positive case %d json unmarshal error %s", c.ID, i, err)
 			}
 			m, _ := p.result.Match(obj)
 			if !m {
-				t.Fatalf("rule parser case %d positive case did not match", i+1)
+				t.Fatalf("rule parser case %d positive case %d did not match", c.ID, i)
 			}
 		}
 		// Negative cases
-		for _, c := range c.Neg {
-			if err := json.Unmarshal([]byte(c), &obj); err != nil {
-				t.Fatalf("rule parser case %d positive case json unmarshal error %s", i+1, err)
+		for i, c2 := range c.Neg {
+			if err := json.Unmarshal([]byte(c2), &obj); err != nil {
+				t.Fatalf("rule parser case %d positive case %d json unmarshal error %s", c.ID, i, err)
 			}
 			m, _ := p.result.Match(obj)
 			if m {
-				t.Fatalf("rule parser case %d negative case matched", i+1)
+				t.Fatalf("rule parser case %d negative case %d matched", c.ID, i)
 			}
 		}
 	}

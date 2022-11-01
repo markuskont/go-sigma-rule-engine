@@ -9,35 +9,35 @@ import (
 )
 
 func TestTreeParse(t *testing.T) {
-	for i, c := range parseTestCases {
+	for _, c := range parseTestCases {
 		var rule Rule
 		if err := yaml.Unmarshal([]byte(c.Rule), &rule); err != nil {
-			t.Fatalf("tree parse case %d failed to unmarshal yaml, %s", i+1, err)
+			t.Fatalf("tree parse case %d failed to unmarshal yaml, %s", c.ID, err)
 		}
 		p, err := NewTree(RuleHandle{Rule: rule, NoCollapseWS: c.noCollapseWSNeg})
 		if err != nil {
-			t.Fatalf("tree parse case %d failed: %s", i+1, err)
+			t.Fatalf("tree parse case %d failed: %s", c.ID, err)
 		}
 
 		var obj datamodels.Map
 		// Positive cases
-		for _, c := range c.Pos {
-			if err := json.Unmarshal([]byte(c), &obj); err != nil {
-				t.Fatalf("tree parsercase %d positive case json unmarshal error %s", i+1, err)
+		for i, c2 := range c.Pos {
+			if err := json.Unmarshal([]byte(c2), &obj); err != nil {
+				t.Fatalf("rule parser case %d positive case %d json unmarshal error %s", c.ID, i, err)
 			}
-			match, _ := p.Match(obj)
-			if !match {
-				t.Fatalf("tree parser case %d positive case did not match", i+1)
+			m, _ := p.Match(obj)
+			if !m {
+				t.Fatalf("rule parser case %d positive case %d did not match", c.ID, i)
 			}
 		}
 		// Negative cases
-		for _, c := range c.Neg {
-			if err := json.Unmarshal([]byte(c), &obj); err != nil {
-				t.Fatalf("tree parser case %d positive case json unmarshal error %s", i+1, err)
+		for i, c2 := range c.Neg {
+			if err := json.Unmarshal([]byte(c2), &obj); err != nil {
+				t.Fatalf("rule parser case %d positive case %d json unmarshal error %s", c.ID, i, err)
 			}
-			match, _ := p.Match(obj)
-			if match {
-				t.Fatalf("tree parser case %d negative case matched", i+1)
+			m, _ := p.Match(obj)
+			if m {
+				t.Fatalf("rule parser case %d negative case %d matched", c.ID, i)
 			}
 		}
 	}
