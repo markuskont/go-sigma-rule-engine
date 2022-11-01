@@ -218,6 +218,8 @@ func checkKeyWord(in string) Token {
 		return TokKeywordAgg
 	case TokIdentifierAll.Literal():
 		return TokIdentifierAll
+	case TokStOne.Literal():
+		return TokStOne
 	default:
 		if strings.Contains(in, "*") {
 			return TokIdentifierWithWildcard

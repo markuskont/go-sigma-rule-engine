@@ -498,6 +498,80 @@ var detection14_case = `
 }
 `
 
+var detection15 = `
+detection:
+  condition: "all of selection_* and 1 of option_*"
+  selection_images:
+    Image:
+    - '*bits*admin.exe'
+  selection_parent_images:
+    ParentImage:
+    - '*.exe'
+  selection_bar:
+    Baz:
+    - '*bar*'
+  option_1:
+    Bar|contains:
+    - 'Asdf'
+  option_2:
+    Test:
+    - 123
+`
+
+var detection15_positive1 = `
+{
+	"Image": "C:\\test\\bits\\aaa-admin.exe",
+	"ParentImage": "\\leadingBackslash\\something.exe",
+  "Baz": "foo bar baz",
+  "Bar": "lalala Asdf [124]"
+}
+`
+
+var detection15_negative1 = `
+{
+	"Image": "C:\\test\\bits\\aaa-admin.exe",
+	"ParentImage": "\\leadingBackslash\\something.exe",
+  "Baz": "foo bar baz",
+  "Bar": "lalala Asd [124]"
+}
+`
+
+var detection15_negative2 = `
+{
+	"Image": "C:\\test\\bits\\aaa-admin.exe",
+	"ParentImage": "\\leadingBackslash\\something.exe",
+  "Baz": "foo baz",
+  "Bar": "lalala Asdf [124]"
+}
+`
+
+var detection15_positive2 = `
+{
+	"Image": "C:\\test\\bits\\aaa-admin.exe",
+	"ParentImage": "\\leadingBackslash\\something.exe",
+  "Baz": "foo bar baz",
+  "Test": 123
+}
+`
+
+var detection15_negative3 = `
+{
+	"Image": "C:\\test\\bits\\aaa-admin.exe",
+	"ParentImage": "\\leadingBackslash\\something.exe",
+  "Baz": "foo bar baz",
+  "Test": 124
+}
+`
+
+var detection15_negative4 = `
+{
+	"Image": "C:\\test\\bits\\aaa-admin.exe",
+	"ParentImage": "\\leadingBackslash\\something.exe",
+  "Baz": "foo baz",
+  "Test": 123
+}
+`
+
 type parseTestCase struct {
 	Rule            string
 	Pos, Neg        []string
@@ -579,6 +653,11 @@ var parseTestCases = []parseTestCase{
 		Rule:            detection14,
 		Neg:             []string{detection14_case},
 		noCollapseWSNeg: true, // turns off whitespace collapsing and causing a non-match
+	},
+	{
+		Rule: detection15,
+		Pos:  []string{detection15_positive1, detection15_positive2},
+		Neg:  []string{detection15_negative1, detection15_negative2, detection15_negative3, detection15_negative4},
 	},
 }
 

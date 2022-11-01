@@ -16,7 +16,7 @@ func TestTreeParse(t *testing.T) {
 		}
 		p, err := NewTree(RuleHandle{Rule: rule, NoCollapseWS: c.noCollapseWSNeg})
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("tree parse case %d failed: %s", i+1, err)
 		}
 
 		var obj datamodels.Map
