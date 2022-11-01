@@ -81,13 +81,13 @@ func handleWhitespace(str string, noCollapseWS bool) string {
 }
 
 const (
-	SIGMA_SPECIAL_WILDCARD      = byte('*')
-	SIGMA_SPECIAL_SINGLE        = byte('?')
-	SIGMA_SPECIAL_ESCAPE        = byte('\\')
-	GLOB_SPECIAL_SQRBRKT_LEFT   = byte('[')
-	GLOB_SPECIAL_SQRBRKT_RIGHT  = byte(']')
-	GLOB_SPECIAL_CURLBRKT_LEFT  = byte('{')
-	GLOB_SPECIAL_CURLBRKT_RIGHT = byte('}')
+	sigmaSpecialWildcard     = byte('*')
+	sigmaSpecialSingle       = byte('?')
+	sigmaSpecialEscape       = byte('\\')
+	globSpecialSqrBrktLeft   = byte('[')
+	globSpecialSqrBrktRight  = byte(']')
+	globSpecialCurlBrktLeft  = byte('{')
+	globSpecialCurlBrktRight = byte('}')
 )
 
 // Sigma has a different set of rules than the Glob library for escaping, so this function attempts to
@@ -113,8 +113,8 @@ func escapeSigmaForGlob(str string) string {
 
 	// special "quotemeta"-like functionality for brackets in glob (they should be treated as plaintext)
 	isBracket := func(b byte) bool {
-		return b == GLOB_SPECIAL_SQRBRKT_LEFT || b == GLOB_SPECIAL_SQRBRKT_RIGHT ||
-			b == GLOB_SPECIAL_CURLBRKT_LEFT || b == GLOB_SPECIAL_CURLBRKT_RIGHT
+		return b == globSpecialSqrBrktLeft || b == globSpecialSqrBrktRight ||
+			b == globSpecialCurlBrktLeft || b == globSpecialCurlBrktRight
 	}
 
 	sLen := len(str)
@@ -125,9 +125,9 @@ func escapeSigmaForGlob(str string) string {
 	slashCnt := 0     // to simplify balancing runs of escaped backslashes (without wildcards), we just count the number we've seen in a row
 	for i := (sLen - 1); i >= 0; i-- {
 		switch str[i] {
-		case SIGMA_SPECIAL_WILDCARD, SIGMA_SPECIAL_SINGLE: // wildcard is on when we see one of these characters
+		case sigmaSpecialWildcard, sigmaSpecialSingle: // wildcard is on when we see one of these characters
 			wildcard = true
-		case SIGMA_SPECIAL_ESCAPE: // character is an escape (backslash)
+		case sigmaSpecialEscape: // character is an escape (backslash)
 			if !wildcard { // if we're no in wildcard mode, count the number of slashes we're putting out to ensure they're balanced
 				slashCnt++
 			}
@@ -136,9 +136,9 @@ func escapeSigmaForGlob(str string) string {
 		}
 
 		// if we're no longer processing an escape character, check to see if we have a balanced count and if not, rebalance
-		if str[i] != SIGMA_SPECIAL_ESCAPE && slashCnt > 0 {
+		if str[i] != sigmaSpecialEscape && slashCnt > 0 {
 			if (slashCnt % 2) != 0 {
-				replStr[x] = SIGMA_SPECIAL_ESCAPE
+				replStr[x] = sigmaSpecialEscape
 				x-- // decrement x again as we're adding an extra char
 			}
 			slashCnt = 0
@@ -150,14 +150,14 @@ func escapeSigmaForGlob(str string) string {
 		// special escape case for square/curly brackets; we need to escape these for glob
 		// as they have a special meaning in the glob library but not in Sigma
 		if isBracket(str[i]) {
-			replStr[x] = SIGMA_SPECIAL_ESCAPE
+			replStr[x] = sigmaSpecialEscape
 			x-- // decrement x again as we're adding an extra char
 		}
 	}
 
 	// one last slash count before exiting to catch leading backslashes
 	if (slashCnt % 2) != 0 {
-		replStr[x] = SIGMA_SPECIAL_ESCAPE
+		replStr[x] = sigmaSpecialEscape
 	} else {
 		x++ // for return, move back to the first valid characgter if we haven't added a compensating slash
 	}
