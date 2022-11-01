@@ -72,9 +72,9 @@ var gWSCollapse = regexp.MustCompile(`\s+`)
 
 // handleWhitespace takes str and if the global configuration for collapsing whitespace is NOT turned off
 // returns the string with whitespace collapsed (1+ spaces, tabs, etc... become single space); otherwise
-//just returns the unmodified str; this only applies to non-regex rules and data hitting non-regex rules
+// just returns the unmodified str; this only applies to non-regex rules and data hitting non-regex rules
 func handleWhitespace(str string, noCollapseWS bool) string {
-	if noCollapseWS { //do we collapse whitespace or not?  See config.NoCollapseWS (we collapse by default)
+	if noCollapseWS { // do we collapse whitespace or not?  See config.NoCollapseWS (we collapse by default)
 		return str
 	}
 	return gWSCollapse.ReplaceAllString(str, " ")
@@ -107,11 +107,11 @@ const (
 //	* Three backslashes are necessary to escape both, the backslash and the wildcard and handle them as plain values: '\\\*'
 //	* Three or four backslashes are handled as double backslash. Four are recommended for consistency reasons: '\\\\' results in the plain value '\\'
 func escapeSigmaForGlob(str string) string {
-	if str == "" { //quick out if empty
+	if str == "" { // quick out if empty
 		return ""
 	}
 
-	//special "quotemeta"-like functionality for brackets in glob (they should be treated as plaintext)
+	// special "quotemeta"-like functionality for brackets in glob (they should be treated as plaintext)
 	isBracket := func(b byte) bool {
 		return b == GLOB_SPECIAL_SQRBRKT_LEFT || b == GLOB_SPECIAL_SQRBRKT_RIGHT ||
 			b == GLOB_SPECIAL_CURLBRKT_LEFT || b == GLOB_SPECIAL_CURLBRKT_RIGHT
@@ -119,47 +119,47 @@ func escapeSigmaForGlob(str string) string {
 
 	sLen := len(str)
 	replStr := make([]byte, 2*sLen)
-	x := (2 * sLen) - 1 //end of the replStr; we're working backwards
+	x := (2 * sLen) - 1 // end of the replStr; we're working backwards
 
 	wildcard := false // we enter wildcard mode when we see a '?' or '*' and exit when we see something other than '\' or wildcard
 	slashCnt := 0     // to simplify balancing runs of escaped backslashes (without wildcards), we just count the number we've seen in a row
 	for i := (sLen - 1); i >= 0; i-- {
 		switch str[i] {
-		case SIGMA_SPECIAL_WILDCARD, SIGMA_SPECIAL_SINGLE: //wildcard is on when we see one of these characters
+		case SIGMA_SPECIAL_WILDCARD, SIGMA_SPECIAL_SINGLE: // wildcard is on when we see one of these characters
 			wildcard = true
-		case SIGMA_SPECIAL_ESCAPE: //character is an escape (backslash)
-			if !wildcard { //if we're no in wildcard mode, count the number of slashes we're putting out to ensure they're balanced
+		case SIGMA_SPECIAL_ESCAPE: // character is an escape (backslash)
+			if !wildcard { // if we're no in wildcard mode, count the number of slashes we're putting out to ensure they're balanced
 				slashCnt++
 			}
-		default: //any other character, ensure wildcard mode is off
+		default: // any other character, ensure wildcard mode is off
 			wildcard = false
 		}
 
-		//if we're no longer processing an escape character, check to see if we have a balanced count and if not, rebalance
+		// if we're no longer processing an escape character, check to see if we have a balanced count and if not, rebalance
 		if str[i] != SIGMA_SPECIAL_ESCAPE && slashCnt > 0 {
 			if (slashCnt % 2) != 0 {
 				replStr[x] = SIGMA_SPECIAL_ESCAPE
-				x-- //decrement x again as we're adding an extra char
+				x-- // decrement x again as we're adding an extra char
 			}
 			slashCnt = 0
 		}
 
-		replStr[x] = str[i] //copy our current character to the output
+		replStr[x] = str[i] // copy our current character to the output
 		x--
 
 		// special escape case for square/curly brackets; we need to escape these for glob
 		// as they have a special meaning in the glob library but not in Sigma
 		if isBracket(str[i]) {
 			replStr[x] = SIGMA_SPECIAL_ESCAPE
-			x-- //decrement x again as we're adding an extra char
+			x-- // decrement x again as we're adding an extra char
 		}
 	}
 
-	//one last slash count before exiting to catch leading backslashes
+	// one last slash count before exiting to catch leading backslashes
 	if (slashCnt % 2) != 0 {
 		replStr[x] = SIGMA_SPECIAL_ESCAPE
 	} else {
-		x++ //for return, move back to the first valid characgter if we haven't added a compensating slash
+		x++ // for return, move back to the first valid characgter if we haven't added a compensating slash
 	}
 
 	return string(replStr[x:])
@@ -175,15 +175,15 @@ func NewStringMatcher(
 	}
 	matcher := make([]StringMatcher, 0)
 	for _, p := range patterns {
-		//process modifiers first
+		// process modifiers first
 		switch mod {
-		case TextPatternRegex: //regex per spec
+		case TextPatternRegex: // regex per spec
 			re, err := regexp.Compile(p)
 			if err != nil {
 				return nil, err
 			}
 			matcher = append(matcher, RegexPattern{Re: re})
-		case TextPatternContains: //contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
+		case TextPatternContains: // contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
 			p = handleWhitespace(p, noCollapseWS)
 			// In this condition, we need to ensure single backslashes, etc... are escaped correctly before throwing the globs on either side
 			p = escapeSigmaForGlob(p)
@@ -200,7 +200,7 @@ func NewStringMatcher(
 			p = handleWhitespace(p, noCollapseWS)
 			matcher = append(matcher, PrefixPattern{Token: p, Lowercase: lower, NoCollapseWS: noCollapseWS})
 		default:
-			//no (supported) modifiers, handle non-spec regex, globs and regular values
+			// no (supported) modifiers, handle non-spec regex, globs and regular values
 			if strings.HasPrefix(p, "/") && strings.HasSuffix(p, "/") {
 				re, err := regexp.Compile(strings.TrimLeft(strings.TrimRight(p, "/"), "/"))
 				if err != nil {
@@ -208,10 +208,10 @@ func NewStringMatcher(
 				}
 				matcher = append(matcher, RegexPattern{Re: re})
 			} else if mod == TextPatternKeyword {
-				//this is a bit hacky, basically if the pattern coming in is a keyword and did not appear
-				//to be a regex, always process it as a 'contains' style glob (can appear anywhere...)
-				//this is due, I believe, on how keywords are generally handled, where it is likely a random
-				//string or event long message that may have additional detail/etc...
+				// this is a bit hacky, basically if the pattern coming in is a keyword and did not appear
+				// to be a regex, always process it as a 'contains' style glob (can appear anywhere...)
+				// this is due, I believe, on how keywords are generally handled, where it is likely a random
+				// string or event long message that may have additional detail/etc...
 				p = handleWhitespace(p, noCollapseWS)
 				// In this condition, we need to ensure single backslashes, etc... are escaped correctly before throwing the globs on either side
 				p = escapeSigmaForGlob(p)
@@ -223,7 +223,7 @@ func NewStringMatcher(
 				matcher = append(matcher, GlobPattern{Glob: &globNG, NoCollapseWS: noCollapseWS})
 			} else if strings.Contains(p, "*") {
 				p = handleWhitespace(p, noCollapseWS)
-				//Do NOT call QuoteMeta here as we're assuming the author knows what they're doing...
+				// Do NOT call QuoteMeta here as we're assuming the author knows what they're doing...
 				p = escapeSigmaForGlob(p)
 				globNG, err := glob.Compile(p)
 				if err != nil {
@@ -255,9 +255,9 @@ type StringMatchers []StringMatcher
 // StringMatch implements StringMatcher
 func (s StringMatchers) StringMatch(msg string) bool {
 	for _, m := range s {
-		//I thought about a type assertion here for handling whitespace
-		//however, as we're dealing with non-pointer types, that may cause
-		//some added overhead that we can avoid by just implementing where need to
+		// I thought about a type assertion here for handling whitespace
+		// however, as we're dealing with non-pointer types, that may cause
+		// some added overhead that we can avoid by just implementing where need to
 		if m.StringMatch(msg) {
 			return true
 		}

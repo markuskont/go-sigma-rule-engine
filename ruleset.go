@@ -16,7 +16,7 @@ type Config struct {
 	// this parameter will cause an early error return instead
 	FailOnRuleParse, FailOnYamlParse bool
 	// by default, we will collapse whitespace for both rules and data of non-regex rules and non-regex compared data
-	//setthig this to true turns that behavior off
+	// setthig this to true turns that behavior off
 	NoCollapseWS bool
 }
 

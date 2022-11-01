@@ -49,12 +49,14 @@ var detection1_negative1 = `
 	"ParentImage": "C:\\test\\mshta.exe"
 }
 `
+
 var detection1_negative2 = `
 {
 	"Image":       "C:\\test\\bitsadmin.exe",
 	"CommandLine": "+R +H +S +A lll.cui"
 }
 `
+
 var detection2 = `
 detection:
   condition: "(selection1 and selection2) and not selection3"
@@ -111,6 +113,7 @@ var detection3_positive1 = `
 	"ParentImage": "C:\\test\\wmiprvse.exe"
 }
 `
+
 var detection3_positive2 = `
 {
 	"Image":       "C:\\test\\custom.exe",
@@ -244,6 +247,7 @@ var detection7_negative1 = `
 	"ParentImage": "E:\\go\\bin\\gofmt"
 }
 `
+
 var detection7_negative2 = `
 {
 	"Image":       "C:\\test\\bytesadmin.exe",
@@ -291,6 +295,7 @@ var detection8_negative1 = `
 	"ParentImage": "C:\\test\\mshta.exe"
 }
 `
+
 var detection8_negative2 = `
 {
 	"Image":       "C:\\test\\bitsadmin.exe",
@@ -393,11 +398,11 @@ var detection12_negative = `
 }
 `
 
-//this test is a bit tricky:
-//the '*\bits\*admin.exe' is looking to match '[wildCard]\bits*admin.exe' (one wildcard at head, one escaped wildcard)
-//the '\\\\DoubleBackslash\\some*.exe' is looking to match '\\DoubleBackslash\some[wildCard].exe' (multiple backslashes, one wildcard)
-//the '\leadingBackslash\\*.exe' is looking to match '\leadingBackslash\[wildCard].exe' (one wildcard and leading backslash)
-//the 'full\\\*plaintext.exe' is looking to match 'full\*plaintext.exe' (no wildcards exact match)
+// this test is a bit tricky:
+// the '*\bits\*admin.exe' is looking to match '[wildCard]\bits*admin.exe' (one wildcard at head, one escaped wildcard)
+// the '\\\\DoubleBackslash\\some*.exe' is looking to match '\\DoubleBackslash\some[wildCard].exe' (multiple backslashes, one wildcard)
+// the '\leadingBackslash\\*.exe' is looking to match '\leadingBackslash\[wildCard].exe' (one wildcard and leading backslash)
+// the 'full\\\*plaintext.exe' is looking to match 'full\*plaintext.exe' (no wildcards exact match)
 var detection13 = `
 detection:
   condition: "all of them"
@@ -419,6 +424,7 @@ var detection13_positive = `
 	"ParentImage": "\\leadingBackslash\\something.exe"
 }
 `
+
 var detection13_positive2 = `
 {
 	"Image":       "\\\\DoubleBackslash\\someOther.exe",
@@ -440,8 +446,8 @@ var detection13_positive4 = `
 }
 `
 
-//won't match as Image is looking for '*\bits*admin.exe' witha leading wildcard and an escaped '*' between bits and admin
-//this provides 'C:\test\bitsadmin.exe', which matches the leading wildcard but fails to present the escaped '*'
+// won't match as Image is looking for '*\bits*admin.exe' witha leading wildcard and an escaped '*' between bits and admin
+// this provides 'C:\test\bitsadmin.exe', which matches the leading wildcard but fails to present the escaped '*'
 var detection13_negative = `
 {
 	"Image":       "C:\\test\\bitsadmin.exe",
@@ -449,8 +455,8 @@ var detection13_negative = `
 }
 `
 
-//won't match as the ParentImage is looking for '\leadingBackslash\*.exe' with a wildcard
-//this provides 'leadingBackslash\something.exe', missing the leading backslash
+// won't match as the ParentImage is looking for '\leadingBackslash\*.exe' with a wildcard
+// this provides 'leadingBackslash\something.exe', missing the leading backslash
 var detection13_negative2 = `
 {
 	"Image":       "C:\\test\\bits*admin.exe",
@@ -458,8 +464,8 @@ var detection13_negative2 = `
 }
 `
 
-//won't match as the ParentImage is looking for an exact match (no wildcards) to 'full\*plaintext.exe'
-//this provides 'full\\*plaintext', the extra backslash kills it
+// won't match as the ParentImage is looking for an exact match (no wildcards) to 'full\*plaintext.exe'
+// this provides 'full\\*plaintext', the extra backslash kills it
 var detection13_negative3 = `
 {
 	"Image":       "C:\\test\\bits*admin.exe",
@@ -467,8 +473,8 @@ var detection13_negative3 = `
 }
 `
 
-//shouldn't match on either of these (Image is missing 'Windows' in the bracket, ParentImage is missing the
-//a vaule of 000-aaa in the brackets)
+// shouldn't match on either of these (Image is missing 'Windows' in the bracket, ParentImage is missing the
+// a vaule of 000-aaa in the brackets)
 var detection13_negative4 = `
 {
 	"Image":       "[-Security]\\image.cmd",
@@ -476,8 +482,8 @@ var detection13_negative4 = `
 }
 `
 
-//this has a hacky test; we set 'noCollapseWSNeg' in the parseTestCast struct for this case specifically
-//doing so will turn off collapsing the whitespace for the negative test and cause this to fail detection
+// this has a hacky test; we set 'noCollapseWSNeg' in the parseTestCast struct for this case specifically
+// doing so will turn off collapsing the whitespace for the negative test and cause this to fail detection
 var detection14 = `
 detection:
   condition: "selection"
@@ -567,12 +573,12 @@ var parseTestCases = []parseTestCase{
 	{
 		Rule:            detection14,
 		Pos:             []string{detection14_case},
-		noCollapseWSNeg: false, //ensures whitespace is collapsed and everything matches
+		noCollapseWSNeg: false, // ensures whitespace is collapsed and everything matches
 	},
 	{
 		Rule:            detection14,
 		Neg:             []string{detection14_case},
-		noCollapseWSNeg: true, //turns off whitespace collapsing and causing a non-match
+		noCollapseWSNeg: true, // turns off whitespace collapsing and causing a non-match
 	},
 }
 
@@ -700,7 +706,7 @@ func TestSigmaEscape(t *testing.T) {
 				t.Errorf("failed to validate escaped input; got: %s - expected: %s", escStr, curTest.expected)
 			}
 
-			//test as a glob to be sure
+			// test as a glob to be sure
 			globT, err := glob.Compile(escStr)
 			if err != nil {
 				t.Fatalf("failed to compile glob: %+v", err)
