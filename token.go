@@ -13,8 +13,8 @@ var eof = rune(0)
 type Item struct {
 	T            Token
 	Val          string
-	globVal      *glob.Glob //Do NOT access directly, us the Item.Glob() function instead
-	globCompFail bool       //prevents us from trying to re-compile a failed globVal over and over...
+	globVal      *glob.Glob // Do NOT access directly, us the Item.Glob() function instead
+	globCompFail bool       // prevents us from trying to re-compile a failed globVal over and over...
 }
 
 func (i Item) String() string { return i.Val }
@@ -36,7 +36,7 @@ func (i *Item) Glob() *glob.Glob {
 }
 
 func genItems(t []Item) <-chan Item {
-	tx := make(chan Item) //unbuffered
+	tx := make(chan Item) // unbuffered
 	go func(ctx context.Context) {
 		defer close(tx)
 		for _, item := range t {

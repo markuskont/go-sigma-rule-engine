@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,7 +49,7 @@ func NewRuleList(files []string, skip, noCollapseWS bool) ([]RuleHandle, error) 
 	rules := make([]RuleHandle, 0)
 loop:
 	for i, path := range files {
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}

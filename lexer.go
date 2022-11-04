@@ -19,7 +19,7 @@ type lexer struct {
 func lex(input string) *lexer {
 	l := &lexer{
 		input: input,
-		items: make(chan Item), //unbuffered
+		items: make(chan Item), // unbuffered
 	}
 	go l.scan()
 	return l
@@ -218,6 +218,8 @@ func checkKeyWord(in string) Token {
 		return TokKeywordAgg
 	case TokIdentifierAll.Literal():
 		return TokIdentifierAll
+	case TokStOne.Literal():
+		return TokStOne
 	default:
 		if strings.Contains(in, "*") {
 			return TokIdentifierWithWildcard

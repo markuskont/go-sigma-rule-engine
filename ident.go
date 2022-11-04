@@ -237,14 +237,14 @@ func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool) (*Selec
 			bits := strings.Split(key, "|")
 			// allow support for longer chaining later on; simplifies specifier validation as well (I think)
 			for _, curBit := range bits[1:] {
-				//excepting 'all', the supported modifiers are mutually exclusive; last one wins
+				// excepting 'all', the supported modifiers are mutually exclusive; last one wins
 				switch curBit {
 				case "startswith":
 					mod = TextPatternPrefix
 				case "endswith":
 					mod = TextPatternSuffix
 				case "re":
-					mod = TextPatternRegex //this is really a type, not a transformation per spec
+					mod = TextPatternRegex // this is really a type, not a transformation per spec
 				case "contains":
 					mod = TextPatternContains
 				case "all":
@@ -254,7 +254,7 @@ func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool) (*Selec
 						key, curBit)
 				}
 			}
-			//strip off the specifier from the key so we can look it up correctly
+			// strip off the specifier from the key so we can look it up correctly
 			key = bits[0]
 		}
 		switch pat := pattern.(type) {

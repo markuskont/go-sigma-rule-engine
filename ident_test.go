@@ -172,9 +172,11 @@ detection:
 var identKeyword1pos1 = `
 { "cmd": "sudo bash -c \"cat /etc/shadow /etc/group /etc/passwd\"" }
 `
+
 var identKeyword1neg1 = `
 { "cmd": "sh -c \"cat /etc/resolv.conf\"" }
 `
+
 var identKeyword2 = `
 ---
 detection:
@@ -189,9 +191,11 @@ detection:
 var identKeyword2pos1 = `
 { "cmd": "/usr/bin/python -m SimpleHTTPServer" }
 `
+
 var identKeyword2neg1 = `
 { "cmd": "/usr/bin/python -m pip install --user pip" }
 `
+
 var identKeyword3 = `
 ---
 detection:
@@ -256,6 +260,7 @@ var identSelection2neg1 = `
 	}
 }
 `
+
 var identSelection2neg2 = `
 {
   "channel": "Microsoft-Windows-PowerShell/Operational",
