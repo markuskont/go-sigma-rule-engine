@@ -18,10 +18,9 @@ func TestTreeParse(t *testing.T) {
 		if err != nil {
 			t.Fatalf("tree parse case %d failed: %s", c.ID, err)
 		}
-
-		var obj datamodels.Map
 		// Positive cases
 		for i, c2 := range c.Pos {
+			var obj datamodels.Map
 			if err := json.Unmarshal([]byte(c2), &obj); err != nil {
 				t.Fatalf("rule parser case %d positive case %d json unmarshal error %s", c.ID, i, err)
 			}
@@ -32,6 +31,7 @@ func TestTreeParse(t *testing.T) {
 		}
 		// Negative cases
 		for i, c2 := range c.Neg {
+			var obj datamodels.Map
 			if err := json.Unmarshal([]byte(c2), &obj); err != nil {
 				t.Fatalf("rule parser case %d positive case %d json unmarshal error %s", c.ID, i, err)
 			}

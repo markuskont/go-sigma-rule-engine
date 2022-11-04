@@ -1,11 +1,9 @@
 package sigma
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/gobwas/glob"
-	"github.com/markuskont/datamodels"
 	"gopkg.in/yaml.v2"
 )
 
@@ -714,27 +712,6 @@ func TestParse(t *testing.T) {
 				t.Fatalf("WIP")
 			default:
 				t.Fatalf("rule parser case %d failed to parse lexical tokens, %s", c.ID, err)
-			}
-		}
-		var obj datamodels.Map
-		// Positive cases
-		for i, c2 := range c.Pos {
-			if err := json.Unmarshal([]byte(c2), &obj); err != nil {
-				t.Fatalf("rule parser case %d positive case %d json unmarshal error %s", c.ID, i, err)
-			}
-			m, _ := p.result.Match(obj)
-			if !m {
-				t.Fatalf("rule parser case %d positive case %d did not match", c.ID, i)
-			}
-		}
-		// Negative cases
-		for i, c2 := range c.Neg {
-			if err := json.Unmarshal([]byte(c2), &obj); err != nil {
-				t.Fatalf("rule parser case %d positive case %d json unmarshal error %s", c.ID, i, err)
-			}
-			m, _ := p.result.Match(obj)
-			if m {
-				t.Fatalf("rule parser case %d negative case %d matched", c.ID, i)
 			}
 		}
 	}
