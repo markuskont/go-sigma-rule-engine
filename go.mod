@@ -1,4 +1,4 @@
-module github.com/markuskont/go-sigma-rule-engine
+module github.com/M00NLIG7/go-sigma-rule-engine
 
 go 1.18
 
