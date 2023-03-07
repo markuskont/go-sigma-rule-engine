@@ -31,6 +31,7 @@ func (t Tree) Eval(e Event) (*Result, bool) {
 			Title:       t.Rule.Title,
 			Tags:        t.Rule.Tags,
 			Description: t.Rule.Description,
+			Author: t.Rule.Author,
 		}, true
 	}
 	return nil, false
