@@ -60,7 +60,6 @@ func main() {
 	}
 	cnt := 0
 	hit := 0
-	// output := os.Stdout
 	sigmaResults := []interface{}{}
 	for _, event := range events {
 
@@ -77,15 +76,10 @@ func main() {
 
 		if results, ok := ruleset.EvalAll(obj); ok && len(results) > 0 {
 			obj["sigma_results"] = results
-			// encoded, err := json.Marshal(obj)
 			if err != nil {
 				log.Println(err)
 			}
 			sigmaResults = append(sigmaResults, obj)
-
-			// log.Println(string(encoded))
-			// log.Println()
-			// output.Write(encoded)
 
 			hit += 1
 		}
@@ -94,7 +88,6 @@ func main() {
 	}
 	log.Println("total dataset : ", cnt)
 	log.Println("total hit rule : ", hit)
-	// log.Println(sigmaResults)
 	file, err := os.Create("./mapping_results.json")
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
