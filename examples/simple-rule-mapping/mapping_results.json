@@ -1,0 +1,39 @@
+[
+  {
+    "CommandLine": "\"C:\\Windows\\System32\\Wbem\\WMIC.exe\" group get name",
+    "Company": "Microsoft Corporation",
+    "CurrentDirectory": "C:\\Users\\victim1\\Downloads\\winlogbeat-7.5.2-windows-x86_64\\winlogbeat-7.17.9-windows-x86_64\\",
+    "Description": "WMI Commandline Utility",
+    "EventRecordID": "35115",
+    "FileVersion": "10.0.19041.1741 (WinBuild.160101.0800)",
+    "Hashes": "SHA256=12ABB45620A7A1FFD8BB953DEBA3FCC30B8BA14B2FF523F1F519BF2BF6BA7D4C",
+    "Image": "C:\\Windows\\System32\\wbem\\WMIC.exe",
+    "IntegrityLevel": "High",
+    "LogonGuid": "{fbe589a2-781c-63f8-ec89-070000000000}",
+    "LogonId": "0x00000000000789ec",
+    "OriginalFileName": "wmic.exe",
+    "ParentCommandLine": "powershell.exe -ExecutionPolicy Bypass -C \"wmic.exe group get name\"",
+    "ParentImage": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "ParentProcessGuid": "{fbe589a2-4f85-6401-0c1a-000000001200}",
+    "ParentProcessId": "1264",
+    "ParentUser": "DESKTOP-IDQQB81\\victim1",
+    "ProcessGuid": "{fbe589a2-4f85-6401-0d1a-000000001200}",
+    "ProcessId": "5572",
+    "Product": "Microsoft® Windows® Operating System",
+    "RuleName": "-",
+    "TerminalSessionId": "1",
+    "User": "DESKTOP-IDQQB81\\victim1",
+    "UtcTime": "2023-03-03 01:38:13.584",
+    "sigma_results": [
+      {
+        "tags": [
+          "attack.discovery",
+          "attack.t1069.001"
+        ],
+        "id": "164eda96-11b2-430b-85ff-6a265c15bf32",
+        "title": "Local Groups Reconnaissance Via Wmic.EXE",
+        "description": "Detects the execution of \"wmic\" with the \"group\" flag.\nAdversaries may attempt to find local system groups and permission settings.\nThe knowledge of local system permission groups can help adversaries determine which groups exist and which users belong to a particular group.\nAdversaries may use this information to determine which users have elevated permissions, such as the users found within the local administrators group.\n"
+      }
+    ]
+  }
+]
