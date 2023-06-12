@@ -40,6 +40,44 @@ type Rule struct {
 	Tags      `yaml:"tags" json:"tags"`
 }
 
+func NewRuleListFromRawRules(rawrules []string, skip, noCollapseWS bool) ([]RuleHandle, error) {
+	if len(rawrules) == 0 {
+		return nil, fmt.Errorf("missing rawrules list")
+	}
+	errs := make([]ErrParseYaml, 0)
+	rules := make([]RuleHandle, 0)
+loop:
+	for i, rule := range rawrules {
+		var r Rule
+		data := []byte(rule)
+		if err := yaml.Unmarshal(data, &r); err != nil {
+			if skip {
+				errs = append(errs, ErrParseYaml{
+					Path:  "",
+					Count: i,
+					Err:   err,
+				})
+				continue loop
+			}
+			return nil, &ErrParseYaml{Err: err}
+		}
+		rules = append(rules, RuleHandle{
+			Path:         "",
+			Rule:         r,
+			NoCollapseWS: noCollapseWS,
+			Multipart: func() bool {
+				return !bytes.HasPrefix(data, []byte("---")) && bytes.Contains(data, []byte("---"))
+			}(),
+		})
+	}
+	return rules, func() error {
+		if len(errs) > 0 {
+			return ErrBulkParseYaml{Errs: errs}
+		}
+		return nil
+	}()
+}
+
 // NewRuleList reads a list of sigma rule paths and parses them to rule objects
 func NewRuleList(files []string, skip, noCollapseWS bool) ([]RuleHandle, error) {
 	if len(files) == 0 {
