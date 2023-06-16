@@ -41,7 +41,7 @@ func main() {
 		log.Println(f)
 	}
 	log.Println("Parsing rule yaml files")
-	rules, err := sigma.NewRuleList(files, true, false)
+	rules, err := sigma.NewRuleList(files, true, false, nil)
 	if err != nil {
 		switch err.(type) {
 		case sigma.ErrBulkParseYaml:

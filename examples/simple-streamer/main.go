@@ -26,7 +26,7 @@ func main() {
 		NoCollapseWS:    false,
 		FailOnRuleParse: false,
 		FailOnYamlParse: false,
-	})
+	}, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

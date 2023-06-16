@@ -41,7 +41,7 @@ type Rule struct {
 }
 
 // NewRuleList reads a list of sigma rule paths and parses them to rule objects
-func NewRuleList(files []string, skip, noCollapseWS bool) ([]RuleHandle, error) {
+func NewRuleList(files []string, skip, noCollapseWS bool, tags []string) ([]RuleHandle, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("missing rule file list")
 	}
@@ -65,6 +65,21 @@ loop:
 			}
 			return nil, &ErrParseYaml{Err: err, Path: path}
 		}
+	tagLoop:
+		for _, tag := range tags {
+			for _, ruleTag := range r.Tags {
+				if ruleTag == tag {
+					continue tagLoop
+				}
+			}
+			errs = append(errs, ErrParseYaml{
+				Path:  path,
+				Count: i,
+				Err:   fmt.Errorf("rule does not have required %s tag", tag),
+			})
+			continue loop
+		}
+
 		rules = append(rules, RuleHandle{
 			Path:         path,
 			Rule:         r,

@@ -47,7 +47,7 @@ type Ruleset struct {
 }
 
 // NewRuleset instanciates a Ruleset object
-func NewRuleset(c Config) (*Ruleset, error) {
+func NewRuleset(c Config, tags []string) (*Ruleset, error) {
 	if err := c.validate(); err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func NewRuleset(c Config) (*Ruleset, error) {
 		return nil, err
 	}
 	var fail, unsupp int
-	rules, err := NewRuleList(files, !c.FailOnYamlParse, c.NoCollapseWS)
+	rules, err := NewRuleList(files, !c.FailOnYamlParse, c.NoCollapseWS, tags)
 	if err != nil {
 		switch e := err.(type) {
 		case ErrBulkParseYaml:
