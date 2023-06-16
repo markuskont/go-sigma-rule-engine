@@ -1,6 +1,7 @@
 package sigma
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -163,6 +164,15 @@ func (s Selection) Match(msg Event) (bool, bool) {
 			if !v.Pattern.NumMatch(n) {
 				return false, true
 			}
+		case json.Number:
+			n, err := vt.Int64()
+			if err != nil {
+				// TODO - better debugging
+				return false, true
+			}
+			if !v.Pattern.NumMatch(int(n)) {
+				return false, true
+			}
 		case float64:
 			// JSON numbers are all by spec float64 values
 			if !v.Pattern.NumMatch(int(vt)) {
@@ -208,6 +218,10 @@ func (s Selection) Match(msg Event) (bool, bool) {
 		switch vt := val.(type) {
 		case string:
 			if !v.Pattern.StringMatch(vt) {
+				return false, true
+			}
+		case json.Number:
+			if !v.Pattern.StringMatch(vt.String()) {
 				return false, true
 			}
 		case float64:
