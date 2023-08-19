@@ -55,7 +55,7 @@ func NewRuleset(c Config, tags []string) (*Ruleset, error) {
 	if err != nil {
 		return nil, err
 	}
-	var fail, unsupp int
+	var fail int
 	rules, err := NewRuleList(files, !c.FailOnYamlParse, c.NoCollapseWS, tags)
 	if err != nil {
 		switch e := err.(type) {
@@ -65,6 +65,15 @@ func NewRuleset(c Config, tags []string) (*Ruleset, error) {
 			return nil, err
 		}
 	}
+	result := RulesetFromRuleList(rules)
+	result.root = c.Directory
+	result.Failed += fail
+	result.Total += fail
+	return result, nil
+}
+
+func RulesetFromRuleList(rules []RuleHandle) *Ruleset {
+	var fail, unsupp int
 	set := make([]*Tree, 0)
 loop:
 	for _, raw := range rules {
@@ -86,13 +95,12 @@ loop:
 	}
 	return &Ruleset{
 		mu:          &sync.RWMutex{},
-		root:        c.Directory,
 		Rules:       set,
 		Failed:      fail,
 		Ok:          len(set),
 		Unsupported: unsupp,
-		Total:       len(files),
-	}, nil
+		Total:       len(rules),
+	}
 }
 
 func (r *Ruleset) EvalAll(e Event) (Results, bool) {

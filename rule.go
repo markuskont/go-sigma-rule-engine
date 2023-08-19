@@ -40,7 +40,32 @@ type Rule struct {
 	Tags      `yaml:"tags" json:"tags"`
 }
 
-// NewRuleList reads a list of sigma rule paths and parses them to rule objects
+// HasTags returns true if the rule contains all provided tags, otherwise false
+func (r *Rule) HasTags(tags []string) bool {
+	lookup := make(map[string]bool, len(r.Tags))
+	for _, tag := range r.Tags {
+		lookup[tag] = true
+	}
+	for _, tag := range tags {
+		if _, ok := lookup[tag]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// RuleFromYAML parses yaml data into Rule object
+func RuleFromYAML(data []byte) (r Rule, err error) {
+	err = yaml.Unmarshal(data, &r)
+	return
+}
+
+// IsMultipart checks if rule is multipart
+func IsMultipart(data []byte) bool {
+	return !bytes.HasPrefix(data, []byte("---")) && bytes.Contains(data, []byte("---"))
+}
+
+// NewRuleList 	reads a list of sigma rule paths and parses them to rule objects
 func NewRuleList(files []string, skip, noCollapseWS bool, tags []string) ([]RuleHandle, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("missing rule file list")
@@ -53,8 +78,8 @@ loop:
 		if err != nil {
 			return nil, err
 		}
-		var r Rule
-		if err := yaml.Unmarshal(data, &r); err != nil {
+		r, err := RuleFromYAML(data)
+		if err != nil {
 			if skip {
 				errs = append(errs, ErrParseYaml{
 					Path:  path,
@@ -65,18 +90,8 @@ loop:
 			}
 			return nil, &ErrParseYaml{Err: err, Path: path}
 		}
-	tagLoop:
-		for _, tag := range tags {
-			for _, ruleTag := range r.Tags {
-				if ruleTag == tag {
-					continue tagLoop
-				}
-			}
-			errs = append(errs, ErrParseYaml{
-				Path:  path,
-				Count: i,
-				Err:   fmt.Errorf("rule does not have required %s tag", tag),
-			})
+
+		if !r.HasTags(tags) {
 			continue loop
 		}
 
@@ -84,9 +99,7 @@ loop:
 			Path:         path,
 			Rule:         r,
 			NoCollapseWS: noCollapseWS,
-			Multipart: func() bool {
-				return !bytes.HasPrefix(data, []byte("---")) && bytes.Contains(data, []byte("---"))
-			}(),
+			Multipart:    IsMultipart(data),
 		})
 	}
 	return rules, func() error {
