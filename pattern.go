@@ -101,11 +101,11 @@ const (
 // wildcard).
 //
 // Simga escaping rules per spec:
-//	* Plain backslash not followed by a wildcard can be expressed as single '\' or double backslash '\\'. For simplicity reasons the single notation is recommended.
-//	* A wildcard has to be escaped to handle it as a plain character: '\*'
-//	* The backslash before a wildcard has to be escaped to handle the value as a backslash followed by a wildcard: '\\*'
-//	* Three backslashes are necessary to escape both, the backslash and the wildcard and handle them as plain values: '\\\*'
-//	* Three or four backslashes are handled as double backslash. Four are recommended for consistency reasons: '\\\\' results in the plain value '\\'
+//   - Plain backslash not followed by a wildcard can be expressed as single '\' or double backslash '\\'. For simplicity reasons the single notation is recommended.
+//   - A wildcard has to be escaped to handle it as a plain character: '\*'
+//   - The backslash before a wildcard has to be escaped to handle the value as a backslash followed by a wildcard: '\\*'
+//   - Three backslashes are necessary to escape both, the backslash and the wildcard and handle them as plain values: '\\\*'
+//   - Three or four backslashes are handled as double backslash. Four are recommended for consistency reasons: '\\\\' results in the plain value '\\'
 func escapeSigmaForGlob(str string) string {
 	if str == "" { // quick out if empty
 		return ""
@@ -185,6 +185,7 @@ func NewStringMatcher(
 			matcher = append(matcher, RegexPattern{Re: re})
 		case TextPatternContains: // contains: puts * wildcards around the values, such that the value is matched anywhere in the field.
 			p = handleWhitespace(p, noCollapseWS)
+			p = lowerCaseIfNeeded(p, lower)
 			// In this condition, we need to ensure single backslashes, etc... are escaped correctly before throwing the globs on either side
 			p = escapeSigmaForGlob(p)
 			p = "*" + p + "*"
@@ -192,7 +193,7 @@ func NewStringMatcher(
 			if err != nil {
 				return nil, err
 			}
-			matcher = append(matcher, GlobPattern{Glob: &globNG, NoCollapseWS: noCollapseWS})
+			matcher = append(matcher, GlobPattern{Glob: &globNG, Lowercase: lower, NoCollapseWS: noCollapseWS})
 		case TextPatternSuffix:
 			p = handleWhitespace(p, noCollapseWS)
 			matcher = append(matcher, SuffixPattern{Token: p, Lowercase: lower, NoCollapseWS: noCollapseWS})
@@ -213,6 +214,7 @@ func NewStringMatcher(
 				// this is due, I believe, on how keywords are generally handled, where it is likely a random
 				// string or event long message that may have additional detail/etc...
 				p = handleWhitespace(p, noCollapseWS)
+				p = lowerCaseIfNeeded(p, lower)
 				// In this condition, we need to ensure single backslashes, etc... are escaped correctly before throwing the globs on either side
 				p = escapeSigmaForGlob(p)
 				p = "*" + p + "*"
@@ -220,16 +222,17 @@ func NewStringMatcher(
 				if err != nil {
 					return nil, err
 				}
-				matcher = append(matcher, GlobPattern{Glob: &globNG, NoCollapseWS: noCollapseWS})
+				matcher = append(matcher, GlobPattern{Glob: &globNG, Lowercase: lower, NoCollapseWS: noCollapseWS})
 			} else if strings.Contains(p, "*") {
 				p = handleWhitespace(p, noCollapseWS)
+				p = lowerCaseIfNeeded(p, lower)
 				// Do NOT call QuoteMeta here as we're assuming the author knows what they're doing...
 				p = escapeSigmaForGlob(p)
 				globNG, err := glob.Compile(p)
 				if err != nil {
 					return nil, err
 				}
-				matcher = append(matcher, GlobPattern{Glob: &globNG, NoCollapseWS: noCollapseWS})
+				matcher = append(matcher, GlobPattern{Glob: &globNG, Lowercase: lower, NoCollapseWS: noCollapseWS})
 			} else {
 				p = handleWhitespace(p, noCollapseWS)
 				matcher = append(matcher, ContentPattern{Token: p, Lowercase: lower, NoCollapseWS: noCollapseWS})
@@ -369,13 +372,14 @@ func (r RegexPattern) StringMatch(msg string) bool {
 // GlobPattern is similar to ContentPattern but allows for asterisk wildcards
 type GlobPattern struct {
 	Glob         *glob.Glob
+	Lowercase    bool
 	NoCollapseWS bool
 }
 
 // StringMatch implements StringMatcher
 func (g GlobPattern) StringMatch(msg string) bool {
 	msg = handleWhitespace(msg, g.NoCollapseWS)
-	return (*g.Glob).Match(msg)
+	return (*g.Glob).Match(lowerCaseIfNeeded(msg, g.Lowercase))
 }
 
 // SimplePattern is a reference type to illustrate StringMatcher

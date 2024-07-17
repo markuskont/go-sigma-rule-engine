@@ -273,7 +273,11 @@ func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool) (*Selec
 		}
 		switch pat := pattern.(type) {
 		case string:
-			m, err := NewStringMatcher(mod, false, all, noCollapseWS, pat)
+			lower := true
+			if mod == TextPatternRegex {
+				lower = false
+			}
+			m, err := NewStringMatcher(mod, lower, all, noCollapseWS, pat)
 			if err != nil {
 				return nil, err
 			}
@@ -305,7 +309,11 @@ func newSelectionFromMap(expr map[string]interface{}, noCollapseWS bool) (*Selec
 			}
 			switch k {
 			case reflect.String:
-				m, err := NewStringMatcher(mod, false, all, noCollapseWS, castIfaceToString(pat)...)
+				lower := true
+				if mod == TextPatternRegex {
+					lower = false
+				}
+				m, err := NewStringMatcher(mod, lower, all, noCollapseWS, castIfaceToString(pat)...)
 				if err != nil {
 					return nil, err
 				}

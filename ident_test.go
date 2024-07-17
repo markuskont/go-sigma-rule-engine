@@ -278,6 +278,52 @@ var identSelection2neg2 = `
 	}
 }
 `
+var identSelection4 = `
+---
+detection:
+  condition: selection
+  selection:
+   - winlog.event_data.ScriptBlockText|contains:
+      - '*wmic*shadowcopy*delete'
+`
+
+var identSelection4pos1 = `
+{
+  "event_id": 1337,
+  "channel": "Microsoft-Windows-PowerShell/Operational",
+  "task": "Execute a Remote Command",
+  "opcode": "On create calls",
+  "version": 1,
+  "record_id": 1559,
+	"winlog": {
+		"event_data": {
+			"MessageNumber": "1",
+			"MessageTotal": "1",
+			"ScriptBlockText": "someData WMic shaDOWcOpY     dEleTe",
+			"ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+		}
+	}
+}
+`
+
+var identSelection4neg1 = `
+{
+  "event_id": 1337,
+  "channel": "Microsoft-Windows-PowerShell/Operational",
+  "task": "Execute a Remote Command",
+  "opcode": "On create calls",
+  "version": 1,
+  "record_id": 1559,
+	"winlog": {
+		"event_data": {
+			"MessageNumber": "1",
+			"MessageTotal": "1",
+			"ScriptBlockText": "something normal",
+			"ScriptBlockId": "ecbb39e8-1896-41be-b1db-9a33ed76314b"
+		}
+	}
+}
+`
 
 var selectionCases = []identTestCase{
 	{
@@ -302,6 +348,14 @@ var selectionCases = []identTestCase{
 		IdentTypes: []identType{identSelection},
 		Pos:        []string{identSelection2pos1},
 		Neg:        []string{identSelection2neg1, identSelection2neg2},
+		Example:    ident2,
+	},
+	{
+		IdentCount: 1,
+		Rule:       identSelection4,
+		IdentTypes: []identType{identSelection},
+		Pos:        []string{identSelection4pos1},
+		Neg:        []string{identSelection4neg1},
 		Example:    ident2,
 	},
 }
